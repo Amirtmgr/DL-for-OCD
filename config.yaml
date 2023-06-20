@@ -1,0 +1,11 @@
+# Configuration file
+
+datasets:
+  - PATH: ../data/
+  - EVAL_PATH: ../data/allEvaluations
+  - BLACK_LIST: NULL
+  - WHITE_LIST:
+    - 2
+    - 9
+    - 12
+
