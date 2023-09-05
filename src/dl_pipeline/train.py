@@ -117,7 +117,8 @@ def __run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sch
     """
 
     is_train = phase == 'train'
-    
+    network.to(device)
+
     # Set network to train or eval mode
     if is_train:
         network.train()
@@ -125,7 +126,7 @@ def __run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sch
         network.eval()
 
     # Initialize lists for running_loss, targets, predictions
-    running_loss = []
+    running_loss = 0.0
     epoch_targets = []
     epoch_preds = []
 
@@ -133,7 +134,7 @@ def __run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sch
     for batch_idx, (X, y) in enumerate(data_loader):
         # Mean zero center x
         #x = x - torch.mean(x, dim=(2, 3), keepdim=True)
-
+        #X, y = X.double(), y.double()
         # Send x and y to GPU/CPU
         inputs, targets = X.to(device), y.to(device)
 
@@ -245,8 +246,8 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
         val_metrics_arr.append(val_metrics)
 
         # Print epoch results
-        message = f"Epoch: {epoch+1}/{epochs} | Train Loss: {train_metrics.loss:.2f} | Train F1 Score: {train_metrics.f1_score:.2f} | Train Recall Score: {train_metrics.recall_score:.2f} | Train Precision Score: {train_metrics.precision_score:.2f} | Train Specificity Score: {train_metrics.specificity_score:.4f} | Train Jaccard Score: {train_metrics.jaccard_score:.2f} | Train Confusion Matrix: {train_metrics.confusion_matrix}"
-    
+        #message = f"Epoch: {epoch+1}/{epochs} | Train Loss: {train_metrics.loss:.2f} | Train F1 Score: {train_metrics.f1_score:.2f} | Train Recall Score: {train_metrics.recall_score:.2f} | Train Precision Score: {train_metrics.precision_score:.2f} | Train Specificity Score: {train_metrics.specificity_score:.4f} | Train Jaccard Score: {train_metrics.jaccard_score:.2f} | Train Confusion Matrix: {train_metrics.confusion_matrix}"
+        message = f"Epoch:{epoch+1}/{epochs} | Train Loss: {train_metrics.loss:.2f}"
         Logger.info(message)
 
         # save best model

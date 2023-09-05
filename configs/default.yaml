@@ -6,13 +6,12 @@
 
 # Group parameters by phase
 train_subjects: [1, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]
-debug: True
+debug: False
 architecture:
   name: 'cnn'
   input_dim: 54
   hidden_dim: 256
-  kernel_size: 5
-  input_channels: 54
+  kernel_size: 2
   num_layers: 2
   hidden_size: 256
   dropout: 0.5
@@ -20,6 +19,7 @@ architecture:
   num_directions: 2
   num_classes: 3
   input_size: 3
+  activation: 'relu'
 optim:
   name: 'adam'
   learning_rate: 0.001
@@ -32,7 +32,7 @@ optim:
     gamma: 0.1
 criterion:
   name: 'cross_entropy'
-  weighted: True
+  weighted: False
   reduction: 'mean'
 lr_scheduler:
   name: 'step_lr'
@@ -43,7 +43,7 @@ train:
   num_epochs: 100
   learning_rate: 0.001
   weight_decay: 0.001
-  batch_size: 64
+  batch_size: 32
   num_classes: 3
   num_layers: 2
   hidden_size: 256
@@ -54,7 +54,6 @@ train:
   batch_first: True
   num_epochs: 100
   learning_rate: 0.001
-  batch_size: 64
 dataset:
   folder: 'features'
   overlapping_ratio: 0.0
@@ -68,5 +67,5 @@ dataset:
   shuffle: False
   num_workers: 4
   pin_memory: False
-  batch_size: 32
+  normalize: "MinMax"
   

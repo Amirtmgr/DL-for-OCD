@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from src.helper.logger import Logger
 
 
@@ -32,7 +33,7 @@ def append_window(df, window_size:int):
         return True, df.index[-1]+1
         
 
-def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False):
+def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, keep_id=False):
     """
     Returns a list of windows with window_size and overlap_ratio.
     
@@ -71,8 +72,9 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False):
             # Label window based on majority voting
             temp_df["relabeled"] = temp_df['relabeled'].mode()[0]
             
-            # Append unique id 
-            temp_df["window_id"] = window_id
+            if keep_id:
+                # Append unique id 
+                temp_df["window_id"] = window_id
             
             # Remove ignore column
             if 'ignore' in columns:
@@ -81,7 +83,9 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False):
             # Append window to list
             windows.append(temp_df.drop(["relabeled"], axis=1))
             
-            labels.append(temp_df["relabeled"])
+            # Append one label per window
+            labels.append(temp_df["relabeled"].iloc[0])
+
             # Reindexing
             start -= overlapping
             window_id += 1
@@ -90,3 +94,32 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False):
     Logger.info(f"Total windows:{window_id}")
     return windows, labels
     
+
+# Function to process a list of DataFrames and return input and target data
+def process_dataframes(dataframes, window_size, overlapping_ratio):
+    """
+    Returns input and target data from a list of DataFrames.
+
+    Args:
+    dataframes: A list of DataFrames.
+    window_size: The size of each window.
+    overlapping: The amount of overlapping ratio between windows.
+    Returns:
+    A tuple of input and target data.
+    """
+
+    # Initialize empty lists for samples and labels
+    all_samples = []
+    all_labels = []
+    
+    # Process each DataFrame in the list
+    for df in dataframes:
+        samples, labels = get_windows(df, window_size, overlapping_ratio)
+        all_samples.extend(np.array(samples, dtype='float64'))
+        all_labels.extend(np.array(labels, dtype='int64'))
+    
+    # Convert lists to numpy arrays
+    input_data = np.array(all_samples, dtype='float64')
+    target_data = np.array(all_labels, dtype='int64')
+    
+    return input_data, target_data

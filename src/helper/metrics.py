@@ -26,6 +26,8 @@ class Metrics:
 
     def calculate_metrics(self, y_true, y_pred, pos_label=None):
         try:
+            print(type(y_true))
+            
             # F1 Score
             self.f1_score = f1_score(y_true, y_pred, average=self.averaging, pos_label=pos_label) # type: ignore
             
