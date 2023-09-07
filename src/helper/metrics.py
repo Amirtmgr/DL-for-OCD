@@ -3,9 +3,10 @@
 # Author: Amir Thapa Magar
 # Email: amir.thapamagar(at)student.uni-siegen.de
 # ------------------------------------------------------------------------
-
+from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 from sklearn.metrics import (
+    accuracy_score,
     f1_score,
     recall_score,
     precision_score,
@@ -23,34 +24,48 @@ class Metrics:
         self.specificity_score = None
         self.confusion_matrix = None
         self.jaccard_score = None
-
-    def calculate_metrics(self, y_true, y_pred, pos_label=None):
+        self.accuracy = None
         try:
-            print(type(y_true))
-            
+            self.zero_division = cl.config.metrics.zero_division
+        except Exception as e:
+            Logger.warning(f"Zero division not found in config file. {str(e)} Set to 'warn'.")
+            self.zero_division = 'warn'
+        
+    def calculate_metrics(self, y_true, y_pred, pos_label=None):
+
+        try:
+            # Accuracy
+            self.accuracy = accuracy_score(y_true, y_pred)
+
             # F1 Score
-            self.f1_score = f1_score(y_true, y_pred, average=self.averaging, pos_label=pos_label) # type: ignore
-            
+            self.f1_score = f1_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division) 
+
             # Recall
-            self.recall_score = recall_score(y_true, y_pred, average=self.averaging, pos_label=pos_label) # type: ignore
-            
+            self.recall_score = recall_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division)
+
             # Precision
-            self.precision_score = precision_score(y_true, y_pred, average=self.averaging, pos_label=pos_label) # type: ignore
-            
+            self.precision_score = precision_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division)
+
             # Confusion Matrix
-            self.confusion_matrix = confusion_matrix(y_true, y_pred)
-            
+            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=range(cl.config.dataset.num_classes))
+
             # Jaccard Score
-            self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, pos_label=pos_label) # type: ignore 
-            
+            self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, pos_label=pos_label,zero_division=self.zero_division)
+
             # Specificity
-            tn, fp, fn, tp = self.confusion_matrix.ravel()
-            self.specificity_score = tn / (tn + fp)
-            
+            self.specificity_score = ((1 + self.precision_score) * self.recall_score) / (self.precision_score + self.recall_score)
+
         except Exception as e:
             #Logger.error(f"An error occurred: {str(e)}")
             print(f"An error occurred: {str(e)}")
 
+        except ZeroDivisionError as e:
+            Logger.error(f"An error occurred: {str(e)}")
+            print(f"An error occurred: {str(e)}")
+
+        finally:
+            pass
+            
     def get_f1_score(self):
         return self.f1_score
 

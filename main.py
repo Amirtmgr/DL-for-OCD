@@ -1,10 +1,19 @@
+# Description: Main file to run the project.
+# Author: Amir Thapa Magar
+# Email: amir.thapamagar(at)student.uni-siegen.de
+# ------------------------------------------------------------------------
+
+# Ignore warnings
+import warnings
+warnings.filterwarnings('always')
+
+# Import the necessary packages
 import os
 import argparse
 from pathlib import Path
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 import src.dl_pipeline.dl as dl
-import warnings
 
 def main():
     # Parse the arguments
@@ -42,5 +51,4 @@ def main():
     dl.train()
 
 if __name__ == '__main__':
-    warnings.filterwarnings('always') 
     main()

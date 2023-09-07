@@ -25,6 +25,8 @@ class CNNModel(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x.float())
+        #x = self.conv1(x.double())
+        #print(x.dtype)
         x = self.batchnorm1(x)
         x = self.act_fn(x)
         x = self.maxpool1(x)
@@ -37,12 +39,12 @@ class CNNModel(nn.Module):
         x = self.conv3(x)
         x = self.act_fn(x)
 
-        print(x.shape)
+        #print(x.shape)
 
         x = x.view(x.size(0), -1)
 
-        print(x.shape)
-        print(x.dtype)
+        #print(x.shape)
+        #print(x.dtype)
         
         x = self.fc1(x)
         self.act_fn(x)
@@ -50,5 +52,5 @@ class CNNModel(nn.Module):
         x = self.dropout(x)
 
         x = self.fc2(x)
-        print(x.shape)
+        #print(x.shape)
         return x
