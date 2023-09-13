@@ -1,6 +1,7 @@
 # datasets
 data/features
 data/OCDetect_Export
+data/test
 # saved logs
 saved/logs
 

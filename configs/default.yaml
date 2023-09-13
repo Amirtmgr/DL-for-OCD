@@ -55,7 +55,7 @@ train:
   learning_rate: 0.001
 dataset:
   cross_validation: False
-  folder: 'features' #"OCDetect_Export" #'features'
+  folder: 'test' #'features' #"OCDetect_Export" #'features'
   sensor: 'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: 150
