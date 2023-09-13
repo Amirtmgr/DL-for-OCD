@@ -271,6 +271,9 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             # Save state
             __save_state(state)
 
+    state.train_metrics_arr = train_metrics_arr
+    state.val_metrics_arr = val_metrics_arr
+    
     # End time
     end = datetime.datetime.now()
 

@@ -14,6 +14,8 @@ from pathlib import Path
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 import src.dl_pipeline.dl as dl
+import src.helper.plotter as plot
+
 
 def main():
     # Parse the arguments
@@ -49,6 +51,6 @@ def main():
 
     # Perform DL pipeline
     dl.train()
-
+ 
 if __name__ == '__main__':
     main()

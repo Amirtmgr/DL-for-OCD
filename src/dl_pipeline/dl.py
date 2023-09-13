@@ -248,9 +248,10 @@ def train():
 
     state.info()
 
-    # Todos
     # Visuals
-
+    state.plot_losses()
+    state.plot_f1_scores()
+    
     # Inference
 
 
