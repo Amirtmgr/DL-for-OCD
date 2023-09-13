@@ -6,7 +6,7 @@
 
 # Group parameters by phase
 train_subjects: [1, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]
-debug: False
+debug: True
 architecture:
   name: 'cnn'
   input_dim: 54
@@ -54,11 +54,13 @@ train:
   batch_first: True
   learning_rate: 0.001
 dataset:
+  cross_validation: False
   folder: 'features' #"OCDetect_Export" #'features'
+  sensor: 'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: 150
   num_classes: 3
-  train_ratio: 0.7
+  train_ratio: 0.7  # Highest 0.9
   split: 'subject_wise' # To:do
   personalization: False
   personalized_subject: 3
@@ -66,7 +68,7 @@ dataset:
   shuffle: False
   num_workers: 4
   pin_memory: False
-  normalize: "MinMax"
+  scaler_type: "MinMax" # "Standard" # "Robust"
 metrics:
   zero_division: 0
   

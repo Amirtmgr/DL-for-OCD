@@ -16,7 +16,15 @@ from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
 # Function to get params:
 def read_params():
     if cl.config.dataset.folder == "OCDetect_Export":
-        usecols=['datetime','acc x','acc y','acc z','gyro x','gyro y','gyro z','ignore','relabeled']
+        if cl.config.dataset.sensor == "both":
+            usecols=['datetime','acc x','acc y','acc z','gyro x','gyro y','gyro z','ignore','relabeled']
+        elif cl.config.dataset.sensor == "acc":
+            usecols=['datetime','acc x','acc y','acc z','ignore','relabeled']
+        elif cl.config.dataset.sensor == "gyro":
+            usecols=['datetime','gyro x','gyro y','gyro z','ignore','relabeled']
+        else:
+            log.warning("Invalid sensor type. Use 'both', 'acc' or 'gyro'.")
+
         dtype={'relabeled': 'uint8','ignore':'uint8'}
         parse_dates = ["datetime"]
         return usecols, dtype, parse_dates
@@ -415,3 +423,18 @@ def get_labels_counts(grouped_csv_files,CSV_BLACK_LIST=[]):
         labels_counts_by_subject[subject] = labels_counts
     
     return labels_counts_by_subject
+
+
+# Function to load all files from give list of subjects and grouped_files
+def load_dfs_from(subjects, grouped_files, add_sub_id=False):
+    
+    dataFrames = []
+
+    # Load all csv files:
+    for sub_id in subjects:
+        files = grouped_files[sub_id]
+        temp_df = load_all_files(files, add_sub_id=add_sub_id)
+        dataFrames.append(temp_df)
+
+    # Return concatenated dataframes
+    return pd.concat(dataFrames, ignore_index=True)

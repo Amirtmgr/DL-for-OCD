@@ -27,130 +27,7 @@ from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.train import train_model
-
-# Prepare Dataset
-def prepare_dataset():
-    """Method to prepare dataset
-    Returns:
-        torch.utils.data.Dataset: Dataset
-    """
-    #set random seed
-    random.seed(cl.config.dataset.random_seed)
-   
-
-    if cl.config.dataset.folder == "test" or "features" or "OCD_Export":
-        csv_files = dm.get_files_names()
-        grouped_files = ds.group_by_subjects(csv_files)
-        Logger.info(f"Grouped files for subjects: {grouped_files.keys()}")
-
-        if cl.config.dataset.personalization:
-            #Todo: Add personalized subject
-            subject = cl.config.dataset.personalized_subject
-            Logger.info(f"Personalized subject: {subject}")
-
-        # Train and val dataframes
-        train_dfs = []
-        val_dfs = []
-
-        subjects = list(grouped_files.keys())
-        random.shuffle(subjects)
-
-        if cl.config.debug:
-            subjects = subjects[:2]
-        # Remove Personalized subject
-        try:
-            subjects.remove(int(cl.config.dataset.personalized_subject))
-        except:
-            Logger.info("Personalized subject not found in the subjects list.")
-        # Train and val subjects
-        train_subjects = subjects
-        val_subjects = []
-
-        # Check train-test split
-        if cl.config.dataset.train_ratio != 1.0:
-            train_size = int(float(cl.config.dataset.train_ratio) * len(subjects))
-            train_subjects = subjects[:train_size]
-            val_subjects = subjects[train_size:]            
-
-        # Get window_size
-        windows_size = cl.config.dataset.window_size
-        overlapping_ratio = cl.config.dataset.overlapping_ratio
-
-        # Load all csv files:
-        for sub_id in subjects:
-            files = grouped_files[sub_id]
-            temp_df = dfm.load_all_files(files)
-
-            # To do: Check for windows and labels arrays
-            if sub_id in train_subjects:
-                train_dfs.append(temp_df)
-            elif sub_id in val_subjects:
-                val_dfs.append(temp_df)
-
-    
-    # Get samples and targets for val and train sets
-    train_samples, train_labels = process_dataframes(train_dfs, windows_size, overlapping_ratio)
-    val_samples, val_labels = process_dataframes(val_dfs, windows_size, overlapping_ratio)
-
-    # Compute weights
-    class_weights = torch.from_numpy(compute_class_weight('balanced', classes=np.unique(train_labels), y=train_labels)).double()
-
-    # Transform
-    #transform = transforms.ToTensor()
-    
-    train_tensor = torch.from_numpy(train_samples)
-    val_tensor = torch.from_numpy(val_samples)
-    train_labels_tensor = torch.from_numpy(train_labels)
-    val_labels_tensor = torch.from_numpy(val_labels)
-
-    # Create datasets
-    train_dataset = TensorDataset(train_tensor,
-                                  train_labels_tensor)
-    
-    if val_samples.size:
-        val_dataset = TensorDataset(val_tensor,
-                                    val_labels_tensor)
-        return train_dataset, val_dataset, class_weights
-    
-    # Todo: check dimensions
-    return train_dataset, None, class_weights
-    
-
-def load_dataloaders(train_dataset, val_dataset):
-    """Method to load train and val dataloaders
-    Args:
-        dataset (torch.utils.data.Dataset): Dataset
-        batch_size (int): Batch size
-        shuffle (bool): Shuffle
-        num_workers (int): Number of workers
-    Returns:
-        torch.utils.data.DataLoader: Dataloader
-    """
-
-    # Parse config
-    batch_size = cl.config.train.batch_size
-    shuffle = cl.config.dataset.shuffle
-    num_workers = cl.config.dataset.num_workers
-    pin_memory = cl.config.dataset.pin_memory
-
-    gen = torch.Generator()
-    gen.manual_seed(cl.config.dataset.random_seed)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle,
-                            num_workers=num_workers, 
-                            pin_memory=pin_memory,
-                             generator=gen)
-    
-    if val_dataset is not None:
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle,
-                            num_workers=num_workers, 
-                            pin_memory=pin_memory,
-                             generator=gen)
-        return train_loader, val_loader
-    
-    return train_loader, None
-
-
+from src.helper import data_preprocessing as dp
 
 # Function to load network
 def load_network():
@@ -230,11 +107,15 @@ def train():
     device = setup_cuda()
 
     # Load dataset
-    train_dataset, val_dataset, class_weights = prepare_dataset()
+    train_dataset, val_dataset = dp.get_datasets()
 
     # Load dataloaders
-    train_loader, val_loader = load_dataloaders(train_dataset, val_dataset)
+    train_loader = dp.load_dataloader(train_dataset)
+    val_loader = dp.load_dataloader(val_dataset)
     
+    # Get class weights
+    class_weights = dp.compute_weights(train_dataset)
+
     # Load Traning parameters
     model = load_network()
     optimizer = load_optim(model)

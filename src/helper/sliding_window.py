@@ -12,8 +12,11 @@ def append_window(df, window_size:int):
     A boolean indicating whether to proceed, and the index of the last row to consider.
     """
     # Get all rows having ignored label
-    df_temp = df.loc[(df['ignore'] > 0)]
-    
+    if 'ignore' in df.columns:
+        df_temp = df.loc[(df['ignore'] > 0)]
+    else:
+        df_temp = pd.DataFrame()
+
     # Get time diff
     df['datetime'] = pd.to_datetime(df['datetime'])
     time_diff = df['datetime'].diff()
@@ -79,7 +82,15 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, 
             # Remove ignore column
             if 'ignore' in columns:
                 temp_df.drop(['ignore'], axis=1, inplace=True)
+
+            # Remove datetime column
+            if 'datetime' in columns:
+                temp_df.drop(['datetime'], axis=1, inplace=True)
             
+            # Remove sub_id column
+            if 'sub_id' in columns:
+                temp_df.drop(['sub_id'], axis=1, inplace=True)
+                
             # Append window to list
             windows.append(temp_df.drop(["relabeled"], axis=1))
             
@@ -96,7 +107,7 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, 
     
 
 # Function to process a list of DataFrames and return input and target data
-def process_dataframes(dataframes, window_size, overlapping_ratio):
+def process_dataframes(dataframes, window_size, overlapping_ratio, check_time=False, keep_id=False):
     """
     Returns input and target data from a list of DataFrames.
 
@@ -114,12 +125,12 @@ def process_dataframes(dataframes, window_size, overlapping_ratio):
     
     # Process each DataFrame in the list
     for df in dataframes:
-        samples, labels = get_windows(df, window_size, overlapping_ratio)
-        all_samples.extend(np.array(samples, dtype='float64'))
-        all_labels.extend(np.array(labels, dtype='int64'))
+        samples, labels = get_windows(df, window_size, overlapping_ratio, check_time, keep_id)
+        all_samples.extend(np.array(samples, dtype='float32'))
+        all_labels.extend(np.array(labels, dtype='uint8'))
     
     # Convert lists to numpy arrays
-    input_data = np.array(all_samples, dtype='float64')
-    target_data = np.array(all_labels, dtype='int64')
-    
+    input_data = np.array(all_samples, dtype='float32')
+    target_data = np.array(all_labels, dtype='uint8')
+
     return input_data, target_data
