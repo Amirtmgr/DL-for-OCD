@@ -3,7 +3,11 @@
 # Author: Amir Thapa Magar
 # Email: amir.thapamagar(at)student.uni-siegen.de
 # ------------------------------------------------------------------------
+
+import numpy as np
+
 from src.utils.config_loader import config_loader as cl
+
 from src.helper.logger import Logger
 from sklearn.metrics import (
     accuracy_score,
@@ -26,7 +30,12 @@ class Metrics:
         self.jaccard_score = None
         self.accuracy = None
         try:
-            self.zero_division = cl.config.metrics.zero_division
+            
+            if cl.config.metrics.zero_division == 'nan':
+                self.zero_division = np.nan
+            else:
+                self.zero_division = cl.config.metrics.zero_division
+
         except Exception as e:
             Logger.warning(f"Zero division not found in config file. {str(e)} Set to 'warn'.")
             self.zero_division = 'warn'
@@ -47,7 +56,7 @@ class Metrics:
             self.precision_score = precision_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division)
 
             # Confusion Matrix
-            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=range(cl.config.dataset.num_classes))
+            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=[0,1,2])
 
             # Jaccard Score
             self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, pos_label=pos_label,zero_division=self.zero_division)
@@ -61,8 +70,9 @@ class Metrics:
 
         except ZeroDivisionError as e:
             Logger.error(f"An error occurred: {str(e)}")
-            print(f"An error occurred: {str(e)}")
-
+            Logger.warning(f"An error occurred: {str(e)}")
+            Logger.info(f"y_target: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+            
         finally:
             pass
             
@@ -86,3 +96,7 @@ class Metrics:
     
     def set_loss(self, loss):
         self.loss = loss
+
+    def info(self, title=""):
+        msg = f"{title} Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
+        Logger.info(msg)

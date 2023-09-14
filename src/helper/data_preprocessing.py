@@ -1,5 +1,5 @@
 import itertools
-
+import gc
 import numpy as np
 
 from src.utils.config_loader import config_loader as cl
@@ -50,10 +50,17 @@ def get_files():
     return grouped_files
 
 
-def split_data():
-    grouped_files = get_files()
-    subjects = list(grouped_files.keys())
+def split_data(grouped_files):
+    subjects = sorted(list(grouped_files.keys()))
     
+    # If Debug
+    if cl.config.debug:
+        subjects = subjects[:4]
+
+    # Remove personalized subject
+    if cl.config.dataset.personalized_subject in subjects:
+        subjects.remove(cl.config.dataset.personalized_subject)
+
     # For test train split
     if cl.config.dataset.train_ratio != 1.0:
         train_size = int(float(cl.config.dataset.train_ratio) * len(subjects))
@@ -70,7 +77,7 @@ def get_datasets():
     grouped_files = get_files()
     
     # Get train and val subjects
-    train_subjects, val_subjects = split_data()
+    train_subjects, val_subjects = split_data(grouped_files)
     
     # Get train and val dataframes
     train_df = dfm.load_dfs_from(train_subjects, grouped_files, add_sub_id=True)
@@ -107,18 +114,46 @@ def get_datasets():
     train_windows, train_labels = process_dataframes([train_df], cl.config.dataset.window_size, cl.config.dataset.overlapping_ratio, check_time)
     val_windows, val_labels = process_dataframes([val_df], cl.config.dataset.window_size, cl.config.dataset.overlapping_ratio, check_time)
 
+    # del 
+    del train_df, val_df, train_scaled, val_scaled
+    gc.collect()
+
     train_windows_tensor = torch.from_numpy(train_windows)
     train_labels_tensor = torch.from_numpy(train_labels)
     val_windows_tensor = torch.from_numpy(val_windows)
     val_labels_tensor = torch.from_numpy(val_labels)
 
+    # del
+    del train_windows, train_labels, val_windows, val_labels
+    gc.collect()
+
     # Create dataset
     train_dataset = TensorDataset(train_windows_tensor, train_labels_tensor)
     val_dataset = TensorDataset(val_windows_tensor, val_labels_tensor)
 
+    # del
+    del train_windows_tensor, train_labels_tensor, val_windows_tensor, val_labels_tensor
+    gc.collect()
+
     return train_dataset, val_dataset
 
+def create_dataset(df):
+    # Check datasets:
+    check_time = not (cl.config.dataset.folder == "features")
+        
+    # Load as windows
+    windows, labels = process_dataframes([df], cl.config.dataset.window_size, cl.config.dataset.overlapping_ratio, check_time)
+    
+    # Convert to tensor
+    windows_tensor = torch.from_numpy(windows)
+    labels_tensor = torch.from_numpy(labels)
 
+    # Create dataset
+    dataset = TensorDataset(windows_tensor, labels_tensor)
+
+    del windows,labels, windows_tensor, labels_tensor
+    gc.collect()
+    return dataset
 
 def load_dataset(dataFrames):
 
@@ -142,6 +177,10 @@ def load_dataset(dataFrames):
 
     # Create dataset
     dataset = TensorDataset(samples_tensor, labels_tensor)
+    
+    # del
+    del samples, labels, samples_tensor, labels_tensor
+    gc.collect()
     
     return dataset
     
@@ -186,7 +225,7 @@ def compute_weights(dataset: torch.utils.data.Dataset):
 
     # Compute class weights
     class_weights = compute_class_weight('balanced', classes=np.unique(labels), y=labels)
-    return class_weights
+    return torch.from_numpy(class_weights).float()
 
 
 def get_scaler():
@@ -209,3 +248,7 @@ def get_scaler():
         Logger.warning("Invalid scaler type. Use 'MinMax', 'Robust', or 'Standard'. Set to default StandardScaler.")
     
     return scaler
+
+
+# Function to filter dataleakage
+#def filter_dataleakage():

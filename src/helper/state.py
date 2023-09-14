@@ -5,8 +5,8 @@
 # ------------------------------------------------------------------------
 
 import os
-import logging
 import src.helper.plotter as plot   
+from src.helper.logger import Logger
 
 # State class
 class State:
@@ -14,12 +14,13 @@ class State:
     def __init__(self):
         self.file_name = None
         self.path = None
-        self.epoch = None
-        self.model = None
-        self.optimizer = None
-        self.train_metrics = None
-        self.val_metrics = None
-        self.lr_scheduler = None
+        self.best_epoch = None
+        self.best_model = None
+        self.best_criterion_weight = None
+        self.best_optimizer = None
+        self.best_train_metrics = None
+        self.best_val_metrics = None
+        self.best_lr_scheduler = None
         self.train_metrics_arr = None
         self.val_metrics_arr   = None
 
@@ -36,14 +37,15 @@ class State:
         return self.path
     
     def info(self):
-        print("File name: ", self.file_name)
-        print("Path: ", self.path)
-        print("Epoch: ", self.epoch)
-        print("Model: ", self.model)
-        print("Optimizer: ", self.optimizer)
-        print("Train metrics: ", self.train_metrics)
-        print("Validation metrics: ", self.val_metrics)
-        print("Learning rate scheduler: ", self.lr_scheduler)
+        Logger.info("File name: ", self.file_name)
+        Logger.info("Path: ", self.path)
+        Logger.info("Epoch: ", self.best_epoch)
+        Logger.info("Model: ", self.best_model)
+        Logger.info("Criterion weight: ", self.best_criterion_weight)
+        Logger.info("Optimizer: ", self.best_optimizer)
+        Logger.info("Train metrics: ", self.best_train_metrics)
+        Logger.info("Validation metrics: ", self.best_val_metrics)
+        Logger.info("Learning rate scheduler: ", self.best_lr_scheduler)
 
 
     def get_list_of(self, item='loss', phase='train'):
@@ -93,8 +95,8 @@ class State:
 
         return arr
     
-    def plot_losses(self):
-        title = "Train Losses vs Validataion Losses"
+    def plot_losses(self, title=""):
+        title = "Train Losses vs Validataion Losses" + title
         x_label = "Epochs"
         y_label = "Losses"
         legend_labels = ["Train Losses", "Validation Losses"]
@@ -103,8 +105,8 @@ class State:
         data_lists = [train_losses, val_losses]
         plot.arrays(data_lists, title, x_label, y_label, legend_labels)
     
-    def plot_f1_scores(self):
-        title = "Train F1 Scores vs Validataion F1 Scores"
+    def plot_f1_scores(self, title=""):
+        title = "Train F1 Scores vs Validataion F1 Scores"+ title
         x_label = "Epochs"
         y_label = "F1 Scores"
         legend_labels = ["Train F1 Scores", "Validation F1 Scores"]

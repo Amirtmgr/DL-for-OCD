@@ -15,7 +15,7 @@ from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
 
 # Function to get params:
 def read_params():
-    if cl.config.dataset.folder == "OCDetect_Export":
+    if cl.config.dataset.folder == "OCDetect_Export" or cl.config.dataset.folder == "test":
         if cl.config.dataset.sensor == "both":
             usecols=['datetime','acc x','acc y','acc z','gyro x','gyro y','gyro z','ignore','relabeled']
         elif cl.config.dataset.sensor == "acc":

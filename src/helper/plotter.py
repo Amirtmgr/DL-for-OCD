@@ -79,6 +79,7 @@ def arrays(data_lists, title="", x_label="", y_label="", legend_labels=None, sav
     # Save the plot as a file
     if save_fig:
         save_plot(plt,title)
+        plt.close()
     else:
         # Show plot
         plt.show()
@@ -97,8 +98,10 @@ def plot_cm(cm, classes, save_fig=True, title='Confusion Matrix', cmap=plt.cm.Bl
    # Save the plot as a file
     if save_fig:
         save_plot(plt,title)
+        plt.close()
     else:
         plt.show()
+
 
 def confusion_matrix(cm, classes, title = "Confusion Matrix", save_fig=True):
     plt.figure(figsize=(8, 6))
@@ -240,6 +243,7 @@ def save_plot(plt, title):
 
     try:
         plt.savefig(path + "/" + file_name)
+        plt.close()
         Logger.info(f"Plot saved as {file_name} inside path {path}")
     except Exception as e:
         Logger.error(f"{e} while saving plot as {file_name}")

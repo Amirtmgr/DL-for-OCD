@@ -6,12 +6,12 @@
 
 # Group parameters by phase
 train_subjects: [1, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]
-debug: True
+debug: False
 architecture:
   name: 'cnn'
   input_dim: 54
   hidden_dim: 256
-  kernel_size: 2
+  kernel_size: 1
   num_layers: 2
   hidden_size: 256
   dropout: 0.5
@@ -32,7 +32,7 @@ optim:
     gamma: 0.1
 criterion:
   name: 'cross_entropy'
-  weighted: False
+  weighted: True
   reduction: 'mean'
 lr_scheduler:
   name: 'step_lr'
@@ -54,13 +54,13 @@ train:
   batch_first: True
   learning_rate: 0.001
 dataset:
-  cross_validation: False
+  cross_validation: 'loso'
   folder: 'test' #'features' #"OCDetect_Export" #'features'
-  sensor: 'acc' # 'gyro' # 'both'
+  sensor: 'both' #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: 150
   num_classes: 3
-  train_ratio: 0.7  # Highest 0.9
+  train_ratio: 0.9  # Highest 0.9
   split: 'subject_wise' # To:do
   personalization: False
   personalized_subject: 3
@@ -69,6 +69,11 @@ dataset:
   num_workers: 4
   pin_memory: False
   scaler_type: "MinMax" # "Standard" # "Robust"
+filter:
+  fc_low: 0.3
+  fc_high: 15.0
+  order: 5
+  sampling_rate: 50.0 # Hz
 metrics:
-  zero_division: 0
+  zero_division: 0.0 #"warn"  #'nan' #'warn'#0 # 1
   

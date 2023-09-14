@@ -5,6 +5,8 @@ class CNNModel(nn.Module):
     def __init__(self, input_channels, num_classes, kernel_size, dropout, activation="relu"):
         super(CNNModel, self).__init__()
         
+        print("CNNModel Init: ", input_channels, num_classes, kernel_size, dropout, activation)
+
         self.conv1 = nn.Conv1d(in_channels=input_channels, out_channels=64, kernel_size=kernel_size)
         self.batchnorm1 = nn.BatchNorm1d(64)
         self.maxpool1 = nn.MaxPool1d(kernel_size=kernel_size)
@@ -15,7 +17,9 @@ class CNNModel(nn.Module):
 
         self.conv3 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=kernel_size)
         
-        self.fc1 = nn.Linear(256*11, 128)
+        self.fc1 = nn.Linear(256*6, 128) 
+        #self.fc1 = nn.Linear(256*3, 128)
+        #self.fc1 = nn.Linear(256*11, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
         self.dropout = nn.Dropout(dropout)
@@ -47,7 +51,7 @@ class CNNModel(nn.Module):
         #print(x.dtype)
         
         x = self.fc1(x)
-        self.act_fn(x)
+        x = self.act_fn(x)
 
         x = self.dropout(x)
 
