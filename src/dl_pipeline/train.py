@@ -178,7 +178,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     epoch_loss = running_loss / dataset_len # type: ignore
     
     # Lr scheduler step in train phase
-    if lr_scheduler:
+    if lr_scheduler and is_train:
         if isinstance(lr_scheduler, ReduceLROnPlateau):
             lr_scheduler.step(np.mean(epoch_loss))
         else:
@@ -186,7 +186,9 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
 
     #Calculate metrics
     metrics = Metrics()
-    metrics.calculate_metrics(epoch_targets, epoch_preds, pos_label=None)
+    metrics.y_true = epoch_targets
+    metrics.y_pred = epoch_preds
+    metrics.calculate_metrics()
     metrics.set_loss(epoch_loss)
 
     #Empty Cuda Cache

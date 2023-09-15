@@ -128,9 +128,9 @@ def loso_cv(device):
     Logger.info(msg)
 
     # End LOSOCV
-    end = datetime.datetime.now()
-    Logger.info(f"Cross-Validation End time: {end}")
-    Logger.info(f"Cross-Validation Duration: {end - start}")
+    end_train = datetime.datetime.now()
+    Logger.info(f"Cross-Validation End time: {end_train}")
+    Logger.info(f"Cross-Validation Duration: {end_train - start}")
 
     # Todo: Inference
     best_state = results[best_subject]
@@ -158,6 +158,11 @@ def loso_cv(device):
     # Save inference metrics
     msg = om.save_object(inferece_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
     Logger.info(msg)
+    
+    # Inferece duration
+    end_inference = datetime.datetime.now()
+    Logger.info(f"Inference End time: {end_inference}")
+    Logger.info(f"Inference Duration: {end_inference - end_train}")
 
 
 

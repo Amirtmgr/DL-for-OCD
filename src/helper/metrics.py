@@ -29,6 +29,8 @@ class Metrics:
         self.confusion_matrix = None
         self.jaccard_score = None
         self.accuracy = None
+        self.y_true = None
+        self.y_pred = None
         try:
             
             if cl.config.metrics.zero_division == 'nan':
@@ -40,26 +42,29 @@ class Metrics:
             Logger.warning(f"Zero division not found in config file. {str(e)} Set to 'warn'.")
             self.zero_division = 'warn'
         
-    def calculate_metrics(self, y_true, y_pred, pos_label=None):
-
+    def calculate_metrics(self):
+        y_true = self.y_true
+        y_pred = self.y_pred
+        Logger.info(f"y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+        
         try:
             # Accuracy
             self.accuracy = accuracy_score(y_true, y_pred)
 
             # F1 Score
-            self.f1_score = f1_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division) 
+            self.f1_score = f1_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division) 
 
             # Recall
-            self.recall_score = recall_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division)
+            self.recall_score = recall_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
 
             # Precision
-            self.precision_score = precision_score(y_true, y_pred, average=self.averaging, pos_label=pos_label, zero_division=self.zero_division)
+            self.precision_score = precision_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
 
             # Confusion Matrix
             self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=[0,1,2])
 
             # Jaccard Score
-            self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, pos_label=pos_label,zero_division=self.zero_division)
+            self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
 
             # Specificity
             self.specificity_score = ((1 + self.precision_score) * self.recall_score) / (self.precision_score + self.recall_score)
