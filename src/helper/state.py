@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------
 
 import os
+import numpy as np
 import src.helper.plotter as plot   
 from src.helper.logger import Logger
 
@@ -43,11 +44,15 @@ class State:
         Logger.info(f"Best model: {self.best_model}")
         Logger.info(f"Best criterion weight: {self.best_criterion_weight}")
         Logger.info(f"Best optimizer: {self.best_optimizer}")
-        Logger.info(f"Best train metrics: {self.best_train_metrics}")
-        Logger.info(f"Best val metrics: {self.best_val_metrics}")
-        Logger.info(f"Best lr scheduler: {self.best_lr_scheduler}")
-        Logger.info(f"Train metrics array: {self.train_metrics_arr}")
-        Logger.info(f"Val metrics array: {self.val_metrics_arr}")
+        Logger.info(f"Best train metrics: {self.best_train_metrics.f1_score}")
+        Logger.info(f"Best val metrics: {self.best_val_metrics.f1_score}")
+        Logger.info(f"Avg Train F1-Score:{self.get_mean(item='f1_score', phase='train')}")
+        Logger.info(f"Avg Val F1-Score:{self.get_mean(item='f1_score', phase='val')}")
+
+        if self.best_lr_scheduler:
+            Logger.info(f"Best last_lr: {self.best_lr_scheduler.get_last_lr()}")
+        #Logger.info(f"Train metrics array: {self.train_metrics_arr}")
+        #Logger.info(f"Val metrics array: {self.val_metrics_arr}")
 
     def get_list_of(self, item='loss', phase='train'):
         """Method to get list of items from train or val metrics array.
@@ -116,3 +121,23 @@ class State:
         data_lists = [train_f1_scores, val_f1_scores]
         plot.arrays(data_lists, title, x_label, y_label, legend_labels)
         
+
+    def get_mean(self, item='loss', phase='train'):
+        """Method to get mean of items from train or val metrics array.
+
+        Args:
+            item (str, optional): Item type to get. Defaults to 'loss'. Loss, accuracy, f1_score, recall_score, precision_score, specificity_score, jaccard_score.
+            phase (str, optional): Item of the phase either "train" or "val" Defaults to 'train'.
+
+        Returns:
+            float: Mean of items. If item is invalid, returns None.
+        """
+
+        arr = self.get_list_of(item, phase)
+
+        if arr is None:
+            return None
+
+        avg = np.mean(arr)
+
+        return avg

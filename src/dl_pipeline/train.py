@@ -183,9 +183,11 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
             lr_scheduler.step(np.mean(epoch_loss))
         else:
             lr_scheduler.step()   
+        Logger.info(f"LR Update in Epoch: {epoch+1}/{cl.config.train.num_epochs} | last_lr: {lr_scheduler.get_last_lr()}")
 
     #Calculate metrics
-    metrics = Metrics()
+    metrics = Metrics(labels=range(3))
+    metrics.phase = phase
     metrics.y_true = epoch_targets
     metrics.y_pred = epoch_preds
     metrics.calculate_metrics()

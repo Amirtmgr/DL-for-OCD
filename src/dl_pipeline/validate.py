@@ -1,5 +1,6 @@
 import datetime
 import gc
+import numpy as np
 
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
@@ -9,6 +10,7 @@ from src.helper.logger import Logger
 from src.helper.filters import band_pass_filter
 from src.helper import object_manager as om
 from src.helper import directory_manager as dm
+from src.helper.state import State
 
 def loso_cv(device):
     # start
@@ -127,12 +129,20 @@ def loso_cv(device):
     msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
     Logger.info(msg)
 
+    # Info
+    Logger.info("Average Scores:")
+    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train')}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
+
     # End LOSOCV
     end_train = datetime.datetime.now()
     Logger.info(f"Cross-Validation End time: {end_train}")
     Logger.info(f"Cross-Validation Duration: {end_train - start}")
 
-    # Todo: Inference
+    ###############################################
+    ################ Inference ####################
+    ###############################################
+
     best_state = results[best_subject]
 
     Logger.info("Creating Inference Dataset...")
@@ -148,12 +158,12 @@ def loso_cv(device):
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
 
     # Inference
-    inferece_metrics = t.run_epoch(0,"val", inference_loader,
+    inferece_metrics = t.run_epoch(0,"inference", inference_loader,
                                     best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,
                                     device=device)[0]
 
-    inferece_metrics.info(title="Inference")
+    inferece_metrics.info()
 
     # Save inference metrics
     msg = om.save_object(inferece_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
@@ -167,4 +177,46 @@ def loso_cv(device):
 
 
         
+def get_mean_scores(states:[State], phase:str):
+    """Method to get mean scores from list of states.
 
+    Args:
+        states ([State]): List of states.
+
+    Returns:
+        [type]: [description]
+    """
+    f1_scores = []
+    recall_scores = []
+    precision_scores = []
+    specificity_scores = []
+    jaccard_scores = []
+    accuracy_scores = []
+
+    if phase == "train":
+
+        for state in states:
+            f1_scores.append(state.best_train_metrics.f1_score)
+            recall_scores.append(state.best_train_metrics.recall_score)
+            precision_scores.append(state.best_train_metrics.precision_score)
+            specificity_scores.append(state.best_train_metrics.specificity_score)
+            jaccard_scores.append(state.best_train_metrics.jaccard_score)
+            accuracy_scores.append(state.best_train_metrics.accuracy)
+    else:
+        for state in states:
+            f1_scores.append(state.best_val_metrics.f1_score)
+            recall_scores.append(state.best_val_metrics.recall_score)
+            precision_scores.append(state.best_val_metrics.precision_score)
+            specificity_scores.append(state.best_val_metrics.specificity_score)
+            jaccard_scores.append(state.best_val_metrics.jaccard_score)
+            accuracy_scores.append(state.best_val_metrics.accuracy)
+    
+    mean_scores = { "f1_score": np.mean(f1_scores),
+                    "recall_score": np.mean(recall_scores), 
+                    "precision_score": np.mean(precision_scores),
+                    "specificity_score": np.mean(specificity_scores),
+                    "jaccard_score": np.mean(jaccard_scores),
+                    "accuracy": np.mean(accuracy_scores)
+                    }
+
+    return mean_scores

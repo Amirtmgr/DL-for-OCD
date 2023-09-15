@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------
 
 import numpy as np
+from collections import Counter
 
 from src.utils.config_loader import config_loader as cl
 
@@ -19,7 +20,8 @@ from sklearn.metrics import (
 )
 
 class Metrics:
-    def __init__(self, averaging='macro'):
+    def __init__(self, labels, averaging='macro'):
+        self.phase = ""
         self.loss = None
         self.averaging = averaging
         self.f1_score = None
@@ -31,6 +33,8 @@ class Metrics:
         self.accuracy = None
         self.y_true = None
         self.y_pred = None
+        self.labels = labels
+
         try:
             
             if cl.config.metrics.zero_division == 'nan':
@@ -39,44 +43,41 @@ class Metrics:
                 self.zero_division = cl.config.metrics.zero_division
 
         except Exception as e:
-            Logger.warning(f"Zero division not found in config file. {str(e)} Set to 'warn'.")
+            Logger.warning(f"Phase:{self.phase} Zero division not found in config file. {str(e)} Set to 'warn'.")
             self.zero_division = 'warn'
         
     def calculate_metrics(self):
         y_true = self.y_true
         y_pred = self.y_pred
-        Logger.info(f"y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
-        
+        Logger.info(f"Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+        Logger.info(f"Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
         try:
             # Accuracy
             self.accuracy = accuracy_score(y_true, y_pred)
 
             # F1 Score
-            self.f1_score = f1_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division) 
+            self.f1_score = f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
             # Recall
-            self.recall_score = recall_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
+            self.recall_score = recall_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
             # Precision
-            self.precision_score = precision_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
+            self.precision_score = precision_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
             # Confusion Matrix
-            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=[0,1,2])
+            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
             # Jaccard Score
-            self.jaccard_score = jaccard_score(y_true, y_pred, average=self.averaging, zero_division=self.zero_division)
+            self.jaccard_score = jaccard_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
             # Specificity
             self.specificity_score = ((1 + self.precision_score) * self.recall_score) / (self.precision_score + self.recall_score)
 
         except Exception as e:
-            #Logger.error(f"An error occurred: {str(e)}")
-            print(f"An error occurred: {str(e)}")
-
+            Logger.error(f"Phase: {self.phase} | An error occurred: {str(e)}")
+            
         except ZeroDivisionError as e:
-            Logger.error(f"An error occurred: {str(e)}")
-            Logger.warning(f"An error occurred: {str(e)}")
-            Logger.info(f"y_target: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+            Logger.warning(f"Phase : {self.phase} | An error occurred: {str(e)}")
             
         finally:
             pass
@@ -102,6 +103,7 @@ class Metrics:
     def set_loss(self, loss):
         self.loss = loss
 
-    def info(self, title=""):
-        msg = f"{title} Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
+    def info(self):
+        msg = f"Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
         Logger.info(msg)
+    

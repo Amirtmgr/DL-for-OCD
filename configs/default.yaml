@@ -6,7 +6,7 @@
 
 # Group parameters by phase
 train_subjects: [1, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15]
-debug: False
+debug: True
 architecture:
   name: 'cnn'
   input_dim: 54
@@ -32,7 +32,7 @@ optim:
     gamma: 0.1
 criterion:
   name: 'cross_entropy'
-  weighted: True
+  weighted: False
   reduction: 'mean'
 lr_scheduler:
   name: 'step_lr'

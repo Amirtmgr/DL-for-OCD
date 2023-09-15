@@ -21,7 +21,6 @@ from src.helper import data_structures as ds
 from src.helper.data_model import CSVHeader, HandWashingType
 from src.helper.sliding_window import get_windows, process_dataframes
 
-from src.helper.metrics import Metrics
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 from src.dl_pipeline.architectures.CNN import CNNModel
