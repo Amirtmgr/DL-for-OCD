@@ -50,7 +50,7 @@ def train():
     # Setup CUDA
     device = setup_cuda()
 
-    if cl.config.dataset.cross_validation == "loso":
+    if cl.config.train.cross_validation == "loso":
         v.loso_cv(device)
     else:
         # Load dataset

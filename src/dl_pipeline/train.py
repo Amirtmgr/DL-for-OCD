@@ -26,6 +26,7 @@ from src.helper.logger import Logger
 from src.helper.state import State
 from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
+from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -296,18 +297,14 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
 def load_network():
     # TODO: Check for other networks
     network = cl.config.architecture.name
-    num_class = cl.config.architecture.num_classes
-    input_channels = cl.config.train.batch_size
-    window_size = cl.config.dataset.window_size
-    dropout = cl.config.architecture.dropout
-    kernel_size = cl.config.architecture.kernel_size
-    activation = cl.config.architecture.activation
 
     if network == "cnn":
-        model = CNNModel(window_size,
-                         num_class,kernel_size,
-                         dropout,
-                         activation)
+        # TO DO:
+        raise NotImplementedError
+        model = CNNModel(cl.config_dict['architecture'])
+    
+    elif network == "deepconvlstm":
+        model = DeepConvLSTM(cl.config_dict['architecture'])
     else:
         return None
     

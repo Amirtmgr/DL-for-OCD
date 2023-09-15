@@ -29,7 +29,7 @@ class DeepConvLSTM(nn.Module):
     def __init__(self, config):
         super(DeepConvLSTM, self).__init__()
         
-        self.input_dim = config['input_dim'] 
+        self.input_dim = config.get('input_dim', )
         self.conv_hidden_dim = config['conv_hidden_dim'] 
         self.conv_kernel_size = config['conv_kernel_size'] 
         self.channels = config['channels']
@@ -51,6 +51,11 @@ class DeepConvLSTM(nn.Module):
         # LSTM layer
         self.lstm = nn.LSTM(self.channels * self.conv_hidden_dim, self.lstm_hidden_dim, num_layers=self.lstm_layers, dropout=self.lstm_dropout, bidirectional=self.bidirectional)
         
+        # LSTM layers
+        self.lstm_layers = nn.ModuleList()
+        for _ in range(num_lstm_layers):
+            self.lstm_layers.append(nn.LSTM(hidden_size, hidden_size, num_layers=num_layers, batch_first=True))
+
         # Fully connected layer
         self.fc = nn.Linear(self.lstm_hidden_dim, self.classes)
 
