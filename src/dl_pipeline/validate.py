@@ -150,7 +150,7 @@ def loso_cv(device):
     # Inference
     inferece_metrics = t.run_epoch(0,"val", inference_loader,
                                     best_state.best_model,loss_fn,
-                                    best_state.best_optimizer, best_state.lr_scheduler,
+                                    best_state.best_optimizer, best_state.best_lr_scheduler,
                                     device=device)[0]
 
     inferece_metrics.info(title="Inference")
