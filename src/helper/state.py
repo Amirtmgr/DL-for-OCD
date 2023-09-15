@@ -37,16 +37,17 @@ class State:
         return self.path
     
     def info(self):
-        Logger.info("File name: ", self.file_name)
-        Logger.info("Path: ", self.path)
-        Logger.info("Epoch: ", self.best_epoch)
-        Logger.info("Model: ", self.best_model)
-        Logger.info("Criterion weight: ", self.best_criterion_weight)
-        Logger.info("Optimizer: ", self.best_optimizer)
-        Logger.info("Train metrics: ", self.best_train_metrics)
-        Logger.info("Validation metrics: ", self.best_val_metrics)
-        Logger.info("Learning rate scheduler: ", self.best_lr_scheduler)
-
+        Logger.info(f"File name: {self.file_name}")
+        Logger.info(f"Path: {self.path}")
+        Logger.info(f"Best epoch: {self.best_epoch}")
+        Logger.info(f"Best model: {self.best_model}")
+        Logger.info(f"Best criterion weight: {self.best_criterion_weight}")
+        Logger.info(f"Best optimizer: {self.best_optimizer}")
+        Logger.info(f"Best train metrics: {self.best_train_metrics}")
+        Logger.info(f"Best val metrics: {self.best_val_metrics}")
+        Logger.info(f"Best lr scheduler: {self.best_lr_scheduler}")
+        Logger.info(f"Train metrics array: {self.train_metrics_arr}")
+        Logger.info(f"Val metrics array: {self.val_metrics_arr}")
 
     def get_list_of(self, item='loss', phase='train'):
         """Method to get list of items from train or val metrics array.
