@@ -1,24 +1,29 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from src.helper.logger import Logger
 
 class DeepConvLSTM(nn.Module):
 
     def __init__(self, config):
         
         super(DeepConvLSTM, self).__init__()
-
+    
         self.window_size = config.get('window_size', 150)
         self.num_classes = config.get('num_classes', 3)
         self.sensors = config.get('sensors', 'both')
-        #self.device = config.get('device', 'cpu')
-
+        
         # CNN Parameters
-        self.input_channels = 1
-        self.hidden_channels = config.get('hidden_channels', [64, 64, 64])
-        self.hidden_channels.insert(0, self.input_channels)
-        self.kernel_sizes = config.get('kernel_sizes', 2)
+        self.input_channels = config.get('input_channels', 1)
+        self.hidden_channels = []
+        self.hidden_channels = [self.input_channels] + config.get('hidden_channels', [64, 64, 64])
+        self.kernel_sizes = config.get('kernel_sizes')
         self.cnn_bias = config.get('cnn_bias', False)
+
+        Logger.info(f"Input channels: {self.input_channels}")
+        Logger.info(f"Hidden channels: {self.hidden_channels}")
+        Logger.info(f"Kernel sizes: {self.kernel_sizes}")
+        Logger.info(f"CNN bias: {self.cnn_bias}")
 
         # CNN layers
         self.features = nn.ModuleList()
