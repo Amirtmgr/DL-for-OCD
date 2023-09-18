@@ -4,7 +4,7 @@
 #SBATCH --nodes=1                   # node count
 #SBATCH --ntasks-per-node=64         # total number of tasks across all nodes<
 #SBATCH --time=1:00:00             # total run time limit (HH:MM:SS)
-#SBATCH --output=saved/logs/cluster_%j.%x.out  # where to save the output ( %j = JobID, %x = scriptname)
+#SBATCH --output=saved/cluster/logs/cluster_%j.%x.out  # where to save the output ( %j = JobID, %x = scriptname)
 #SBATCH --gres gpu:1              # Generic resource required (1/2/4)
 #SBATCH --mail-type=ALL             # send all email
 #SBATCH --error=saved/cluster/err/slurm.%j.err       # where to save error messages ( %j = JobID)
