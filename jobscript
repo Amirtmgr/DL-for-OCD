@@ -33,5 +33,17 @@ echo "User Email is $EMAIL"
 
 echo "Running python script `hostname`"
 
+# Create result folder if not available
+directories=("saved/cluster/logs" "saved/cluster/err")
+
+for dir in "${directories[@]}"; do
+  if [ ! -d "$dir" ]; then
+    echo "Creating directory: $dir"
+    mkdir -p "$dir"  # -p option creates parent directories if needed
+  else
+    echo "Directory already exists: $dir"
+  fi
+done
+
 # Run a python script:
 python main.py configs/default.json

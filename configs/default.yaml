@@ -19,7 +19,7 @@ global:
   - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
-  - &num_workers -1
+  - &num_workers 4
   
 # Model architecture parameters
 architecture:
