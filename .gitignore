@@ -2,6 +2,10 @@
 data/features
 data/OCDetect_Export
 data/test
+
+# Cluster output
+cluster/*
+
 # saved logs
 saved/logs/*
 
