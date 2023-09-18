@@ -19,7 +19,7 @@ def loso_cv(device):
 
     # Empty dict to store results
     results = {}
-    best_f1_score = 0.0
+    best_val_loss = np.inf
     best_subject = None
 
     # Get grouped files
@@ -106,10 +106,10 @@ def loso_cv(device):
                             optimizer, lr_scheduler,
                             train_loader, val_loader, device, optional_name="_cv-" + str(subject))
 
-        if state.best_val_metrics.f1_score > best_f1_score:
-            best_f1_score = state.best_val_metrics.f1_score
+        if state.best_val_metrics.loss < best_val_loss:
+            best_val_loss = state.best_val_metrics.loss
             best_subject = subject
-            Logger.info(f"New best subject: {best_subject} with validation F1 Score: {best_f1_score}")
+            Logger.info(f"New best subject: {best_subject} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score}")
 
 
         state.info()
@@ -121,7 +121,7 @@ def loso_cv(device):
         # Save state to dict
         results[subject] = state
 
-    Logger.info(f"Best Subject: {best_subject} with validation F1 Score: {best_f1_score}")
+    Logger.info(f"Best Subject: {best_subject} with validation Loss: {best_val_loss}")
     Logger.info(f"Train subjects : {train_subjects}")
 
     # Save metrics

@@ -229,7 +229,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
     #best_f1_score = 0.0
 
     # Best loss
-    best_val_loss = 1.0
+    best_val_loss = np.inf
 
     # Get epochs from config file
     try:
