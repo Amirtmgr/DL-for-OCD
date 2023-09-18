@@ -9,12 +9,16 @@
 # Debugging options
 debug: False
 
+# Machine
+machine: 'local' #'cluster'
+
 # Global variables
 global:
   - &window_size 150
   - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
+  - &num_workers -1
   
 # Model architecture parameters
 architecture:
@@ -85,7 +89,7 @@ dataset:
   personalized_subject: 3
   random_seed: 55
   shuffle: False
-  num_workers: 4
+  num_workers: *num_workers
   pin_memory: False
   scaler_type: "MinMax" # "Standard" # "Robust"
 

@@ -226,7 +226,10 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
     state = State()
 
     # Best F1 score
-    best_f1_score = 0.0
+    #best_f1_score = 0.0
+
+    # Best loss
+    best_val_loss = 1.0
 
     # Get epochs from config file
     try:
@@ -263,10 +266,10 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
         Logger.info(val_message)
 
         # save best model
-        if val_metrics.f1_score > best_f1_score: 
-            Logger.info(f"Saving best model with F1 score: {val_metrics.f1_score:.2f} | Epoch: {epoch+1}/{epochs}")
-            # Todo: Use checkpoints
-            best_f1_score = val_metrics.f1_score
+        if val_metrics.loss < best_val_loss: 
+            Logger.info(f"Saving best model with Train Loss: {train_metrics.loss:.2f} | Val Loss: {val_metrics.loss} | F1 score: {val_metrics.f1_score:.2f} | Epoch: {epoch+1}/{epochs}")
+            
+            best_val_loss = val_metrics.loss
     
             state.best_epoch = epoch + 1
             state.best_model = network
