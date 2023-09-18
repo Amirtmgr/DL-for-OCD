@@ -7,7 +7,7 @@
 # Global variables
 
 # Debugging options
-debug: False
+debug: True
 
 # Machine
 machine: 'local' #'cluster'
@@ -38,7 +38,7 @@ architecture:
   lstm_hidden_size: 128
   lstm_num_layers: 2
   lstm_bias: False
-  lstm_dropout: 0.2
+  lstm_dropout: 0.25
   lstm_bidirectional: False
 
   # For Dropout Layer
@@ -71,9 +71,9 @@ lr_scheduler:
 
 # Training Hyperparameters
 train:
-  device: 'cuda'
+  device: *device
   num_epochs: *num_epochs
-  batch_size: 256
+  batch_size: 64
   cross_validation: 'loso'
   
 # Dataset parameters
@@ -96,7 +96,7 @@ dataset:
 # Filter parameters
 filter:
   fc_low: 0.3
-  fc_high: 15.0
+  fc_high: 18.0
   order: 5
   sampling_rate: 50.0 # Hz
 
