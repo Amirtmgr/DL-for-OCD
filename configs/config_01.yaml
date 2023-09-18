@@ -15,11 +15,11 @@ machine: 'local' #'cluster'
 # Global variables
 global:
   - &window_size 150
-  - &num_epochs 300
+  - &num_epochs 200
   - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
-  - &num_workers -1
+  - &num_workers 4
   
 # Model architecture parameters
 architecture:
@@ -38,7 +38,7 @@ architecture:
   lstm_hidden_size: 128
   lstm_num_layers: 2
   lstm_bias: False
-  lstm_dropout: 0.2
+  lstm_dropout: 0.25
   lstm_bidirectional: False
 
   # For Dropout Layer
@@ -60,7 +60,7 @@ optim:
 # Loss function parameters
 criterion:
   name: 'cross_entropy'
-  weighted: False
+  weighted: True
   reduction: 'mean'
 
 # LR Scheduler parameters
