@@ -66,7 +66,7 @@ criterion:
 # LR Scheduler parameters
 lr_scheduler:
   name: 'step_lr'
-  step_size: 50
+  step_size: 10
   gamma: 0.1
 
 # Training Hyperparameters
@@ -74,7 +74,6 @@ train:
   device: 'cuda'
   num_epochs: *num_epochs
   batch_size: 256
-  learning_rate: 0.0001
   cross_validation: 'loso'
   
 # Dataset parameters
