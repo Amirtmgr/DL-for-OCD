@@ -69,5 +69,5 @@ def band_pass_filter(df, order, fc_high, fc_low, cols, fs=50.0):
         # Numerator (b) and denominator (a) polynomials of the IIR filter. 
         b, a = butter(order, [fc_low, fc_high], 'bandpass', analog=False, fs=fs)
         # Apply a digital filter forward and backward to a signal.
-        df[col] = filtfilt(b, a, df[col])
+        df[col] = filtfilt(b, a, df[col]).astype('float32')
     return df

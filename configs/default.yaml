@@ -78,7 +78,7 @@ train:
   
 # Dataset parameters
 dataset:
-  folder: 'test' #'features' #"OCDetect_Export"
+  folder: 'processed' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size

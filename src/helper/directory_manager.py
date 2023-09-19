@@ -26,8 +26,10 @@ def get_data_dir():
     return data_dir
 
 # Function to get csv files from folder
-def get_files_names():
-    path = get_data_dir()
+def get_files_names(path=None):
+    if not path:
+        path = get_data_dir()
+    
     # Check if exists
     if not os.path.exists(path):
         raise  FileNotFoundError(f"Path does not exists: {path}")

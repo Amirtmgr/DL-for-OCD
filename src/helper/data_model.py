@@ -2,6 +2,7 @@ from enum import Enum, IntEnum
 
 LABELS = ["Null", "rHW", "cHW"]
 
+
 # HandWashing Type
 class HandWashingType(IntEnum):
     NoHandWash = 0

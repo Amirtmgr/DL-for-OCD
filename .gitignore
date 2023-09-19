@@ -2,6 +2,8 @@
 data/features
 data/OCDetect_Export
 data/test
+data/processed
+data/processed.zip
 
 # Cluster output
 cluster/*

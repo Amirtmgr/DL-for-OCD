@@ -15,7 +15,7 @@ from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 import src.dl_pipeline.dl as dl
 import src.helper.plotter as plot
-
+from src.data_processing import cleaner as cln
 
 def main():
     # Parse the arguments
@@ -48,6 +48,9 @@ def main():
 
     # Create Logger
     Logger.info("Logger created.")
+
+    # Perform data cleaning and preprocessing
+    #cln.clean_all()
 
     # Perform DL pipeline
     dl.train()

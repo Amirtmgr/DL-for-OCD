@@ -15,7 +15,10 @@ from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
 
 # Function to get params:
 def read_params():
-    if cl.config.dataset.folder == "OCDetect_Export" or cl.config.dataset.folder == "test":
+    if cl.config.dataset.folder == "features":
+        dtype={'relabeled': 'uint8'}
+        return None, dtype, None
+    else:
         if cl.config.dataset.sensor == "both":
             usecols=['datetime','acc x','acc y','acc z','gyro x','gyro y','gyro z','ignore','relabeled']
         elif cl.config.dataset.sensor == "acc":
@@ -27,10 +30,14 @@ def read_params():
 
         dtype={'relabeled': 'uint8','ignore':'uint8'}
         parse_dates = ["datetime"]
-        return usecols, dtype, parse_dates
-    else:
-        dtype={'relabeled': 'uint8'}
-        return None, dtype, None
+    
+    if cl.config.dataset.folder == "processed":
+        usecols.remove('ignore')
+        usecols.append('sub_id')
+        dtype.pop('ignore')
+        dtype['sub_id'] = 'uint8'
+    
+    return usecols, dtype, parse_dates
 
 
 # Read csv file
@@ -55,9 +62,9 @@ def read_csv_file(filename, chunksize=None):
     return pd.DataFrame()
 
 # Clean data
-def filter_ignored_rows(df_data:pd.DataFrame):
+def del_ignored_rows(df_data:pd.DataFrame):
     if CSVHeader.IGNORE.value in df_data.columns.tolist():
-        filtered_df = df_data[df_data[CSVHeader.IGNORE.value] <= 0]
+        filtered_df = df_data[df_data[CSVHeader.IGNORE.value] == 0]
         return filtered_df
     return df_data
 
@@ -104,10 +111,10 @@ def print_rows(df_sensor, chunk=1000):
 # Functiont to calculate mean and var and quartiles
 def save_to_csv(df_data, folder, file_name):
     
-    folder_path = dm.create_folder(cl.folder, dm.FolderType.data)
+    folder_path = dm.create_folder(folder, dm.FolderType.data)
     
     # Output File path
-    file_path = os.path.join(folder_path, file_name.rsplit( ".", 1 )[0] + f"-{folder}.csv")
+    file_path = os.path.join(folder_path, file_name)
     
     log.info(f"Saving CSV File: {file_path}")
     
@@ -219,7 +226,7 @@ def load_file(file_name:str, folder:str,normalized=True, norm_method='standard',
         df_data = df_data.dropna()
     
     # Remove ignored rows
-    df_data = filter_ignored_rows(df_data)
+    df_data = del_ignored_rows(df_data)
     
     #Create X, y for classifier
     X_data = df_data[features] if features else df_data
@@ -248,16 +255,18 @@ def load_all_files(files, ignore_index=True, add_sub_id=False):
     
     # Empty list
     df_list = []
-    
+    sub_id = int(files[0].rsplit( "_")[1])
+
     for i in tqdm(range(0,len(files)), desc="Loading CSV Files:"):
         temp = read_csv_file(files[i])
-        if add_sub_id:
-            temp["sub_id"] = int(files[i].rsplit( "_")[1])
-            temp["sub_id"] = temp["sub_id"].astype("uint8")
-            #print(i," : ", len(temp))
         df_list.append(temp)
                   
     df = pd.concat(df_list, ignore_index=ignore_index)
+    
+    if add_sub_id:
+        df["sub_id"] = sub_id
+        df["sub_id"] = df["sub_id"].astype("uint8")
+
     log.info(f"{len(files)} csv files loaded successfully. DataFrame Length:{len(df)}")
     return df
     
@@ -330,7 +339,7 @@ def load_x_y(df_data,normalized=True, norm_method='standard', features=[]):
         df_data = df_data.dropna()
     
     # filter
-    df_data = filter_ignored_rows(df_data)
+    df_data = del_ignored_rows(df_data)
     
     #Create X, y for classifier
     x_data = df_data[features] if features else df_data
@@ -378,7 +387,7 @@ def get_labels_counts(grouped_csv_files,CSV_BLACK_LIST=[]):
             df = read_csv_file(file)
                         
             # Filtered ignored types
-            df_filtered = filter_ignored_rows(df)
+            df_filtered = del_ignored_rows(df)
             df_filtered_len = len(df_filtered)
             ignored_total = len(df) - df_filtered_len
             
