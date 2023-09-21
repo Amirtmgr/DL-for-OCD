@@ -16,6 +16,8 @@ from src.helper.logger import Logger
 import src.dl_pipeline.dl as dl
 import src.helper.plotter as plot
 from src.data_processing import cleaner as cln
+from src.data_processing import process as prc
+
 
 def main():
     # Parse the arguments
@@ -52,8 +54,11 @@ def main():
     # Perform data cleaning and preprocessing
     #cln.clean_all()
 
+    # Prepare datset
+    #prc.prepare_datasets()
+
     # Perform DL pipeline
-    dl.train()
+    #dl.train()
  
 if __name__ == '__main__':
     main()

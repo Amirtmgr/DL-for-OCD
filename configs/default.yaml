@@ -7,7 +7,7 @@
 # Global variables
 
 # Debugging options
-debug: True
+debug: False
 
 # Machine
 machine: 'local' #'cluster'
@@ -15,7 +15,7 @@ machine: 'local' #'cluster'
 # Global variables
 global:
   - &window_size 150
-  - &num_epochs 5
+  - &num_epochs 10
   - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
@@ -83,7 +83,7 @@ dataset:
   overlapping_ratio: 0.0
   window_size: *window_size
   num_classes: *num_classes
-  train_ratio: 0.9  # Highest 0.9
+  train_ratio: 0.7  # Highest 0.9
   split: 'subject_wise' # To:do future
   personalization: False
   personalized_subject: 3

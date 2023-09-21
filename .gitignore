@@ -4,6 +4,7 @@ data/OCDetect_Export
 data/test
 data/processed
 data/processed.zip
+data/datasets
 
 # Cluster output
 cluster/*

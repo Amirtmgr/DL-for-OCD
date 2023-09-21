@@ -123,7 +123,10 @@ def append_window(df, window_size:int):
     A boolean indicating whether to proceed, and the index of the last row to consider.
     """
     # Get all rows having ignored label
-    ignore_indices = df.index[df['ignore'] > 0]
+    if 'ignore' in df.columns:
+        ignore_indices = df.index[df['ignore'] > 0]
+    else:
+        ignore_indices = pd.Index([])
     
     # Get time diff
     df['datetime'] = pd.to_datetime(df['datetime'])
