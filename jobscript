@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=train_01         # name for your job
+#SBATCH --job-name=train_02         # name for your job
 #SBATCH --partition=gpu           # partition to run in
 #SBATCH --nodes=1                   # node count
 #SBATCH --ntasks=64                  # total number of tasks across all nodes
@@ -27,7 +27,7 @@ module purge
 eval "$(conda shell.bash hook)"
 
 # Activate a conda environment:
-conda activate dl23
+conda activate dl24
 
 
 echo "JobID is $SLURM_JOBID"
@@ -35,4 +35,4 @@ echo "Working directory is $SLURM_SUBMIT_DIR"
 echo "Running python script `hostname`"
 
 # Run a python script:
-python main.py configs/default.yaml
+python main.py configs/config_01.yaml

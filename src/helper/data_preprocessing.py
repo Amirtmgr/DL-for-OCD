@@ -229,6 +229,8 @@ def compute_weights(dataset):
         labels = dataset.tensors[1].numpy()
     elif isinstance(dataset, list):
         labels = np.concatenate([d.tensors[1].numpy() for d in dataset])
+    elif isinstance(dataset, np.ndarray):
+        labels = dataset
     else:
         raise TypeError("Dataset must be either TensorDataset or list of TensorDataset.")
 
@@ -277,5 +279,5 @@ def load_shelves(filename):
     X_db.close()
     y_db.close()
 
-    return x, y 
+    return X, y 
      

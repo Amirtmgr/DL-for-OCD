@@ -20,8 +20,8 @@ global:
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
-  - &random_seed 77
-  - &use_warn_metrics True # To use metrics having zero division warnings.
+  - &random_seed 55
+  - &use_warn_metrics True
   
 # Model architecture parameters
 architecture:
@@ -50,7 +50,7 @@ architecture:
   fc_hidden_size: 128
   num_classes: *num_classes
   activation:
-    name: 'relu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
+    name: 'elu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
     negative_slope: 0.01 # For leaky_relu
     alpha: 1.0 # For elu
 
@@ -77,7 +77,7 @@ lr_scheduler:
   step_size: 10 # For step_lr
   gamma: 0.1 # For step_lr
   factor: 0.02 
-  pateince: 10 # For reduce_lr_on_plateau
+  patience: 10 # For reduce_lr_on_plateau
   mode: 'min' # For reduce_lr_on_plateau
   verbose: True 
   threshold: 0.0001 # For reduce_lr_on_plateau
@@ -86,7 +86,7 @@ lr_scheduler:
 train:
   device: *device
   num_epochs: *num_epochs
-  batch_size: 512
+  batch_size: 256
   cross_validation:
     name: 'kfold' #'losocv'
     k_folds: 4

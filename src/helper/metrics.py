@@ -27,13 +27,13 @@ class Metrics:
         self.phase = ""
         self.loss = None
         self.averaging = averaging
-        self.f1_score = None
-        self.recall_score = None
-        self.precision_score = None
-        self.specificity_score = None
-        self.confusion_matrix = None
-        self.jaccard_score = None
-        self.accuracy = None
+        self.f1_score = 0.0
+        self.recall_score = 0.0
+        self.precision_score = 0.0
+        self.specificity_score = 0.0
+        self.confusion_matrix = 0.0
+        self.jaccard_score = 0.0
+        self.accuracy = 0.0
         self.y_true = None
         self.y_pred = None
         self.labels = labels
@@ -81,12 +81,12 @@ class Metrics:
                 
                 # Classification Report
                 self.classification_report = classification_report(y_true, y_pred, labels=self.labels, zero_division=self.zero_division)
-                
-                # Specificity
-                tn, fp, fn, tp = self.confusion_matrix.ravel()
-                self.specificity_score = tn / (tn + fp)
-                
+                #Logger.info(self.classification_report)
                 print(self.classification_report)
+
+                # Specificity
+                #tn, fp, fn, tp = self.confusion_matrix.ravel()
+                #self.specificity_score = tn / (tn + fp) if (tn + fp) != 0 else 0.0
                 
             except Warning as w:
                 self.zero_division_warn = True
@@ -129,3 +129,7 @@ class Metrics:
             msg = f"[Zero_Division Warning] Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
         Logger.info(msg)
     
+    # To do:
+    def ravel_confusion_matrix(self):
+        tn, fp, fn, tp = self.confusion_matrix.ravel()
+        return tn, fp, fn, tp

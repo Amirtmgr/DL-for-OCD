@@ -24,6 +24,7 @@ class State:
         self.best_lr_scheduler = None
         self.train_metrics_arr = None
         self.val_metrics_arr   = None
+        self.scalar = None
 
     def set_file_name(self, file_name):
         self.file_name = file_name
@@ -50,7 +51,8 @@ class State:
         Logger.info(f"Avg Val F1-Score:{self.get_mean(item='f1_score', phase='val')}")
 
         if self.best_lr_scheduler:
-            Logger.info(f"Best last_lr: {self.best_lr_scheduler.get_last_lr()}")
+            if hasattr(self.best_lr_scheduler, 'last_lr'):
+                Logger.info(f"Best last_lr: {self.best_lr_scheduler.last_lr}")
         #Logger.info(f"Train metrics array: {self.train_metrics_arr}")
         #Logger.info(f"Val metrics array: {self.val_metrics_arr}")
 

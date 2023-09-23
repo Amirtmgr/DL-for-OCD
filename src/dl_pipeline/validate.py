@@ -3,7 +3,8 @@ import gc
 import numpy as np
 import random
 
-from torch.utils.data import ConcatDataset
+import torch
+from torch.utils.data import ConcatDataset, TensorDataset
 
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
@@ -25,8 +26,8 @@ def k_fold_cv(device):
     results = {}
     best_val_loss = np.inf
     best_fold = None
-
-    shelf_name = cl.config.dataset.folder
+    
+    shelf_name = cl.config.dataset.name
 
     # Load python dataset
     X_dict, y_dict = dp.load_shelves(shelf_name)
@@ -81,23 +82,25 @@ def k_fold_cv(device):
         Logger.info(f"k-Fold:{i+1} ===> X_val shape: {X_val.shape} | y_val shape: {y_val.shape}")
 
         # Scale dataframes
+        samples, window_size, num_features = X_train.shape
+
         Logger.info(f"k-Fold:{i+1} ===> Scaling dataframes...")
         scaler = dp.get_scaler()
-        Logger.info(f"k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(X_train)} | X_train std: {np.std(X_train)} | X_val mean: {np.mean(X_val)} | X_val std: {np.std(X_val)}")
-        X_train = scaler.fit_transform(X_train)
-        X_val = scaler.transform(X_val)
-        Logger.info(f"k-Fold:{i+1} ===> Scaling Params: Mean:{scaler.mean_} | Std:{scaler.scale_}")
-        Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train)} | X_train std: {np.std(X_train)} | X_val mean: {np.mean(X_val)} | X_val std: {np.std(X_val)}")
+
+        Logger.info(f"k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+        
+        X_train = scaler.fit_transform(X_train.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        X_val = scaler.transform(X_val.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        
+        Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
 
         # Create datasets
-        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))
-        val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
+        train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))
+        val_dataset = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
     
         Logger.info(f"k-Fold:{i+1} ===> Train dataset size: {len(train_dataset)} | Val dataset size: {len(val_dataset)} | Sample shape: {train_dataset[0][0].shape}")
 
-        # Del dataframes
-        del X_train, X_val, y_train, y_val, fold_train_subjects
-        gc.collect()
+        
         
         # Create data loaders
         Logger.info(f"k-Fold:{i+1} ===> Creating dataloaders...")
@@ -107,12 +110,18 @@ def k_fold_cv(device):
 
         # Compute weights
         Logger.info(f"k-Fold:{i+1} ===> Computing class weights...")   
-        class_weights = dp.compute_weights([shelves[subject] for subject in fold_train_subjects])
-        
+        class_weights = dp.compute_weights(y_train)
+        class_weights = class_weights.to(device)
+
+        # Del 
+        del X_train, X_val, y_train, y_val
+        gc.collect()
+
         # Train model
         Logger.info(f"k-Fold:{i+1} ===> Loading model...")
         # Load Traning parameters
         model = t.load_network()
+        model = model.to(device)
         optimizer = t.load_optim(model)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)
@@ -131,6 +140,7 @@ def k_fold_cv(device):
 
 
         state.info()
+        state.scalar = scaler
 
         # Visuals
         state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1}")
@@ -155,10 +165,11 @@ def k_fold_cv(device):
     # Info
     Logger.info("Average Scores:")
     
-    use_warn_score = cl.config.metrics.use_warn_score
+    # TO DO: Add option to use warn metrics
+    #use_warn_score = cl.config.metrics.use_warn_metrics
 
-    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train',use_warn_score )}")
-    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val', use_warn_score)}")
+    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train' )}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
 
     # End LOSOCV
     end_train = datetime.datetime.now()
@@ -168,19 +179,29 @@ def k_fold_cv(device):
     ###############################################
     ################ Inference ####################
     ###############################################
+    Logger.info("Inference started...")
 
     best_state = results[best_fold]
-
     Logger.info("Creating Inference Dataset...")
     # Inference dataset
-    inference_dataset = ConcatDataset([shelves[subject] for subject in inference_subjects])
+    X_inference = np.concatenate([X_dict[subject] for subject in inference_subjects], axis=0)
+    y_inference = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
+
+    # Scale
+    X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+
+    inference_dataset = TensorDataset(torch.from_numpy(X_inference), torch.from_numpy(y_inference))
+
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
+    
+    del X_inference, y_inference, X_dict, y_dict
+    gc.collect()
+
     Logger.info("Creating Inference Dataloader...")
     
     # Inference dataloader
     inference_loader = dp.load_dataloader(inference_dataset)
 
-    Logger.info("Inference started...")
     # Load best criterion
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
 
@@ -201,7 +222,7 @@ def k_fold_cv(device):
     Logger.info(f"Inference End time: {end_inference}")
     Logger.info(f"Inference Duration: {end_inference - end_train}")
         
-def get_mean_scores(states:[State], phase:str, use_warn_score:bool=True):
+def get_mean_scores(states:[State], phase:str):
     """Method to get mean scores from list of states.
 
     Args:
@@ -220,8 +241,6 @@ def get_mean_scores(states:[State], phase:str, use_warn_score:bool=True):
     if phase == "train":
 
         for state in states:
-            if state.zero_division_warn and not use_warn_score:
-                continue
             f1_scores.append(state.best_train_metrics.f1_score)
             recall_scores.append(state.best_train_metrics.recall_score)
             precision_scores.append(state.best_train_metrics.precision_score)
@@ -230,8 +249,6 @@ def get_mean_scores(states:[State], phase:str, use_warn_score:bool=True):
             accuracy_scores.append(state.best_train_metrics.accuracy)
     else:
         for state in states:
-            if state.zero_division_warn and not use_warn_score:
-                continue
             f1_scores.append(state.best_val_metrics.f1_score)
             recall_scores.append(state.best_val_metrics.recall_score)
             precision_scores.append(state.best_val_metrics.precision_score)

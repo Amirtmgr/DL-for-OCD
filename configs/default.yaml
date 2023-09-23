@@ -50,7 +50,7 @@ architecture:
   fc_hidden_size: 128
   num_classes: *num_classes
   activation:
-    name: 'relu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
+    name: 'elu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
     negative_slope: 0.01 # For leaky_relu
     alpha: 1.0 # For elu
 
@@ -77,7 +77,7 @@ lr_scheduler:
   step_size: 10 # For step_lr
   gamma: 0.1 # For step_lr
   factor: 0.02 
-  pateince: 10 # For reduce_lr_on_plateau
+  patience: 10 # For reduce_lr_on_plateau
   mode: 'min' # For reduce_lr_on_plateau
   verbose: True 
   threshold: 0.0001 # For reduce_lr_on_plateau
@@ -93,7 +93,7 @@ train:
     
 # Dataset parameters
 dataset:
-  name: 'processed' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size

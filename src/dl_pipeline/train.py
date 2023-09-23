@@ -122,8 +122,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     """
 
     is_train = phase == 'train'
-    network.to(device)
-
+    
     # Set network to train or eval mode
     if is_train:
         network.train()
@@ -182,9 +181,11 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     if lr_scheduler and is_train:
         if isinstance(lr_scheduler, ReduceLROnPlateau):
             lr_scheduler.step(np.mean(epoch_loss))
+            last_lr = optimizer.param_groups[0]['lr']
         else:
-            lr_scheduler.step()   
-        Logger.info(f"LR Update in Epoch: {epoch+1}/{cl.config.train.num_epochs} | last_lr: {lr_scheduler.get_last_lr()}")
+            lr_scheduler.step()
+            last_lr = lr_scheduler.get_last_lr()   
+        Logger.info(f"LR Update in Epoch: {epoch+1}/{cl.config.train.num_epochs} | last_lr: {last_lr}")
 
     #Calculate metrics
     metrics = Metrics(labels=range(3))
@@ -358,7 +359,7 @@ def load_lr_scheduler(optimizer):
         factor = cl.config.lr_scheduler.factor
         patience = cl.config.lr_scheduler.patience
         threshold = cl.config.lr_scheduler.threshold
-        Logger.info(f"Using ReduceLROnPlateau with params: step_size={step_size}, gamma={gamma}")
+        Logger.info(f"Using ReduceLROnPlateau with params: mode:{mode} | factor:{factor} | patience:{patience}| threshold: {threshold}")
         return ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience, verbose=verbose)
     else:
         Logger.info("No lr_scheduler found. Returning None.")
