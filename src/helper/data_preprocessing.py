@@ -1,6 +1,9 @@
 import itertools
 import gc
 import numpy as np
+import os
+import shelve
+import random
 
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
@@ -50,23 +53,24 @@ def get_files():
     return grouped_files
 
 
-def split_data(grouped_files):
-    subjects = sorted(list(grouped_files.keys()))
+def split_subjects(subjects):
+    random.seed(cl.config.dataset.random_seed)
+    random.shuffle(subjects)
+
+    # Remove personalized subject
+    if cl.config.dataset.personalized_subject in subjects:
+        subjects.remove(cl.config.dataset.personalized_subject)
     
     # If Debug
     if cl.config.debug:
         subjects = subjects[:4]
 
-    # Remove personalized subject
-    if cl.config.dataset.personalized_subject in subjects:
-        subjects.remove(cl.config.dataset.personalized_subject)
-
     # For test train split
     if cl.config.dataset.train_ratio != 1.0:
         train_size = int(float(cl.config.dataset.train_ratio) * len(subjects))
         train_subjects = subjects[:train_size]
-        val_subjects = subjects[train_size:]     
-        return train_subjects, val_subjects
+        inference_subjects = subjects[train_size:]     
+        return train_subjects, inference_subjects
 
 def get_datasets():
     """Method to get datasets
@@ -77,7 +81,7 @@ def get_datasets():
     grouped_files = get_files()
     
     # Get train and val subjects
-    train_subjects, val_subjects = split_data(grouped_files)
+    train_subjects, val_subjects = split_subjects(grouped_files)
     
     # Get train and val dataframes
     train_df = dfm.load_dfs_from(train_subjects, grouped_files, add_sub_id=True)
@@ -108,7 +112,7 @@ def get_datasets():
     val_df.drop(val_df.filter(regex=remove_regex).columns, axis=1, inplace=True)
 
     # Check datasets:
-    check_time = not (cl.config.dataset.folder == "features")
+    check_time = not (cl.config.dataset.name == "features")
         
     # Load datasets
     train_windows, train_labels = process_dataframes([train_df], cl.config.dataset.window_size, cl.config.dataset.overlapping_ratio, check_time)
@@ -139,7 +143,7 @@ def get_datasets():
 
 def create_dataset(df):
     # Check datasets:
-    check_time = not (cl.config.dataset.folder == "features")
+    check_time = not (cl.config.dataset.name == "features")
         
     # Load as windows
     windows, labels = process_dataframes([df], cl.config.dataset.window_size, cl.config.dataset.overlapping_ratio, check_time)
@@ -212,7 +216,7 @@ def load_dataloader(dataset):
     return data_loader
   
 # Function to compute class weights
-def compute_weights(dataset: torch.utils.data.Dataset):
+def compute_weights(dataset):
     """Method to compute class weights
     Args:
         labels (list): Labels
@@ -221,7 +225,12 @@ def compute_weights(dataset: torch.utils.data.Dataset):
     """
 
     # Get labels
-    labels = dataset.tensors[1].numpy()
+    if isinstance(dataset, TensorDataset):
+        labels = dataset.tensors[1].numpy()
+    elif isinstance(dataset, list):
+        labels = np.concatenate([d.tensors[1].numpy() for d in dataset])
+    else:
+        raise TypeError("Dataset must be either TensorDataset or list of TensorDataset.")
 
     # Compute class weights
     class_weights = compute_class_weight('balanced', classes=np.unique(labels), y=labels)
@@ -250,5 +259,23 @@ def get_scaler():
     return scaler
 
 
-# Function to filter dataleakage
-#def filter_dataleakage():
+def load_shelves(filename):
+    # Create path
+    path = dm.create_folder("datasets", dm.FolderType.data)
+    x_path = os.path.join(path, filename+"_X")
+    y_path = os.path.join(path, filename+"_y")
+    
+    # Open shelves
+    X_db = shelve.open(x_path, 'r')
+    y_db = shelve.open(y_path, 'r')
+
+    # Convert to dict
+    X = dict(X_db)
+    y = dict(y_db)
+
+    # Close the db
+    X_db.close()
+    y_db.close()
+
+    return x, y 
+     

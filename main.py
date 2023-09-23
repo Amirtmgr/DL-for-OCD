@@ -55,10 +55,10 @@ def main():
     #cln.clean_all()
 
     # Prepare datset
-    #prc.prepare_datasets()
+    #prc.prepare_datasets("OCDetect_")
 
     # Perform DL pipeline
-    #dl.train()
+    dl.train()
  
 if __name__ == '__main__':
     main()

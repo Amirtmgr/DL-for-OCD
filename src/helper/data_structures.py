@@ -153,3 +153,24 @@ def sort_dict_lists(input_dict):
         sorted_dict[key] = sorted(value)
     
     return sorted_dict
+
+
+# Split list into k-folds
+
+def divide_into_groups(elements, k):
+    if k <= 0:
+        raise ValueError("Number of groups 'k' must be greater than 0")
+
+    n = len(elements)
+    group_size = n // k
+    remainder = n % k
+
+    groups = []
+    start = 0
+
+    for i in range(k):
+        group_end = start + group_size + (1 if i < remainder else 0)
+        groups.append(elements[start:group_end])
+        start = group_end
+
+    return groups

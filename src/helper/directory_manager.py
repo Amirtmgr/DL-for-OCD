@@ -22,7 +22,7 @@ def generate_name(root=""):
 # Function to get working data directory
 def get_data_dir():
     # data directory
-    data_dir = os.path.join(cl.config.data_path, cl.config.dataset.folder)
+    data_dir = os.path.join(cl.config.data_path, cl.config.dataset.name)
     return data_dir
 
 # Function to get csv files from folder

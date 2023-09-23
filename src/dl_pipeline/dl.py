@@ -50,8 +50,10 @@ def train():
     # Setup CUDA
     device = setup_cuda()
 
-    if cl.config.train.cross_validation == "loso":
-        v.loso_cv(device)
+    cv = cl.config.train.cross_validation.name
+
+    if cv == "loso"  or cv == "kfold":
+        v.k_fold_cv(device)
     else:
         # Load dataset
         train_dataset, val_dataset = dp.get_datasets()
@@ -64,7 +66,7 @@ def train():
         class_weights = dp.compute_weights(train_dataset)
 
         # Load Traning parameters
-        model = t.load_network()
+        model = t.init_weights(t.load_network())
         optimizer = t.load_optim(model)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)
@@ -81,5 +83,6 @@ def train():
         state.plot_f1_scores()
     
     # Inference
+
 
 

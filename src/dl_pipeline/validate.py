@@ -1,6 +1,9 @@
 import datetime
 import gc
 import numpy as np
+import random
+
+from torch.utils.data import ConcatDataset
 
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
@@ -11,7 +14,242 @@ from src.helper.filters import band_pass_filter
 from src.helper import object_manager as om
 from src.helper import directory_manager as dm
 from src.helper.state import State
+from src.helper import data_structures as ds
 
+def k_fold_cv(device):
+    # start
+    start = datetime.datetime.now()
+    Logger.info(f"Cross-Validation Start time: {start}")
+
+    # Empty dict to store results
+    results = {}
+    best_val_loss = np.inf
+    best_fold = None
+
+    shelf_name = cl.config.dataset.folder
+
+    # Load python dataset
+    X_dict, y_dict = dp.load_shelves(shelf_name)
+
+    # All subjects
+    subjects = list(X_dict.keys())
+
+    # Split train and inference subjects
+    train_subjects, inference_subjects = dp.split_subjects(subjects)
+    Logger.info(f"Train subjects: {train_subjects}")
+    Logger.info(f"Inference subjects: {inference_subjects}")
+
+    # Prepare k-fold lists
+    if cl.config.train.cross_validation.name == "losocv":
+        k_folds = ds.divide_into_groups(train_subjects, len(train_subjects))
+    else:
+        k_folds = ds.divide_into_groups(train_subjects, cl.config.train.cross_validation.k_folds)
+
+    # Loop through folds
+    for i, fold_val_subjects in enumerate(k_folds):
+        # start of k-fold
+        k_start = datetime.datetime.now()
+
+        Logger.info(f"Starting k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
+        
+        # k-fold train subjects
+        fold_train_subjects = list(set(train_subjects) - set(fold_val_subjects)) 
+        
+        Logger.info(f"k-Fold:{i+1} ===> Validation subjects: {fold_val_subjects} | List size: {len(fold_val_subjects)}")
+        Logger.info(f"k-Fold:{i+1} ===> Training subjects: {fold_train_subjects} | List size: {len(fold_train_subjects)}")
+
+        # Load numpy datasets
+        X_train = np.concatenate([X_dict[subject] for subject in fold_train_subjects], axis=0)
+        y_train = np.concatenate([y_dict[subject] for subject in fold_train_subjects], axis=0)
+
+        X_val = np.concatenate([X_dict[subject] for subject in fold_val_subjects], axis=0)
+        y_val = np.concatenate([y_dict[subject] for subject in fold_val_subjects], axis=0)
+        
+        # Check sensor type 
+        if cl.config.dataset.sensor == "acc":
+            X_train = X_train[:, :, :3]
+            X_val = X_val[:, :, :3]
+            y_train = y_train[:, :, :3]
+            y_val = y_val[:, :, :3]
+        elif cl.config.dataset.sensor == "gyro":
+            X_train = X_train[:, :, 3:]
+            X_val = X_val[:, :, 3:]
+            y_train = y_train[:, :, 3:]
+            y_val = y_val[:, :, 3:]
+        
+        Logger.info(f"k-Fold:{i+1} ===> X_train shape: {X_train.shape} | y_train shape: {y_train.shape}")
+        Logger.info(f"k-Fold:{i+1} ===> X_val shape: {X_val.shape} | y_val shape: {y_val.shape}")
+
+        # Scale dataframes
+        Logger.info(f"k-Fold:{i+1} ===> Scaling dataframes...")
+        scaler = dp.get_scaler()
+        Logger.info(f"k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(X_train)} | X_train std: {np.std(X_train)} | X_val mean: {np.mean(X_val)} | X_val std: {np.std(X_val)}")
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+        Logger.info(f"k-Fold:{i+1} ===> Scaling Params: Mean:{scaler.mean_} | Std:{scaler.scale_}")
+        Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train)} | X_train std: {np.std(X_train)} | X_val mean: {np.mean(X_val)} | X_val std: {np.std(X_val)}")
+
+        # Create datasets
+        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))
+        val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
+    
+        Logger.info(f"k-Fold:{i+1} ===> Train dataset size: {len(train_dataset)} | Val dataset size: {len(val_dataset)} | Sample shape: {train_dataset[0][0].shape}")
+
+        # Del dataframes
+        del X_train, X_val, y_train, y_val, fold_train_subjects
+        gc.collect()
+        
+        # Create data loaders
+        Logger.info(f"k-Fold:{i+1} ===> Creating dataloaders...")
+        train_loader = dp.load_dataloader(train_dataset)
+        val_loader = dp.load_dataloader(val_dataset)
+        
+
+        # Compute weights
+        Logger.info(f"k-Fold:{i+1} ===> Computing class weights...")   
+        class_weights = dp.compute_weights([shelves[subject] for subject in fold_train_subjects])
+        
+        # Train model
+        Logger.info(f"k-Fold:{i+1} ===> Loading model...")
+        # Load Traning parameters
+        model = t.load_network()
+        optimizer = t.load_optim(model)
+        criterion = t.load_criterion(class_weights)
+        lr_scheduler = t.load_lr_scheduler(optimizer)
+
+        Logger.info(f"k-Fold:{i+1} ===> Training model...")
+
+        # Train Model
+        state = t.train_model(model, criterion, 
+                            optimizer, lr_scheduler,
+                            train_loader, val_loader, device, optional_name=f"_cv-{i+1}_fold")
+
+        if state.best_val_metrics.loss < best_val_loss:
+            best_val_loss = state.best_val_metrics.loss
+            best_fold = i
+            Logger.info(f"k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score}")
+
+
+        state.info()
+
+        # Visuals
+        state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1}")
+        state.plot_f1_scores(title=f" Cross-Validation on k-Fold: {i+1}")
+
+        # Save state to dict
+        results[i] = state
+
+        # End of k-fold
+        k_end = datetime.datetime.now()
+        Logger.info(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
+
+
+    Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    Logger.info(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
+
+    # Save metrics
+    Logger.info("Saving metrics...")
+    msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
+    Logger.info(msg)
+
+    # Info
+    Logger.info("Average Scores:")
+    
+    use_warn_score = cl.config.metrics.use_warn_score
+
+    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train',use_warn_score )}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val', use_warn_score)}")
+
+    # End LOSOCV
+    end_train = datetime.datetime.now()
+    Logger.info(f"Cross-Validation End time: {end_train}")
+    Logger.info(f"Cross-Validation Duration: {end_train - start}")
+
+    ###############################################
+    ################ Inference ####################
+    ###############################################
+
+    best_state = results[best_fold]
+
+    Logger.info("Creating Inference Dataset...")
+    # Inference dataset
+    inference_dataset = ConcatDataset([shelves[subject] for subject in inference_subjects])
+    Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
+    Logger.info("Creating Inference Dataloader...")
+    
+    # Inference dataloader
+    inference_loader = dp.load_dataloader(inference_dataset)
+
+    Logger.info("Inference started...")
+    # Load best criterion
+    loss_fn = t.load_criterion(best_state.best_criterion_weight)
+
+    # Inference
+    inferece_metrics = t.run_epoch(0,"inference", inference_loader,
+                                    best_state.best_model,loss_fn,
+                                    best_state.best_optimizer, best_state.best_lr_scheduler,
+                                    device=device)[0]
+
+    inferece_metrics.info()
+
+    # Save inference metrics
+    msg = om.save_object(inferece_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
+    Logger.info(msg)
+    
+    # Inferece duration
+    end_inference = datetime.datetime.now()
+    Logger.info(f"Inference End time: {end_inference}")
+    Logger.info(f"Inference Duration: {end_inference - end_train}")
+        
+def get_mean_scores(states:[State], phase:str, use_warn_score:bool=True):
+    """Method to get mean scores from list of states.
+
+    Args:
+        states ([State]): List of states.
+
+    Returns:
+        [type]: [description]
+    """
+    f1_scores = []
+    recall_scores = []
+    precision_scores = []
+    specificity_scores = []
+    jaccard_scores = []
+    accuracy_scores = []
+
+    if phase == "train":
+
+        for state in states:
+            if state.zero_division_warn and not use_warn_score:
+                continue
+            f1_scores.append(state.best_train_metrics.f1_score)
+            recall_scores.append(state.best_train_metrics.recall_score)
+            precision_scores.append(state.best_train_metrics.precision_score)
+            specificity_scores.append(state.best_train_metrics.specificity_score)
+            jaccard_scores.append(state.best_train_metrics.jaccard_score)
+            accuracy_scores.append(state.best_train_metrics.accuracy)
+    else:
+        for state in states:
+            if state.zero_division_warn and not use_warn_score:
+                continue
+            f1_scores.append(state.best_val_metrics.f1_score)
+            recall_scores.append(state.best_val_metrics.recall_score)
+            precision_scores.append(state.best_val_metrics.precision_score)
+            specificity_scores.append(state.best_val_metrics.specificity_score)
+            jaccard_scores.append(state.best_val_metrics.jaccard_score)
+            accuracy_scores.append(state.best_val_metrics.accuracy)
+    
+    mean_scores = { "f1_score": np.mean(f1_scores),
+                    "recall_score": np.mean(recall_scores), 
+                    "precision_score": np.mean(precision_scores),
+                    "specificity_score": np.mean(specificity_scores),
+                    "jaccard_score": np.mean(jaccard_scores),
+                    "accuracy": np.mean(accuracy_scores)
+                    }
+
+    return mean_scores
+
+'''
 def loso_cv(device):
     # start
     start = datetime.datetime.now()
@@ -174,49 +412,4 @@ def loso_cv(device):
     Logger.info(f"Inference End time: {end_inference}")
     Logger.info(f"Inference Duration: {end_inference - end_train}")
 
-
-
-        
-def get_mean_scores(states:[State], phase:str):
-    """Method to get mean scores from list of states.
-
-    Args:
-        states ([State]): List of states.
-
-    Returns:
-        [type]: [description]
-    """
-    f1_scores = []
-    recall_scores = []
-    precision_scores = []
-    specificity_scores = []
-    jaccard_scores = []
-    accuracy_scores = []
-
-    if phase == "train":
-
-        for state in states:
-            f1_scores.append(state.best_train_metrics.f1_score)
-            recall_scores.append(state.best_train_metrics.recall_score)
-            precision_scores.append(state.best_train_metrics.precision_score)
-            specificity_scores.append(state.best_train_metrics.specificity_score)
-            jaccard_scores.append(state.best_train_metrics.jaccard_score)
-            accuracy_scores.append(state.best_train_metrics.accuracy)
-    else:
-        for state in states:
-            f1_scores.append(state.best_val_metrics.f1_score)
-            recall_scores.append(state.best_val_metrics.recall_score)
-            precision_scores.append(state.best_val_metrics.precision_score)
-            specificity_scores.append(state.best_val_metrics.specificity_score)
-            jaccard_scores.append(state.best_val_metrics.jaccard_score)
-            accuracy_scores.append(state.best_val_metrics.accuracy)
-    
-    mean_scores = { "f1_score": np.mean(f1_scores),
-                    "recall_score": np.mean(recall_scores), 
-                    "precision_score": np.mean(precision_scores),
-                    "specificity_score": np.mean(specificity_scores),
-                    "jaccard_score": np.mean(jaccard_scores),
-                    "accuracy": np.mean(accuracy_scores)
-                    }
-
-    return mean_scores
+    '''

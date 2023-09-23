@@ -5,6 +5,8 @@
 # ------------------------------------------------------------------------
 
 import numpy as np
+import warnings
+
 from collections import Counter
 
 from src.utils.config_loader import config_loader as cl
@@ -16,6 +18,7 @@ from sklearn.metrics import (
     recall_score,
     precision_score,
     confusion_matrix,
+    classification_report,
     jaccard_score
 )
 
@@ -34,6 +37,8 @@ class Metrics:
         self.y_true = None
         self.y_pred = None
         self.labels = labels
+        self.zero_division_warn = False
+        self.classification_report = None
 
         try:
             
@@ -51,37 +56,51 @@ class Metrics:
         y_pred = self.y_pred
         Logger.info(f"Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
         Logger.info(f"Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
-        try:
-            # Accuracy
-            self.accuracy = accuracy_score(y_true, y_pred)
+        
+        # Catch ZeroDivision UserWarning
+        with warnings.catch_warnings(record=True) as warn_list:
 
-            # F1 Score
-            self.f1_score = f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+            try:
+                # Accuracy
+                self.accuracy = accuracy_score(y_true, y_pred)
 
-            # Recall
-            self.recall_score = recall_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                # F1 Score
+                self.f1_score = f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
-            # Precision
-            self.precision_score = precision_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                # Recall
+                self.recall_score = recall_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
-            # Confusion Matrix
-            self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
+                # Precision
+                self.precision_score = precision_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
 
-            # Jaccard Score
-            self.jaccard_score = jaccard_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                # Confusion Matrix
+                self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
-            # Specificity
-            self.specificity_score = ((1 + self.precision_score) * self.recall_score) / (self.precision_score + self.recall_score)
+                # Jaccard Score
+                self.jaccard_score = jaccard_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                
+                # Classification Report
+                self.classification_report = classification_report(y_true, y_pred, labels=self.labels, zero_division=self.zero_division)
+                
+                # Specificity
+                tn, fp, fn, tp = self.confusion_matrix.ravel()
+                self.specificity_score = tn / (tn + fp)
+                
+                print(self.classification_report)
+                
+            except Warning as w:
+                self.zero_division_warn = True
+                Logger.warning(f"Phase: {self.phase} | An warning occurred: {str(w)}")
 
-        except Exception as e:
-            Logger.error(f"Phase: {self.phase} | An error occurred: {str(e)}")
-            
-        except ZeroDivisionError as e:
-            Logger.warning(f"Phase : {self.phase} | An error occurred: {str(e)}")
-            
-        finally:
-            pass
-            
+            except Exception as e:
+                Logger.error(f"Phase: {self.phase} | An error occurred: {str(e)}")
+                
+            except ZeroDivisionError as e:
+                Logger.warning(f"Phase : {self.phase} | An error occurred: {str(e)}")
+                
+            finally:
+                pass
+                
     def get_f1_score(self):
         return self.f1_score
 
@@ -104,6 +123,9 @@ class Metrics:
         self.loss = loss
 
     def info(self):
-        msg = f"Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
+        if not self.zero_division_warn:
+            msg = f"Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
+        else:
+            msg = f"[Zero_Division Warning] Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
         Logger.info(msg)
     

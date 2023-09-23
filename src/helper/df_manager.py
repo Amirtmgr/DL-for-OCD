@@ -15,7 +15,7 @@ from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
 
 # Function to get params:
 def read_params():
-    if cl.config.dataset.folder == "features":
+    if cl.config.dataset.name == "features":
         dtype={'relabeled': 'uint8'}
         return None, dtype, None
     else:
@@ -31,7 +31,7 @@ def read_params():
         dtype={'relabeled': 'uint8','ignore':'uint8'}
         parse_dates = ["datetime"]
     
-    if cl.config.dataset.folder == "processed":
+    if cl.config.dataset.name == "processed":
         usecols.remove('ignore')
         usecols.append('sub_id')
         dtype.pop('ignore')

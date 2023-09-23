@@ -312,7 +312,8 @@ def load_network():
         return None
     
     Logger.info(f"Using Model: {model}")
-    return model
+    # Return initialized model
+    return model.apply(init_weights)
 
 # Function to load optimizer
 def load_optim(model):
@@ -345,12 +346,111 @@ def load_criterion(weights):
 # Function to load lr_scheduler
 def load_lr_scheduler(optimizer):
     scheduler = cl.config.lr_scheduler.name
-    step_size = cl.config.lr_scheduler.step_size
-    gamma = cl.config.lr_scheduler.gamma
+    verbose = cl.config.lr_scheduler.verbose
 
     if scheduler == "step_lr":
-        return StepLR(optimizer, step_size=step_size, gamma=gamma)
+        step_size = cl.config.lr_scheduler.step_size
+        gamma = cl.config.lr_scheduler.gamma
         Logger.info(f"Using StepLR with params: step_size={step_size}, gamma={gamma}")
+        return StepLR(optimizer, step_size=step_size, gamma=gamma, verbose=verbose)
+    elif scheduler == "reduce_lr_on_plateau":
+        mode = cl.config.lr_scheduler.mode
+        factor = cl.config.lr_scheduler.factor
+        patience = cl.config.lr_scheduler.patience
+        threshold = cl.config.lr_scheduler.threshold
+        Logger.info(f"Using ReduceLROnPlateau with params: step_size={step_size}, gamma={gamma}")
+        return ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience, verbose=verbose)
     else:
         Logger.info("No lr_scheduler found. Returning None.")
         return None
+
+
+# Function to init weights
+def init_weights(model):
+    """
+    Initialize weights of the DL network.
+
+    Args:
+        model (nn.Module): DL network
+    
+    Returns:
+        DL network with initialized weights.
+    """
+
+    scheme = cl.config.architecture.scheme
+
+    # Loop though all modules
+    for module in model.modules():
+
+        # Linear layers
+        if isinstance(module, nn.Linear):
+
+            if scheme == "xavier_uniform":
+                nn.init.xavier_uniform_(module.weight)
+            elif scheme == "xavier_normal":
+                nn.init.xavier_normal_(module.weight)
+            elif scheme == "kaiming_uniform":
+                nn.init.kaiming_uniform_(module.weight)
+            elif scheme == "kaiming_normal":
+                nn.init.kaiming_normal_(module.weight)
+            elif scheme == "orthogonal":
+                nn.init.orthogonal_(module.weight)
+            elif scheme == "normal":
+                nn.init.normal_(module.weight)
+            else:
+                Logger.error(f"Invalid weight initialization scheme: {scheme}")
+                raise ValueError
+
+            if module.bias is not None:
+                nn.init.constant_(module.bias, 0)
+            
+        # Convolutional layers
+        elif isinstance(module, nn.Conv2d):
+
+            if scheme == "xavier_uniform":
+                nn.init.xavier_uniform_(module.weight)
+            elif scheme == "xavier_normal":
+                nn.init.xavier_normal_(module.weight)
+            elif scheme == "kaiming_uniform":
+                nn.init.kaiming_uniform_(module.weight)
+            elif scheme == "kaiming_normal":
+                nn.init.kaiming_normal_(module.weight)
+            elif scheme == "orthogonal":
+                nn.init.orthogonal_(module.weight)
+            elif scheme == "normal":
+                nn.init.normal_(module.weight)
+            else:
+                Logger.error(f"Invalid weight initialization scheme: {scheme}")
+                raise ValueError
+
+            if module.bias is not None:
+                module.bias.data.fill_(0.00)
+        
+        # BatchNorm layers
+        elif isinstance(module, nn.BatchNorm2d):
+            module.weight.data.fill_(1.0)
+            module.bias.data.fill_(0.0)
+        
+        # LSTM layers
+        elif isinstance(module, nn.LSTM):
+            for name, param in module.named_parameters():
+                if 'bias' in name:
+                    nn.init.constant_(param, 0.0)
+                elif 'weight' in name or 'weight_hh' in name:
+                    if scheme == "xavier_uniform":
+                        nn.init.xavier_uniform_(param)
+                    elif scheme == "xavier_normal":
+                        nn.init.xavier_normal_(param)
+                    elif scheme == "kaiming_uniform":
+                        nn.init.kaiming_uniform_(param)
+                    elif scheme == "kaiming_normal":
+                        nn.init.kaiming_normal_(param)
+                    elif scheme == "orthogonal":
+                        nn.init.orthogonal_(param)
+                    elif scheme == "normal":
+                        nn.init.normal_(param)
+                    else:
+                        Logger.error(f"Invalid weight initialization scheme: {scheme}")
+                        raise ValueError
+        
+        return model
