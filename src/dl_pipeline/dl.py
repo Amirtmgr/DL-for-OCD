@@ -51,8 +51,9 @@ def train():
     device = setup_cuda()
 
     cv = cl.config.train.cross_validation.name
-    
-    if cl.config.dataset.num_classes == 2:
+    num_classes = cl.config.dataset.num_classes
+
+    if num_classes == 2:
         msg = "==============Binary classification============="
         
         if cl.config.train.cHW_detection:
@@ -61,7 +62,7 @@ def train():
         else:
             msg += "\n=============== Null vs HW =============="
             cl.config.dataset.labels = ["Null", "HW"]
-    elif cl.config.train.num_classes == 3:
+    elif num_classes == 3:
         msg = "==============Multiclass classification========="
     else:
         raise ValueError("Number of classes must be 2 or 3 in config yaml file")
