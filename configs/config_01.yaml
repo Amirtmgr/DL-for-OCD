@@ -15,14 +15,17 @@ machine: 'cluster' #'local' #'cluster'
 # Global variables
 global:
   - &window_size 150
-  - &num_epochs 300
+  - &num_epochs 100
   - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
-  - &random_seed 55
+  - &random_seed 88
   - &use_warn_metrics True
-  
+  - &binary_classification False
+  - &cHW_detection False
+  - &sampling True
+
 # Model architecture parameters
 architecture:
   name: 'deepconvlstm'
@@ -38,9 +41,9 @@ architecture:
 
   # For LSTM
   lstm_hidden_size: 128
-  lstm_num_layers: 2
+  lstm_num_layers: 1
   lstm_bias: False
-  lstm_dropout: 0.0
+  lstm_dropout: 0.25
   lstm_bidirectional: False
 
   # For Dropout Layer
@@ -50,7 +53,7 @@ architecture:
   fc_hidden_size: 128
   num_classes: *num_classes
   activation:
-    name: 'elu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
+    name: 'leaky_relu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
     negative_slope: 0.01 # For leaky_relu
     alpha: 1.0 # For elu
 
@@ -59,7 +62,7 @@ architecture:
 
 # Optimizer Hyperparameters
 optim:
-  name: 'sgd'
+  name: 'adam'
   learning_rate: 0.001
   weight_decay: 0.0
   momentum: 0.9
@@ -87,6 +90,9 @@ train:
   device: *device
   num_epochs: *num_epochs
   batch_size: 256
+  binary_classification: *binary_classification
+  cHW_detection: *cHW_detection
+  random_seed: *random_seed
   cross_validation:
     name: 'kfold' #'losocv'
     k_folds: 4
@@ -107,6 +113,8 @@ dataset:
   num_workers: *num_workers
   pin_memory: False
   scaler_type: "MinMax" # "Standard" # "Robust"
+  sampling: *sampling
+  alpha: 0.75 # Sampling ratio
 
 # Filter parameters
 filter:

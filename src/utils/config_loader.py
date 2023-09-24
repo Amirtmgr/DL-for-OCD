@@ -45,6 +45,7 @@ class __ConfigLoader:
                 self.file_name = file_name.split("/")[-1].split(".")[0]
                 self.config_dict = yaml.safe_load(file)
                 temp = self._set_paths(self.config_dict)
+                temp['file_name'] = self.file_name
                 self.config = easydict.EasyDict(temp)    
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file '{file_name}' not found.")

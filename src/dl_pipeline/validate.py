@@ -2,6 +2,7 @@ import datetime
 import gc
 import numpy as np
 import random
+from collections import Counter
 
 import torch
 from torch.utils.data import ConcatDataset, TensorDataset
@@ -16,6 +17,8 @@ from src.helper import object_manager as om
 from src.helper import directory_manager as dm
 from src.helper.state import State
 from src.helper import data_structures as ds
+from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
+
 
 def k_fold_cv(device):
     # start
@@ -28,6 +31,7 @@ def k_fold_cv(device):
     best_fold = None
     
     shelf_name = cl.config.dataset.name
+    random_seed = cl.config.dataset.random_seed
 
     # Load python dataset
     X_dict, y_dict = dp.load_shelves(shelf_name)
@@ -78,6 +82,25 @@ def k_fold_cv(device):
             y_train = y_train[:, :, 3:]
             y_val = y_val[:, :, 3:]
         
+        # Sampling
+        if cl.config.dataset.sampling:
+            samples, window_size, num_features = X_train.shape
+            Logger.info(f"k-Fold:{i+1} ===> Before Undersampling {Counter(y_train)}")
+            X_reshape = X_train.reshape(samples, -1)       
+            #null_samples = int(np.sqrt(samples))
+            #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
+            k = 7
+            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=random_seed)
+
+            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=random_seed)
+            X_sample, y_sample = undersample.fit_resample(X_reshape, y_train)
+            X_train = X_sample.reshape(-1, window_size, num_features)
+            y_train = y_sample
+            Logger.info(f"k-Fold:{i+1} ===> After Undersampling {Counter(y_train)}")
+            
+            del X_reshape, X_sample, y_sample, undersample
+            gc.collect()
+
         Logger.info(f"k-Fold:{i+1} ===> X_train shape: {X_train.shape} | y_train shape: {y_train.shape}")
         Logger.info(f"k-Fold:{i+1} ===> X_val shape: {X_val.shape} | y_val shape: {y_val.shape}")
 
@@ -143,8 +166,8 @@ def k_fold_cv(device):
         state.scalar = scaler
 
         # Visuals
-        state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1}")
-        state.plot_f1_scores(title=f" Cross-Validation on k-Fold: {i+1}")
+        state.plot_losses(title=f"Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_f1_scores(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
 
         # Save state to dict
         results[i] = state

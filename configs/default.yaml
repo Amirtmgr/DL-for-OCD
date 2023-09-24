@@ -22,6 +22,9 @@ global:
   - &num_workers 4
   - &random_seed 55
   - &use_warn_metrics True
+  - &binary_classification False
+  - &cHW_detection False
+  - &sampling True
   
 # Model architecture parameters
 architecture:
@@ -87,6 +90,9 @@ train:
   device: *device
   num_epochs: *num_epochs
   batch_size: 32
+  binary_classification: *binary_classification
+  cHW_detection: *cHW_detection
+  random_seed: *random_seed
   cross_validation:
     name: 'kfold' #'losocv'
     k_folds: 2
@@ -107,6 +113,8 @@ dataset:
   num_workers: *num_workers
   pin_memory: False
   scaler_type: "MinMax" # "Standard" # "Robust"
+  sampling: *sampling
+  alpha: 0.75 # Sampling ratio
 
 # Filter parameters
 filter:
