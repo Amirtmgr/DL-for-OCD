@@ -71,7 +71,7 @@ optim:
 # Loss function parameters
 criterion:
   name: 'bce' #'cross_entropy'
-  weighted: False
+  weighted: True
   reduction: 'mean'
 
 # LR Scheduler parameters
