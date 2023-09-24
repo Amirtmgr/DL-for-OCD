@@ -63,4 +63,3 @@ def decode(label):
     elif isinstance(label, Enum):
         return LABELS[label.value()]
 
-        

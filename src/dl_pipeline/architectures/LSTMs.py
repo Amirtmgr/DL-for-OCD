@@ -65,7 +65,7 @@ class DeepConvLSTM(nn.Module):
         self.lstm_hidden_size = config.get('lstm_hidden_size', 128)
         self.lstm_num_layers = config.get('lstm_num_layers', 2)
         self.lstm_bias = config.get('lstm_bias', False)
-        self.lstm_dropout = config.get('lstm_dropout', 0.25)
+        self.lstm_dropout = config.get('lstm_dropout', 0.25) if self.lstm_num_layers > 1 else 0.0
         self.lstm_bidirectional = config.get('lstm_bidirectional', False)
         self.lstm_directions = 2 if self.lstm_bidirectional else 1
 
@@ -84,13 +84,13 @@ class DeepConvLSTM(nn.Module):
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
-        self.num_classes = config.get('num_classes', 3)
+        self.output_neurons = self.num_classes if self.num_classes > 2 else 1
 
         self.fc_layers = nn.Sequential(
             nn.Linear(self.lstm_hidden_size * self.lstm_directions, self.fc_hidden_size),
             nn.BatchNorm1d(self.fc_hidden_size),  # Batch normalization
             self.activation,
-            nn.Linear(self.fc_hidden_size, self.num_classes),
+            nn.Linear(self.fc_hidden_size, self.output_neurons),
         )
 
     def forward(self, x):
@@ -126,7 +126,7 @@ class DeepConvLSTM(nn.Module):
         output = self.fc_layers(x)
         
         # Reshape the output
-        output = output.view(batch, -1, self.num_classes)
+        output = output.view(batch, -1, self.output_neurons)
         output = output[:, -1, :]
         #print(output.shape)
         return output

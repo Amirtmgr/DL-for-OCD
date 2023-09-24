@@ -21,15 +21,18 @@ from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSamp
 
 
 def k_fold_cv(device):
+    print("======"*5)
     # start
     start = datetime.datetime.now()
     Logger.info(f"Cross-Validation Start time: {start}")
+    print(f"Cross-Validation Start time: {start}")
 
     # Empty dict to store results
     results = {}
     best_val_loss = np.inf
+    best_f1_score = 0.0
     best_fold = None
-    
+    is_binary = cl.config.dataset.num_classes < 3
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
 
@@ -54,14 +57,17 @@ def k_fold_cv(device):
     for i, fold_val_subjects in enumerate(k_folds):
         # start of k-fold
         k_start = datetime.datetime.now()
-
-        Logger.info(f"Starting k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
+        Logger.info(f"-------------------")
+        Logger.info(f"\nStarting k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
         
         # k-fold train subjects
         fold_train_subjects = list(set(train_subjects) - set(fold_val_subjects)) 
         
         Logger.info(f"k-Fold:{i+1} ===> Validation subjects: {fold_val_subjects} | List size: {len(fold_val_subjects)}")
         Logger.info(f"k-Fold:{i+1} ===> Training subjects: {fold_train_subjects} | List size: {len(fold_train_subjects)}")
+        
+        print(f"\nk-Fold:{i+1} ===> Validation subjects: {fold_val_subjects} | List size: {len(fold_val_subjects)}")
+        print(f"k-Fold:{i+1} ===> Training subjects: {fold_train_subjects} | List size: {len(fold_train_subjects)}")
 
         # Load numpy datasets
         X_train = np.concatenate([X_dict[subject] for subject in fold_train_subjects], axis=0)
@@ -70,6 +76,7 @@ def k_fold_cv(device):
         X_val = np.concatenate([X_dict[subject] for subject in fold_val_subjects], axis=0)
         y_val = np.concatenate([y_dict[subject] for subject in fold_val_subjects], axis=0)
         
+
         # Check sensor type 
         if cl.config.dataset.sensor == "acc":
             X_train = X_train[:, :, :3]
@@ -118,8 +125,8 @@ def k_fold_cv(device):
         Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
 
         # Create datasets
-        train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))
-        val_dataset = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val))
+        train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train).float())
+        val_dataset = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val).float())
     
         Logger.info(f"k-Fold:{i+1} ===> Train dataset size: {len(train_dataset)} | Val dataset size: {len(val_dataset)} | Sample shape: {train_dataset[0][0].shape}")
 
@@ -154,7 +161,9 @@ def k_fold_cv(device):
         # Train Model
         state = t.train_model(model, criterion, 
                             optimizer, lr_scheduler,
-                            train_loader, val_loader, device, optional_name=f"_cv-{i+1}_fold")
+                            train_loader, val_loader, device, optional_name=f"_cv-{i+1}_fold",
+                            is_binary=is_binary,
+                            threshold= cl.config.train.binary_threshold)
 
         if state.best_val_metrics.loss < best_val_loss:
             best_val_loss = state.best_val_metrics.loss
@@ -166,7 +175,7 @@ def k_fold_cv(device):
         state.scalar = scaler
 
         # Visuals
-        state.plot_losses(title=f"Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
         state.plot_f1_scores(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
 
         # Save state to dict
@@ -175,10 +184,12 @@ def k_fold_cv(device):
         # End of k-fold
         k_end = datetime.datetime.now()
         Logger.info(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
-
+        print(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
     Logger.info(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
+    print(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    print(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
 
     # Save metrics
     Logger.info("Saving metrics...")
@@ -203,6 +214,8 @@ def k_fold_cv(device):
     ################ Inference ####################
     ###############################################
     Logger.info("Inference started...")
+    print("======"*10)
+    print("Inference started...")
 
     best_state = results[best_fold]
     Logger.info("Creating Inference Dataset...")
@@ -213,7 +226,7 @@ def k_fold_cv(device):
     # Scale
     X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
 
-    inference_dataset = TensorDataset(torch.from_numpy(X_inference), torch.from_numpy(y_inference))
+    inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
 
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
     
@@ -232,7 +245,7 @@ def k_fold_cv(device):
     inferece_metrics = t.run_epoch(0,"inference", inference_loader,
                                     best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,
-                                    device=device)[0]
+                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
 
     inferece_metrics.info()
 
@@ -244,7 +257,9 @@ def k_fold_cv(device):
     end_inference = datetime.datetime.now()
     Logger.info(f"Inference End time: {end_inference}")
     Logger.info(f"Inference Duration: {end_inference - end_train}")
-        
+    print(f"Inference End time: {end_inference}")
+    print(f"Inference Duration: {end_inference - end_train}")
+
 def get_mean_scores(states:[State], phase:str):
     """Method to get mean scores from list of states.
 

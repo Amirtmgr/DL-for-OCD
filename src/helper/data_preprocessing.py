@@ -4,6 +4,7 @@ import numpy as np
 import os
 import shelve
 import random
+from collections import Counter
 
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
@@ -279,5 +280,93 @@ def load_shelves(filename):
     X_db.close()
     y_db.close()
 
+    if cl.config.dataset.num_classes == 2:
+        X, y = prepare_binary_data(X, y, cl.config.train.cHW_detection)
+
     return X, y 
      
+
+def filter_out_class(data, labels, class_name):
+    """
+    Filter data and labels based on a specified class name.
+
+    Args:
+        data (numpy.ndarray): The data array containing samples.
+        labels (numpy.ndarray): The labels array containing class labels.
+        class_name (int): The name of the class to filter out.
+
+    Returns:
+        numpy.ndarray: The filtered data array.
+        numpy.ndarray: The filtered labels array.
+    """
+    # Find the indices of samples belonging to the specified class
+    class_indices = np.where(labels != class_name)
+
+    # Use the indices to extract the data and labels for the specified class
+    filtered_data = data[class_indices]
+    filtered_labels = labels[class_indices]
+
+    return filtered_data, filtered_labels
+
+def replace_labels(labels, label_mapping):
+    """
+    Replace labels in a numpy array using a mapping dictionary.
+
+    Args:
+        labels (numpy.ndarray): The numpy array of labels to be replaced.
+        label_mapping (dict): A dictionary mapping old labels to new labels.
+
+    Returns:
+        numpy.ndarray: The numpy array with replaced labels.
+    """
+    # Use numpy's vectorized operations to replace labels
+    # If a label is not in the mapping, keep it unchanged
+    replaced_labels = np.vectorize(label_mapping.get)(labels)
+
+    return replaced_labels
+
+def prepare_binary_data(X_dict:dict, y_dict:dict, cHW_detection:bool=False):
+    """Method to prepare binary data
+    Args:
+        X_dict (dict): X dictionary
+        y_dict (dict): y dictionary
+        cHW_detection (bool, optional): Whether to prepare data for cHW detection. Defaults to False.
+    Returns:
+        dict: X dictionary
+        dict: y dictionary
+    """
+
+    if cHW_detection:
+        Logger.info("Binary Classification : rHW vs cHW")
+    else:
+        Logger.info("Binary Classification : Null vs HW")
+
+    for subject in list(X_dict.keys()):
+        X = X_dict[subject]
+        y = y_dict[subject]
+        
+        if cHW_detection:
+            # Filter classes
+            temp_X, temp_y = filter_out_class(X, y, 0)
+            
+            if temp_y.size == 0:
+                Logger.warning(f"Subject: {subject} | No rHW data found. Skipping.")
+                del X_dict[subject]
+                del y_dict[subject]
+                Logger.info(f"Removed subject: {subject}. Reason: No rHW/cHW data found.")
+                continue
+            # Replace labels
+            temp_y = replace_labels(temp_y, {1:0, 2:1})
+
+             # Add to dict
+            X_dict[subject] = temp_X
+                    
+        else:
+            # Replace labels
+            temp_y = replace_labels(y, {0:0, 1:1, 2:1})
+       
+        y_dict[subject] = temp_y
+
+        Logger.info(f"For Subject: {subject} | Before: {Counter(y)} | After: {Counter(temp_y)}")
+        
+    return X_dict, y_dict

@@ -6,8 +6,8 @@
 
 import numpy as np
 import warnings
-
 from collections import Counter
+from tabulate import tabulate
 
 from src.utils.config_loader import config_loader as cl
 
@@ -23,8 +23,10 @@ from sklearn.metrics import (
 )
 
 class Metrics:
-    def __init__(self, labels, averaging='macro'):
+    def __init__(self, epoch, is_binary, labels=[0 ,1 , 2], averaging='macro'):
         self.phase = ""
+        self.epoch = epoch
+        self.is_binary = is_binary
         self.loss = None
         self.averaging = averaging
         self.f1_score = 0.0
@@ -36,7 +38,7 @@ class Metrics:
         self.accuracy = 0.0
         self.y_true = None
         self.y_pred = None
-        self.labels = labels
+        self.labels = [0, 1] if is_binary else [0, 1, 2]
         self.zero_division_warn = False
         self.classification_report = None
 
@@ -56,7 +58,9 @@ class Metrics:
         y_pred = self.y_pred
         Logger.info(f"Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
         Logger.info(f"Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
-        
+        print(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+        print(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
+
         # Catch ZeroDivision UserWarning
         with warnings.catch_warnings(record=True) as warn_list:
 
@@ -82,11 +86,20 @@ class Metrics:
                 # Classification Report
                 self.classification_report = classification_report(y_true, y_pred, labels=self.labels, zero_division=self.zero_division)
                 #Logger.info(self.classification_report)
-                print(self.classification_report)
+                print(f"Accuracy: {self.accuracy:.2f}")
+                print(f"F1 Score: {self.f1_score:.2f}")
+                print(f"Recall: {self.recall_score:.2f}")
+                print(f"Precision: {self.precision_score:.2f}")
+                print(f"Jaccard Score: {self.jaccard_score:.2f}")
+                
+                self.print_cm()
+                print(f"Report:\n {self.classification_report}")
 
                 # Specificity
-                #tn, fp, fn, tp = self.confusion_matrix.ravel()
-                #self.specificity_score = tn / (tn + fp) if (tn + fp) != 0 else 0.0
+                if len(self.labels) == 2:
+                    tn, fp, fn, tp = self.confusion_matrix.ravel()
+                    self.specificity_score = tn / (tn + fp) if (tn + fp) != 0 else 0.0
+                    print(f"Specificity: {self.specificity_score:.2f}")
                 
             except Warning as w:
                 self.zero_division_warn = True
@@ -133,3 +146,32 @@ class Metrics:
     def ravel_confusion_matrix(self):
         tn, fp, fn, tp = self.confusion_matrix.ravel()
         return tn, fp, fn, tp
+
+    
+    # Print Confusion Matrix
+    def print_cm(self):
+        """
+        Print a confusion matrix in a beautiful table format.
+
+        Args:
+            labels (list): List of class labels.
+            y_true (array-like): True labels.
+            y_pred (array-like): Predicted labels.
+        """
+        labels = cl.config.dataset.labels
+
+        # Calculate the confusion matrix
+        cm = self.confusion_matrix
+
+        # Create a table with labels
+        table = [[label] + [str(value) if value is not None else '' for value in row] for label, row in zip(labels, cm)]
+
+        # Add headers for columns and rows
+        headers = [""] + labels
+        table.insert(0, headers)
+
+        # Print the confusion matrix as a table
+        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+
+
+        

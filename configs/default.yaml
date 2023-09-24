@@ -15,16 +15,16 @@ machine: 'local' #'local' #'cluster'
 # Global variables
 global:
   - &window_size 150
-  - &num_epochs 3
-  - &num_classes 3
+  - &num_epochs 2
+  - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
   - &random_seed 55
   - &use_warn_metrics True
-  - &binary_classification False
   - &cHW_detection False
-  - &sampling True
+  - &binary_threshold 0.5
+  - &sampling False
   
 # Model architecture parameters
 architecture:
@@ -70,7 +70,7 @@ optim:
 
 # Loss function parameters
 criterion:
-  name: 'cross_entropy'
+  name: 'bce' #'cross_entropy'
   weighted: False
   reduction: 'mean'
 
@@ -90,7 +90,7 @@ train:
   device: *device
   num_epochs: *num_epochs
   batch_size: 32
-  binary_classification: *binary_classification
+  binary_threshold: *binary_threshold
   cHW_detection: *cHW_detection
   random_seed: *random_seed
   cross_validation:
@@ -104,6 +104,7 @@ dataset:
   overlapping_ratio: 0.0
   window_size: *window_size
   num_classes: *num_classes
+  labels: ['NUll', 'rHW', 'cHW']
   train_ratio: 0.8  # Highest 0.9
   split: 'subject_wise' # To:do future
   personalization: False

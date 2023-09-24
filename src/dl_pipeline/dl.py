@@ -18,7 +18,7 @@ from sklearn.preprocessing import RobustScaler, MinMaxScaler, RobustScaler
 from src.helper import directory_manager as dm
 from src.helper import df_manager as dfm
 from src.helper import data_structures as ds
-from src.helper.data_model import CSVHeader, HandWashingType
+from src.helper.data_model import CSVHeader, HandWashingType, LABELS
 from src.helper.sliding_window import get_windows, process_dataframes
 
 from src.utils.config_loader import config_loader as cl
@@ -51,6 +51,24 @@ def train():
     device = setup_cuda()
 
     cv = cl.config.train.cross_validation.name
+    
+    if cl.config.dataset.num_classes == 2:
+        msg = "==============Binary classification============="
+        
+        if cl.config.train.cHW_detection:
+            msg += "\n=============== rHW vs cHW =============="
+            cl.config.dataset.labels = cl.config.dataset.labels[1:]
+        else:
+            msg += "\n=============== Null vs HW =============="
+            cl.config.dataset.labels = ["Null", "HW"]
+    elif cl.config.train.num_classes == 3:
+        msg = "==============Multiclass classification========="
+    else:
+        raise ValueError("Number of classes must be 2 or 3 in config yaml file")
+    
+    Logger.info(msg)
+    print(msg)
+    cl.print_config_dict()
 
     if cv == "loso"  or cv == "kfold":
         v.k_fold_cv(device)
@@ -74,7 +92,8 @@ def train():
         # Train Model
         state = t.train_model(model, criterion, 
                             optimizer, lr_scheduler,
-                            train_loader, val_loader, device)
+                            train_loader, val_loader, device,
+                            threshold=cl.config.train.threshold)
 
         state.info()
 

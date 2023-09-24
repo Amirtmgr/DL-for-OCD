@@ -90,6 +90,19 @@ class __ConfigLoader:
         for key, value in self.config.items():
             if key in keys or keys is None:
                 os.environ[key] = str(value)
+    
+    def print_config_dict(self):
+        """Print config dictionary
+        """
+        print("---------------------" * 5)
+        for k, v in self.config_dict.items():
+            if isinstance(v, dict):
+                print(f"{k}:")
+                for k1, v1 in v.items():
+                    print(f"\t{k1}: {v1}")
+            else:
+                print(f"{k}: {v}")
 
+        print("---------------------" * 5)
 # Create a singleton instance of ConfigLoader
 config_loader = __ConfigLoader()

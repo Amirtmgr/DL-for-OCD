@@ -99,7 +99,7 @@ def load_checkpoint(model, filename, optimizer= None, lr_scheduler=None):
 
 
 # Function to run one epoch of training and validataion
-def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_scheduler, device):
+def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_scheduler, device, is_binary, threshold=0.5):
     """Runs one epoch of training and validation and returns network, criterion, optimizer and lr_scheduler.
 
     Args:
@@ -140,6 +140,9 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
         #x = x - torch.mean(x, dim=(2, 3), keepdim=True)
         #X, y = X.double(), y.double()
         # Send x and y to GPU/CPU
+        if not is_binary:
+            y = y.long()
+
         inputs, targets = X.to(device), y.to(device)
 
         # Zero accumulated gradients
@@ -149,6 +152,9 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
             # Pass data to forward pass of the network.
             output = network(inputs)  
             
+            if is_binary:
+                output = output.squeeze(1)
+
              #Find loss
             loss = criterion(output, targets)            
             
@@ -160,7 +166,11 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
 
             #Find predicted label
             # TODO: logits vs activation on Neural Network
-            prediction = torch.argmax(output, dim=1) # dim=1 because dim=0 is batch size
+            
+            if is_binary:
+                prediction = (torch.sigmoid(output) > threshold).float()
+            else:
+                prediction = torch.argmax(output, dim=1) # dim=1 because dim=0 is batch size
             
         #Sum loss
         running_loss += loss.item() * targets.size(0)
@@ -188,7 +198,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
         Logger.info(f"LR Update in Epoch: {epoch+1}/{cl.config.train.num_epochs} | last_lr: {last_lr}")
 
     #Calculate metrics
-    metrics = Metrics(labels=range(3))
+    metrics = Metrics(epoch, is_binary)
     metrics.phase = phase
     metrics.y_true = epoch_targets
     metrics.y_pred = epoch_preds
@@ -203,7 +213,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     return metrics, network, criterion, optimizer, lr_scheduler
 
    
-def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_loader,device, optional_name:str = ""):
+def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_loader,device, is_binary, optional_name:str = "", threshold=0.5):
     """Trains the model and returns the trained model, criterion, optimizer and lr_scheduler.
 
     Args:
@@ -247,13 +257,13 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
     for epoch in tqdm(range(epochs),desc="Training model:"):
         
         # Run training phase
-        train_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'train', train_loader, network, criterion, optimizer, lr_scheduler,device)
+        train_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'train', train_loader, network, criterion, optimizer, lr_scheduler,device, is_binary, threshold)
         
         # Append train_metrics
         train_metrics_arr.append(train_metrics)
 
         # Run validation phase
-        val_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'val', val_loader, network, criterion, optimizer, lr_scheduler,device)
+        val_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'val', val_loader, network, criterion, optimizer, lr_scheduler,device, is_binary, threshold)
         
         # Append val_metrics
         val_metrics_arr.append(val_metrics)
@@ -334,14 +344,21 @@ def load_optim(model):
 def load_criterion(weights):
     loss = cl.config.criterion.name
 
-    criterion = nn.CrossEntropyLoss()
-
     if cl.config.criterion.weighted:
         class_weights = weights.to(cl.config.train.device)
         if loss == 'cross_entropy':
             criterion = nn.CrossEntropyLoss(weight=class_weights)
             Logger.info(f"Using CrossEntropyLoss with class weights: {class_weights}")
-    
+        elif loss == 'bce':
+            criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
+            Logger.info(f"Using BCEWithLogitsLoss with class weights: {class_weights}")
+    else:
+        if cl.config.dataset.num_classes == 2:
+            criterion = nn.BCEWithLogitsLoss()
+            Logger.info(f"Using BCEWithLogitsLoss")
+        else:    
+            criterion = nn.CrossEntropyLoss()
+            Logger.info(f"Using CrossEntropyLoss")
     return criterion
 
 # Function to load lr_scheduler
