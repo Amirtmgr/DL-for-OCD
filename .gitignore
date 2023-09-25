@@ -28,6 +28,9 @@ saved/cluster_results/err/*
 # vscode
 .vscode
 
+# sync
+.sync
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
