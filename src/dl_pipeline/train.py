@@ -190,7 +190,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     # Lr scheduler step in train phase
     if lr_scheduler and is_train:
         if isinstance(lr_scheduler, ReduceLROnPlateau):
-            lr_scheduler.step(np.mean(epoch_loss))
+            lr_scheduler.step(epoch_loss)
             last_lr = optimizer.param_groups[0]['lr']
         else:
             lr_scheduler.step()
@@ -343,6 +343,8 @@ def load_optim(model):
 # Function to load criterion
 def load_criterion(weights):
     loss = cl.config.criterion.name
+    
+    criterion = nn.CrossEntropyLoss()
 
     if cl.config.criterion.weighted and weights is not None:
         class_weights = weights.to(cl.config.train.device)
@@ -358,7 +360,6 @@ def load_criterion(weights):
             criterion = nn.BCEWithLogitsLoss()
             Logger.info(f"Using BCEWithLogitsLoss")
         else:    
-            criterion = nn.CrossEntropyLoss()
             Logger.info(f"Using CrossEntropyLoss")
     return criterion
 

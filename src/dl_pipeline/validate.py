@@ -112,17 +112,20 @@ def k_fold_cv(device):
         Logger.info(f"k-Fold:{i+1} ===> X_val shape: {X_val.shape} | y_val shape: {y_val.shape}")
 
         # Scale dataframes
-        samples, window_size, num_features = X_train.shape
+        if cl.config.dataset.scaler_type:
+            samples, window_size, num_features = X_train.shape
 
-        Logger.info(f"k-Fold:{i+1} ===> Scaling dataframes...")
-        scaler = dp.get_scaler()
+            Logger.info(f"k-Fold:{i+1} ===> Scaling dataframes...")
+            scaler = dp.get_scaler()
 
-        Logger.info(f"k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
-        
-        X_train = scaler.fit_transform(X_train.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-        X_val = scaler.transform(X_val.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-        
-        Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+            Logger.info(f"k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+            
+            X_train = scaler.fit_transform(X_train.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+            X_val = scaler.transform(X_val.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+            
+            Logger.info(f"k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+        else:
+            scaler = None
 
         # Create datasets
         train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train).float())
@@ -224,8 +227,9 @@ def k_fold_cv(device):
     y_inference = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
 
     # Scale
-    X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-
+    if best_state.scalar:
+        X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    
     inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
 
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")

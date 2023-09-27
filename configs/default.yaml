@@ -113,7 +113,7 @@ dataset:
   shuffle: False
   num_workers: *num_workers
   pin_memory: False
-  scaler_type: "MinMax" # "Standard" # "Robust"
+  scaler_type: #"MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.75 # Sampling ratio
 
