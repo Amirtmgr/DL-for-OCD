@@ -19,6 +19,7 @@ class DeepConvLSTM(nn.Module):
         self.hidden_channels = config.get('hidden_channels', [64, 64, 64])
         self.kernel_sizes = config.get('kernel_sizes')
         self.cnn_bias = config.get('cnn_bias', False)
+        self.cnn_batch_norm = config.get('cnn_batch_norm', True)
 
         act = config["activation"]["name"]
 
@@ -55,7 +56,8 @@ class DeepConvLSTM(nn.Module):
                         bias=self.cnn_bias, 
                         kernel_size=(self.kernel_sizes[idx], 1))
                 )
-            self.features.append(nn.BatchNorm2d(channel))
+            if self.cnn_batch_norm:
+                self.features.append(nn.BatchNorm2d(channel))
             self.features.append(self.activation)
             # Update number of channels
             self.input_channels = channel
@@ -85,16 +87,22 @@ class DeepConvLSTM(nn.Module):
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
         self.output_neurons = self.num_classes if self.num_classes > 2 else 1
+        self.fc_batch_norm = config.get('fc_batch_norm', True)
 
-        self.fc_layers = nn.Sequential(
-            nn.Linear(self.lstm_hidden_size * self.lstm_directions, self.fc_hidden_size),
-            nn.BatchNorm1d(self.fc_hidden_size),  # Batch normalization
-            self.activation,
-            nn.Linear(self.fc_hidden_size, self.output_neurons),
-        )
+        self.fc_layers = nn.ModuleList()
+        self.fc_layers.append(nn.Linear(self.lstm_hidden_size * self.lstm_directions, self.fc_hidden_size))
+        if self.fc_batch_norm:
+            self.fc_layers.append(nn.BatchNorm1d(self.fc_hidden_size))
+        self.fc_layers.append(self.activation)
+        self.fc_layers.append(self.dropout)
+        self.fc_layers.append(nn.Linear(self.fc_hidden_size, self.output_neurons))
+
 
     def forward(self, x):
+        # X shape: [batch, window_size, input_features]
+
         batch = x.shape[0]
+        
         # Reshape the tensor for CNN input [batch, channels, window_size, input_features]
         x = x.view(-1, 1, self.window_size, self.input_features)
         
@@ -108,25 +116,33 @@ class DeepConvLSTM(nn.Module):
         x = x.permute(0, 2, 1, 3)
         sequence_length = x.shape[1]
         
-        x = x.reshape(batch, sequence_length, -1)
-        
+        #x = x.reshape(batch, sequence_length, -1)
+        x = x.reshape(-1, sequence_length, self.input_features * self.hidden_channels[-1])
+
         #print(x.shape)
 
         # Feed forward LSTM layer
         x, _  = self.lstm(x)
         #print(x.shape)
 
-        x = x.view(-1, self.lstm_hidden_size * self.lstm_directions)
+        x = x[:, -1, :]
+
+        for fc in self.fc_layers:
+            x = fc(x)
+        
+        #print(x.shape)
+        
+        #x = x.view(-1, self.lstm_hidden_size * self.lstm_directions)
         #print(x.shape)
         
         # Apply dropout
-        x = self.dropout(x)
+        #x = self.dropout(x)
 
         # Feed Forward FC layers
-        output = self.fc_layers(x)
+        #output = self.fc_layers(x)
         
         # Reshape the output
-        output = output.view(batch, -1, self.output_neurons)
-        output = output[:, -1, :]
+        #output = output.view(batch, -1, self.output_neurons)
+        #output = output[:, -1, :]
         #print(output.shape)
-        return output
+        return x

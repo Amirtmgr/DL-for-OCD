@@ -38,13 +38,14 @@ architecture:
   hidden_channels: [64, 64, 64, 64]
   kernel_sizes: [1, 3, 3, 5] 
   cnn_bias: False
+  cnn_batch_norm: True
 
   # For LSTM
   lstm_hidden_size: 128
   lstm_num_layers: 2
   lstm_bias: False
   lstm_dropout: 0.0
-  lstm_bidirectional: False
+  lstm_bidirectional: True
 
   # For Dropout Layer
   dropout: 0.5
@@ -52,8 +53,9 @@ architecture:
   # For FC layer
   fc_hidden_size: 128
   num_classes: *num_classes
+  fc_batch_norm: True
   activation:
-    name: 'elu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
+    name: 'relu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
     negative_slope: 0.01 # For leaky_relu
     alpha: 1.0 # For elu
 
