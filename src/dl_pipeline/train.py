@@ -133,6 +133,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     running_loss = 0.0
     epoch_targets = np.array([])
     epoch_preds = np.array([])
+    epoch_outputs = np.array([])
 
     # Iterate over data_loader
     for batch_idx, (X, y) in enumerate(data_loader):
@@ -168,13 +169,18 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
             # TODO: logits vs activation on Neural Network
             
             if is_binary:
-                prediction = (torch.sigmoid(output) > threshold).float()
+                output_sig = torch.sigmoid(output)
+                prediction = (output_sig > threshold).float()
             else:
+                output_sig = torch.softmax(output, dim=1)
                 prediction = torch.argmax(output, dim=1) # dim=1 because dim=0 is batch size
             
         #Sum loss
         running_loss += loss.item() * targets.size(0)
         
+        # Append outputs
+        epoch_outputs = np.concatenate((np.array(epoch_outputs, 'float32'), np.array(output_sig.detach().cpu(), 'float32')))
+
         #Append labels
         epoch_targets = np.concatenate((np.array(epoch_targets, 'uint8'), np.array(targets.detach().cpu(), 'uint8')))
         
@@ -200,11 +206,13 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     #Calculate metrics
     metrics = Metrics(epoch, is_binary)
     metrics.phase = phase
+    metrics.outputs = epoch_outputs
     metrics.y_true = epoch_targets
     metrics.y_pred = epoch_preds
     metrics.calculate_metrics()
     metrics.set_loss(epoch_loss)
-
+    metrics.compute_optim_threshold()
+    
     #Empty Cuda Cache
     if device == 'cuda':
         torch.cuda.empty_cache()
@@ -271,6 +279,17 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
         # Print epoch results
         train_message = f"Epoch: {epoch+1}/{epochs} | Train Loss: {train_metrics.loss:.2f} | Train F1 Score: {train_metrics.f1_score:.2f} | Train Recall Score: {train_metrics.recall_score:.2f} | Train Precision Score: {train_metrics.precision_score:.2f} | Train Specificity Score: {train_metrics.specificity_score:.4f} | Train Jaccard Score: {train_metrics.jaccard_score:.2f}"
         val_message = f"Epoch: {epoch+1}/{epochs} | Val Loss: {val_metrics.loss:.2f} | Val F1 Score: {val_metrics.f1_score:.2f} | Val Recall Score: {val_metrics.recall_score:.2f} | Val Precision Score: {val_metrics.precision_score:.2f} | Val Specificity Score: {val_metrics.specificity_score:.4f} | Val Jaccard Score: {val_metrics.jaccard_score:.2f}"
+
+        # Print optimal thresholds
+        best_val_threshold = val_metrics.best_threshold
+        best_train_threshold = train_metrics.best_threshold
+        
+        print(f"Optimal threshold train: {best_train_threshold}")
+        print(f"Optimal threshold val: {best_val_threshold}")
+        
+        Logger.info(f"Epoch: {epoch+1}/{epochs}| Train | Optimal threshold {best_train_threshold:.2f}")
+        Logger.info(f"Epoch: {epoch+1}/{epochs}| Val | Optimal threshold {best_val_threshold:.2f}")
+        
 
         #message = f"Epoch:{epoch+1}/{epochs} | Train Loss: {train_metrics.loss:.2f}"
         Logger.info(train_message)

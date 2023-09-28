@@ -41,6 +41,8 @@ class Metrics:
         self.labels = [0, 1] if is_binary else [0, 1, 2]
         self.zero_division_warn = False
         self.classification_report = None
+        self.outputs = None
+        self.best_threshold = 0.5
 
         try:
             
@@ -173,5 +175,27 @@ class Metrics:
         # Print the confusion matrix as a table
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
 
+    # Compute optimal threshold
+    def compute_optim_threshold(self, metric='f1', num_thresholds=100):
+
+        thresholds = np.linspace(0, 1, num_thresholds)
+        best_threshold = 0.5
+        best_score = 0.0
+
+        for threshold in thresholds:
+            predicted_labels = (self.outputs > threshold).astype(int)
+            if metric == 'f1':
+                #score = f1_score(true_labels, predicted_labels)
+                score = f1_score(self.y_true, predicted_labels, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+
+            # You can add other metrics like accuracy, precision, and recall here
+
+            if score > best_score:
+                best_score = score
+                best_threshold = threshold
+                self.best_threshold = best_threshold
+                Logger.info(f"Best threshold: {best_threshold:.2f} | Best {metric} score: {best_score:.2f}")
+                
+        return best_threshold
 
         

@@ -8,6 +8,7 @@ import os
 import numpy as np
 import src.helper.plotter as plot   
 from src.helper.logger import Logger
+from collections import Counter
 
 # State class
 class State:
@@ -49,6 +50,10 @@ class State:
         Logger.info(f"Best val metrics: {self.best_val_metrics.f1_score}")
         Logger.info(f"Avg Train F1-Score:{self.get_mean(item='f1_score', phase='train')}")
         Logger.info(f"Avg Val F1-Score:{self.get_mean(item='f1_score', phase='val')}")
+        Logger.info(f"Avg Train Best Optimal Threshold:{self.get_mean(item='best_threshold', phase='train')}")
+        Logger.info(f"Avg Val Best Optimal Threshold:{self.get_mean(item='best_threshold', phase='val')}")
+        Logger.info(f"Best Train Threshold:{self.get_best_threshold(phase='train')}")
+        Logger.info(f"Best Val Threshold:{self.get_best_threshold(phase='val')}")
 
         if self.best_lr_scheduler:
             if hasattr(self.best_lr_scheduler, 'last_lr'):
@@ -97,6 +102,8 @@ class State:
                 arr.append(metric.jaccard_score)
             elif item == "confusion_matrix":
                 arr.append(metric.confusion_matrix)
+            elif item == "best_threshold":
+                arr.append(metric.best_threshold)
             else:
                 logging.warning("Invalid item. Returning None.")
                 return None
@@ -143,3 +150,26 @@ class State:
         avg = np.mean(arr)
 
         return avg
+    
+    def get_best_threshold(self, phase='train'):
+        """Method to get best threshold from train or val metrics array.
+
+        Args:
+            phase (str, optional): Item of the phase either "train" or "val" Defaults to 'train'.
+
+        Returns:
+            float: Best threshold. If item is invalid, returns None.
+        """
+
+        arr = self.get_list_of(item='best_threshold', phase=phase)
+
+        if arr is None:
+            return None
+
+        counts = Counter(arr)
+        #print(counts)
+        # Find the maximum count and corresponding value
+        max_count = max(counts.values())
+        most_common_value = [key for key, value in counts.items() if value == max_count][0]
+
+        return most_common_value
