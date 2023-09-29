@@ -6,6 +6,10 @@ data/processed
 data/processed.zip
 data/datasets
 
+# Configs
+configs/*
+!configs/default.yaml
+
 # Cluster output
 cluster/*
 
@@ -30,6 +34,7 @@ saved/cluster_results/err/*
 
 # sync
 .sync
+.sync_old
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

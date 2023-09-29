@@ -194,7 +194,7 @@ class Metrics:
                 best_score = score
                 best_threshold = threshold
                 self.best_threshold = best_threshold
-                Logger.info(f"Best threshold: {best_threshold:.2f} | Best {metric} score: {best_score:.2f}")
+                #Logger.info(f"Best threshold: {best_threshold:.2f} | Best {metric} score: {best_score:.2f}")
                 
         return best_threshold
 

@@ -55,8 +55,12 @@ def main():
     #cln.clean_all()
 
     # Prepare datset
-    #prc.prepare_datasets("OCDetect_")
-
+    #prc.prepare_datasets("OCDetect_raw_300")
+    #X, y  = prc.load_dataset(4, "OCDetect_raw_300")
+    #print(X.shape)
+    #print(y.shape)
+    #print(X[1304], y[1304])
+    
     # Perform DL pipeline
     dl.train()
  
