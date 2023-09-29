@@ -116,8 +116,8 @@ class DeepConvLSTM(nn.Module):
         x = x.permute(0, 2, 1, 3)
         sequence_length = x.shape[1]
         
-        #x = x.reshape(batch, sequence_length, -1)
-        x = x.reshape(-1, sequence_length, self.input_features * self.hidden_channels[-1])
+        x = x.reshape(batch, sequence_length, -1)
+        #x = x.reshape(-1, sequence_length, self.input_features * self.hidden_channels[-1])
 
         #print(x.shape)
 
@@ -125,15 +125,17 @@ class DeepConvLSTM(nn.Module):
         x, _  = self.lstm(x)
         #print(x.shape)
 
-        x = x[:, -1, :]
+        #x = x[:, -1, :]
+
+        x = x.view(-1, self.lstm_hidden_size * self.lstm_directions)
+        #print(x.shape)
+        
 
         for fc in self.fc_layers:
             x = fc(x)
         
         #print(x.shape)
         
-        #x = x.view(-1, self.lstm_hidden_size * self.lstm_directions)
-        #print(x.shape)
         
         # Apply dropout
         #x = self.dropout(x)
@@ -142,7 +144,7 @@ class DeepConvLSTM(nn.Module):
         #output = self.fc_layers(x)
         
         # Reshape the output
-        #output = output.view(batch, -1, self.output_neurons)
-        #output = output[:, -1, :]
+        x = x.view(batch, -1, self.output_neurons)
+        x = x[:, -1, :]
         #print(output.shape)
         return x

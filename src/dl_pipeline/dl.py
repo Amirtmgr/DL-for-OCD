@@ -72,7 +72,9 @@ def train():
     cl.print_config_dict()
 
     if cv == "loso"  or cv == "kfold":
-        v.k_fold_cv(device)
+        v.subwise_k_fold_cv(device)
+    elif cv == "stratified":
+        v.stratified_k_fold_cv(device)
     else:
         # Load dataset
         train_dataset, val_dataset = dp.get_datasets()

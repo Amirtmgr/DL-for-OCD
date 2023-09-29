@@ -96,12 +96,12 @@ train:
   cHW_detection: *cHW_detection
   random_seed: *random_seed
   cross_validation:
-    name: 'kfold' #'losocv'
+    name: 'stratified' #'kfold' #'losocv'
     k_folds: 2
     
 # Dataset parameters
 dataset:
-  name: 'OCDetect_Export' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'test_' #'OCDetect_raw_200' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size
