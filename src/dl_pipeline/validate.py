@@ -19,7 +19,7 @@ from src.helper.state import State
 from src.helper import data_structures as ds
 
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 
 
@@ -328,31 +328,30 @@ def stratified_k_fold_cv(device):
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
-    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_seed)
+    shuffle = cl.config.dataset.shuffle
+    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_seed)
+    train_ratio = cl.config.dataset.train_ratio
 
     # Load python dataset
     X_dict, y_dict = dp.load_shelves(shelf_name)
 
     # All subjects
     subjects = list(X_dict.keys())
-
-    # Split train and inference subjects
-    train_subjects, inference_subjects = dp.split_subjects(subjects)
-    Logger.info(f"Train subjects: {train_subjects}")
-    Logger.info(f"Inference subjects: {inference_subjects}")
-
-    # Prepare data
-    X_train = np.concatenate([X_dict[subject] for subject in train_subjects], axis=0)
     
-    #Save original shape
-    n_samples, window_size, num_features = X_train.shape
+    X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
+    y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
 
-    X_train = X_train.reshape(n_samples, -1) # Reshape for 2D stratified k-fold
+    # Reshape
+    num, window_size, sensors = X_all.shape
+    X_all = X_all.reshape(num, -1)
 
-    y_train = np.concatenate([y_dict[subject] for subject in train_subjects], axis=0)
+    # Split data
+    X_train, y_train, X_inference, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = random_seed)
+    
+    X_inference = X_inference.reshape(-1, window_size, sensors)
 
-    X_inference = np.concatenate([X_dict[subject] for subject in inference_subjects], axis=0)
-    y_inference = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
+    Logger.info(f"Train size: {len(X_train} | {Counter(y_train)}")
+    Logger.info(f"Inference size: {len(X_inference} | {Counter(y_inference)}")
 
     del X_dict, y_dict
     gc.collect()
