@@ -178,6 +178,9 @@ class Metrics:
     # Compute optimal threshold
     def compute_optim_threshold(self, metric='f1', num_thresholds=100):
 
+        if not self.outputs:
+            return self.best_threshold
+
         thresholds = np.linspace(0, 1, num_thresholds)
         best_threshold = 0.5
         best_score = 0.0

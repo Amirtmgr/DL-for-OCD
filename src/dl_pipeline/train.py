@@ -179,7 +179,8 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
         running_loss += loss.item() * targets.size(0)
         
         # Append outputs
-        epoch_outputs = np.concatenate((np.array(epoch_outputs, 'float32'), np.array(output_sig.detach().cpu(), 'float32')))
+        if is_binary:
+            epoch_outputs = np.concatenate((np.array(epoch_outputs, 'float32'), np.array(output_sig.detach().cpu(), 'float32')))
 
         #Append labels
         epoch_targets = np.concatenate((np.array(epoch_targets, 'uint8'), np.array(targets.detach().cpu(), 'uint8')))
