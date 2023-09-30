@@ -346,7 +346,7 @@ def stratified_k_fold_cv(device):
     X_all = X_all.reshape(num, -1)
 
     # Split data
-    X_train, y_train, X_inference, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = random_seed)
+    X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = random_seed)
     
     X_inference = X_inference.reshape(-1, window_size, sensors)
 
