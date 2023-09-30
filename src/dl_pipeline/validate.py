@@ -527,7 +527,7 @@ def stratified_k_fold_cv(device):
 
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
     
-    del X_inference, y_inference, X_dict, y_dict
+    del X_inference, y_inference
     gc.collect()
 
     Logger.info("Creating Inference Dataloader...")
