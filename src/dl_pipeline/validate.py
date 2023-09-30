@@ -350,8 +350,8 @@ def stratified_k_fold_cv(device):
     
     X_inference = X_inference.reshape(-1, window_size, sensors)
 
-    Logger.info(f"Train size: {len(X_train} | {Counter(y_train)}")
-    Logger.info(f"Inference size: {len(X_inference} | {Counter(y_inference)}")
+    Logger.info(f"Total Train size: {len(X_train)} | Counts: {Counter(y_train)}")
+    Logger.info(f"Inference size: {len(X_inference)} | Counts: {Counter(y_inference)}")
 
     del X_dict, y_dict
     gc.collect()
