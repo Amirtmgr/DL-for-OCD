@@ -193,9 +193,6 @@ def subwise_k_fold_cv(device):
         print(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    Logger.info(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
-    print(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    print(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
 
     # Save metrics
     Logger.info("Saving metrics...")
@@ -486,9 +483,6 @@ def stratified_k_fold_cv(device):
         print(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    Logger.info(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
-    print(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    print(f"All Train subjects : {train_subjects} | Length: {len(train_subjects)}")
 
     # Save metrics
     Logger.info("Saving metrics...")
