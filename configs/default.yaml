@@ -28,7 +28,7 @@ global:
   
 # Model architecture parameters
 architecture:
-  name: 'deepconvlstm'
+  name: 'deepconvlstm' #'cnn_transformer' #'cnn'
   sensors: *sensors
   window_size: *window_size
   device: *device
@@ -47,10 +47,19 @@ architecture:
   lstm_dropout: 0.0
   lstm_bidirectional: True
 
+  # For Transformer
+  multi_attn_heads: 8
+  dim_feedforward: 64
+  transformer_dropout: 0.5
+  transformer_act_fn: 'relu' #'gelu'
+  num_encoder_layers: 6
+  num_decoder_layers: 6
+  encode_position: True
+  
   # For Dropout Layer
   dropout: 0.5
   
-  # For FC layer
+  # For FC layer or Head of Transformer
   fc_hidden_size: 128
   num_classes: *num_classes
   fc_batch_norm: True

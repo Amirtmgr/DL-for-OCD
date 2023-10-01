@@ -27,6 +27,7 @@ from src.helper.state import State
 from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
+from src.dl_pipeline.architectures.Transformer import CNNTransformer
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -339,6 +340,8 @@ def load_network():
     
     elif network == "deepconvlstm":
         model = DeepConvLSTM(cl.config_dict['architecture'])
+    elif network == "cnn_transfomer":
+        model = CNNTransformer(cl.config_dict['architecture'])
     else:
         return None
     
