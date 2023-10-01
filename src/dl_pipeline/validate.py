@@ -83,16 +83,16 @@ def subwise_k_fold_cv(device):
         
 
         # Check sensor type 
-        if cl.config.dataset.sensor == "acc":
-            X_train = X_train[:, :, :3]
-            X_val = X_val[:, :, :3]
-            y_train = y_train[:, :, :3]
-            y_val = y_val[:, :, :3]
-        elif cl.config.dataset.sensor == "gyro":
-            X_train = X_train[:, :, 3:]
-            X_val = X_val[:, :, 3:]
-            y_train = y_train[:, :, 3:]
-            y_val = y_val[:, :, 3:]
+        # if cl.config.dataset.sensor == "acc":
+        #     X_train = X_train[:, :, :3]
+        #     X_val = X_val[:, :, :3]
+        #     y_train = y_train[:, :, :3]
+        #     y_val = y_val[:, :, :3]
+        # elif cl.config.dataset.sensor == "gyro":
+        #     X_train = X_train[:, :, 3:]
+        #     X_val = X_val[:, :, 3:]
+        #     y_train = y_train[:, :, 3:]
+        #     y_val = y_val[:, :, 3:]
         
         # Sampling
         if cl.config.dataset.sampling:
@@ -377,16 +377,16 @@ def stratified_k_fold_cv(device):
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
 
         # Check sensor type 
-        if cl.config.dataset.sensor == "acc":
-            train_data = train_data[:, :, :3]
-            val_data = val_data[:, :, :3]
-            train_labels = train_labels[:, :, :3]
-            val_labels = val_labels[:, :, :3]
-        elif cl.config.dataset.sensor == "gyro":
-            train_data = train_data[:, :, 3:]
-            val_data = X_val[:, :, 3:]
-            train_labels = train_labels[:, :, 3:]
-            val_labels = val_labels[:, :, 3:]
+        # if cl.config.dataset.sensor == "acc":
+        #     train_data = train_data[:, :, :3]
+        #     val_data = val_data[:, :, :3]
+        #     train_labels = train_labels[:, :, :3]
+        #     val_labels = val_labels[:, :, :3]
+        # elif cl.config.dataset.sensor == "gyro":
+        #     train_data = train_data[:, :, 3:]
+        #     val_data = X_val[:, :, 3:]
+        #     train_labels = train_labels[:, :, 3:]
+        #     val_labels = val_labels[:, :, 3:]
         
         # Sampling
         if cl.config.dataset.sampling:
