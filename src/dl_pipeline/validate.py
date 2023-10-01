@@ -346,8 +346,11 @@ def stratified_k_fold_cv(device):
     X_all = X_all.reshape(num, -1)
 
     # Split data
-    X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
-    
+    if shuffle:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
+    else:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio)
+
     X_inference = X_inference.reshape(-1, window_size, num_features)
 
     Logger.info(f"Total Train size: {len(X_train)} | Counts: {Counter(y_train)}")
