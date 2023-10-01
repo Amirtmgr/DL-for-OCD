@@ -340,7 +340,7 @@ def load_network():
     
     elif network == "deepconvlstm":
         model = DeepConvLSTM(cl.config_dict['architecture'])
-    elif network == "cnn_transfomer":
+    elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
     else:
         return None
