@@ -103,8 +103,12 @@ class CNNTransformer(nn.Module):
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
         self.output_neurons = self.num_classes if self.num_classes > 2 else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
+
+        # Dropout
+        self.drop_probability = config.get('dropout', 0.25)
         self.dropout = nn.Dropout(self.drop_probability)
 
+        # Layers
         self.fc_layers = nn.ModuleList()
         self.fc_layers.append(nn.LayerNorm(self.transformer_dim))
         self.fc_layers.append(nn.Linear(self.transformer_dim, self.fc_hidden_size))
