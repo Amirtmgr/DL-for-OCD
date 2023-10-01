@@ -326,7 +326,7 @@ def stratified_k_fold_cv(device):
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
     shuffle = cl.config.dataset.shuffle
-    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_seed)
+    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_seed if shuffle else None)
     train_ratio = cl.config.dataset.train_ratio
 
     # Load python dataset
