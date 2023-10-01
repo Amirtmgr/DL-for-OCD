@@ -135,7 +135,7 @@ class CNNTransformer(nn.Module):
         for layer in self.features:
             x = layer(x)
 
-        print(x.shape)
+        print("CNN: ",x.shape)
 
         # Permute for Transformer Layer
         x = x.permute(2, 0, 1)
@@ -144,15 +144,21 @@ class CNNTransformer(nn.Module):
         # Prepend class token
         cls_token = self.cls_token.unsqueeze(1).repeat(1, x.shape[1], 1)
         x = torch.cat([cls_token, x])
-        print(x.shape)
+        print("Class token:", x.shape)
 
         # Add position embedding
         if self.encode_position:
             x += self.positional_embedding
         
-        print(x.shape)
+        print("Positional: ",x.shape)
         # Transformer Encoder
-        logits = self.transformer_encoder(x)[0]
-        print(logits.shape)
-        return logits
+        x = self.transformer_encoder(x)[0]
+        print("transformer: ",x.shape)
+        
+        # FC layers
+        for fc in self.fc_layers:
+            x = fc(x)
+        
+        print("FC OUT: ", x.shape)
+        return x
 
