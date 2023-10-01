@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
-
+import numpy as np
+from src.helper.logger import Logger
 
 class CNNTransformer(nn.Module):
 
