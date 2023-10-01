@@ -38,6 +38,8 @@ def subwise_k_fold_cv(device):
     is_binary = cl.config.dataset.num_classes < 3
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
+    shuffle = cl.config.dataset.shuffle
+    new_seed = random_seed if shuffle else None
 
     # Load python dataset
     X_dict, y_dict = dp.load_shelves(shelf_name)
@@ -100,9 +102,9 @@ def subwise_k_fold_cv(device):
             #null_samples = int(np.sqrt(samples))
             #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
             k = 7
-            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=random_seed)
+            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
 
-            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=random_seed)
+            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, y_train)
             X_train = X_sample.reshape(-1, window_size, num_features)
             y_train = y_sample
@@ -326,7 +328,8 @@ def stratified_k_fold_cv(device):
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
     shuffle = cl.config.dataset.shuffle
-    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_seed if shuffle else None)
+    new_seed = random_seed if shuffle else None
+    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=new_seed if shuffle else None)
     train_ratio = cl.config.dataset.train_ratio
 
     # Load python dataset
@@ -343,7 +346,7 @@ def stratified_k_fold_cv(device):
     X_all = X_all.reshape(num, -1)
 
     # Split data
-    X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = random_seed)
+    X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
     
     X_inference = X_inference.reshape(-1, window_size, num_features)
 
@@ -390,9 +393,9 @@ def stratified_k_fold_cv(device):
             #null_samples = int(np.sqrt(samples))
             #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
             k = 7
-            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=random_seed)
+            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
 
-            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=random_seed)
+            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, train_labels)
             train_data = X_sample.reshape(-1, window_size, num_features)
             train_labels = y_sample
