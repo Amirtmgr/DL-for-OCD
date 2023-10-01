@@ -129,7 +129,12 @@ class CNNTransformer(nn.Module):
         #shape B x L x C = Batch, Window_Size, Num_features
 
         # Feature Embedding
-        x = self.features(x.transpose(1,2))
+        x = x.transpose(1,2) 
+        
+        # Feed forward through CNN layers
+        for layer in self.features:
+            x = layer(x)
+
         print(x.shape)
 
         # Permute for Transformer Layer
