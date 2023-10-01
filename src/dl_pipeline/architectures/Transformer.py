@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import numpy as np
 from src.helper.logger import Logger
+from src.dl_pipeline.architectures.activation import get_act_fn
 
 class CNNTransformer(nn.Module):
 
@@ -14,33 +15,16 @@ class CNNTransformer(nn.Module):
         self.sensors = config.get('sensors', 'both')
         
         # CNN Parameters
-        self.input_channels = config.get('input_channels', 1)
+        self.input_features = 6 if self.sensors == 'both' else 3
+        self.input_channels = self.input_features
         self.hidden_channels = []
         self.hidden_channels = config.get('hidden_channels', [64, 64, 64])
         self.kernel_sizes = config.get('kernel_sizes')
         self.cnn_bias = config.get('cnn_bias', False)
         self.cnn_batch_norm = config.get('cnn_batch_norm', True)
 
-        act = config["activation"]["name"]
-
         # Activation function
-        if act == 'relu':
-            self.activation = nn.ReLU()
-        elif act == 'leaky_relu':
-            self.activation = nn.LeakyReLU(config["activation"]["negative_slope"])
-        elif act == 'elu':
-            self.activation = nn.ELU(config["activation"]["alpha"])
-        elif act == 'selu':
-            self.activation = nn.SELU()
-        elif act == 'tanh':
-            self.activation = nn.Tanh()
-        elif act == 'sigmoid':
-            self.activation = nn.Sigmoid()
-        elif act == 'gelu':
-            self.activation = nn.GELU()
-        else:
-            Logger.warn(f"Activation function {act} not found. Using ReLU.")
-            self.activation = nn.ReLU()
+        self.activation = get_act_fn(config["activation"])
 
         Logger.info(f"Input channels: {self.input_channels}")
         Logger.info(f"Hidden channels: {self.hidden_channels}")
@@ -56,7 +40,8 @@ class CNNTransformer(nn.Module):
                 nn.Conv1d(self.input_channels, 
                         channel,
                         bias=self.cnn_bias, 
-                        kernel_size=self.kernel_sizes[idx])
+                        kernel_size=self.kernel_sizes[idx],
+                        padding= self.kernel_sizes[idx]//2)
                 )
             if self.cnn_batch_norm:
                 self.features.append(nn.BatchNorm1d(channel))
@@ -66,7 +51,6 @@ class CNNTransformer(nn.Module):
         
 
         # Transformer Layers
-        self.input_features = 6 if self.sensors == 'both' else 3
         self.nhead = config.get("multi_attn_heads", 3)
         self.dim_feedforward = config.get("dim_feedforward", 32)
         self.transformer_dropout = config.get("transformer_dropout", 0.25)
@@ -92,12 +76,12 @@ class CNNTransformer(nn.Module):
             norm = nn.LayerNorm(self.transformer_dim)
         )
 
-        # Token
+        # Class Token        
         self.cls_token = nn.Parameter(torch.zeros((1, self.transformer_dim)), requires_grad=True)
 
         # Check Encode position
         if self.encode_position:
-            self.positional_embedding =  nn.Parameter(torch.randn(self.window_size + 1, 1, self.transformer_dim))
+            self.positional_embedding = nn.Parameter(torch.randn(self.window_size + 1, 1, self.transformer_dim))
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
@@ -127,38 +111,38 @@ class CNNTransformer(nn.Module):
     
     def forward(self, x):
         #shape B x L x C = Batch, Window_Size, Num_features
-
-        # Feature Embedding
-        x = x.transpose(1,2) 
+        #print("X: ",x.shape)
+        
+        x = x.transpose(1,2) # B x C x L
         
         # Feed forward through CNN layers
         for layer in self.features:
             x = layer(x)
 
-        print("CNN: ",x.shape)
-
+        #print("CNN: ",x.shape)
+        
         # Permute for Transformer Layer
         x = x.permute(2, 0, 1)
-        print(x.shape)
+        #print(x.shape)
 
         # Prepend class token
         cls_token = self.cls_token.unsqueeze(1).repeat(1, x.shape[1], 1)
         x = torch.cat([cls_token, x])
-        print("Class token:", x.shape)
 
         # Add position embedding
         if self.encode_position:
             x += self.positional_embedding
-        
-        print("Positional: ",x.shape)
+
+        #print("Positional: ",x.shape)
+
         # Transformer Encoder
         x = self.transformer_encoder(x)[0]
-        print("transformer: ",x.shape)
-        
+
+        #print("transformer: ",x.shape)
+
         # FC layers
         for fc in self.fc_layers:
             x = fc(x)
         
-        print("FC OUT: ", x.shape)
+        #print("FC OUT: ", x.shape)
         return x
-

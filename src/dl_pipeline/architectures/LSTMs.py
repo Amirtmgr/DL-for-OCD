@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from src.helper.logger import Logger
+from src.dl_pipeline.architectures.activation import get_act_fn
 
 class DeepConvLSTM(nn.Module):
 
@@ -21,24 +22,8 @@ class DeepConvLSTM(nn.Module):
         self.cnn_bias = config.get('cnn_bias', False)
         self.cnn_batch_norm = config.get('cnn_batch_norm', True)
 
-        act = config["activation"]["name"]
-
         # Activation function
-        if act == 'relu':
-            self.activation = nn.ReLU()
-        elif act == 'leaky_relu':
-            self.activation = nn.LeakyReLU(config["activation"]["negative_slope"])
-        elif act == 'elu':
-            self.activation = nn.ELU(config["activation"]["alpha"])
-        elif act == 'selu':
-            self.activation = nn.SELU()
-        elif act == 'tanh':
-            self.activation = nn.Tanh()
-        elif act == 'sigmoid':
-            self.activation = nn.Sigmoid()
-        else:
-            Logger.warn(f"Activation function {act} not found. Using ReLU.")
-            self.activation = nn.ReLU()
+        self.activation = get_act_fn(config["activation"])
 
         Logger.info(f"Input channels: {self.input_channels}")
         Logger.info(f"Hidden channels: {self.hidden_channels}")
