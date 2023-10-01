@@ -93,11 +93,11 @@ class CNNTransformer(nn.Module):
         )
 
         # Token
-        self.cls_token = nn.Parameters(torch.zeros((1, self.transformer_dim)), requires_grad=True)
+        self.cls_token = nn.Parameter(torch.zeros((1, self.transformer_dim)), requires_grad=True)
 
         # Check Encode position
         if self.encode_position:
-            self.positional_embedding =  nn.Parameters(torch.randn(self.window_size + 1, 1, self.transformer_dim))
+            self.positional_embedding =  nn.Parameter(torch.randn(self.window_size + 1, 1, self.transformer_dim))
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
