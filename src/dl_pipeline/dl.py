@@ -36,7 +36,10 @@ def setup_cuda():
 
     if cl.config.train.device == "cuda":
         Logger.info("Using CUDA device.")
-
+        num_gpus = torch.cuda.device_count()
+        Logger.info(f"Number of GPUs: {num_gpus}")
+        print("GPUs Count:", num_gpus)
+        
         # Set device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         cudnn.benchmark = True
