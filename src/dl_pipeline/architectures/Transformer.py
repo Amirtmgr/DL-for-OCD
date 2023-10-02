@@ -19,7 +19,7 @@ class CNNTransformer(nn.Module):
         self.input_channels = self.input_features
         self.hidden_channels = []
         self.hidden_channels = config.get('hidden_channels', [64, 64, 64])
-        self.kernel_sizes = config.get('kernel_sizes')
+        self.kernel_sizes = config.get('kernel_sizes', [1, 1, 1])
         self.cnn_bias = config.get('cnn_bias', False)
         self.cnn_batch_norm = config.get('cnn_batch_norm', True)
 

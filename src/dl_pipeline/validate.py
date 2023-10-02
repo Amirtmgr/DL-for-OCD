@@ -311,7 +311,7 @@ def get_mean_scores(states:[State], phase:str):
     return mean_scores
 
 
-def stratified_k_fold_cv(device):
+def stratified_k_fold_cv(device, multi_gpu=False):
     print("======"*5)
     # start
     start = datetime.datetime.now()
@@ -436,8 +436,8 @@ def stratified_k_fold_cv(device):
         
         # Create data loaders
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Creating dataloaders...")
-        train_loader = dp.load_dataloader(train_dataset)
-        val_loader = dp.load_dataloader(val_dataset)
+        train_loader = dp.load_dataloader(train_dataset, multi_gpu)
+        val_loader = dp.load_dataloader(val_dataset, multi_gpu)
         
 
         # Compute weights
@@ -452,9 +452,9 @@ def stratified_k_fold_cv(device):
         # Train model
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Loading model...")
         # Load Traning parameters
-        model = t.load_network()
+        model = t.load_network(multi_gpu)
         model = model.to(device)
-        optimizer = t.load_optim(model)
+        optimizer = t.load_optim(model, multi_gpu)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)
 

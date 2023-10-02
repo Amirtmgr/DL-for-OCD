@@ -49,6 +49,9 @@ def setup_cuda():
 def train():
     # Setup CUDA
     device = setup_cuda()
+    
+    # Check if Multi-GPUs
+    multi_gpu = t.ddp_setup()
 
     cv = cl.config.train.cross_validation.name
     num_classes = cl.config.dataset.num_classes
@@ -72,9 +75,9 @@ def train():
     cl.print_config_dict()
 
     if cv == "loso"  or cv == "kfold":
-        v.subwise_k_fold_cv(device)
+        v.subwise_k_fold_cv(device, multi_gpu)
     elif cv == "stratified":
-        v.stratified_k_fold_cv(device)
+        v.stratified_k_fold_cv(device, multi_gpu)
     else:
         # Load dataset
         train_dataset, val_dataset = dp.get_datasets()
@@ -104,7 +107,8 @@ def train():
         state.plot_losses()
         state.plot_f1_scores()
     
-    # Inference
+    # Clean up
+    t.ddp_destroy()
 
 
 

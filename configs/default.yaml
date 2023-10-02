@@ -11,6 +11,7 @@ debug: True
 
 # Machine
 machine: 'local' #'local' #'cluster'
+world_size: 1 # Number of GPUs
 
 # Global variables
 global:

@@ -17,6 +17,14 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader
 
+# Multi-GPUs
+import torch.multiprocessing as mp
+from torch.utils.data.distributed import DistributedSampler
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import DistributedOptimizer as DistOpt
+import torch.distributed as dist
+from torch.distributed import init_process_group, get_rank, get_world_size, destroy_process_group
+
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, jaccard_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
@@ -223,7 +231,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     return metrics, network, criterion, optimizer, lr_scheduler
 
    
-def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_loader,device, is_binary, optional_name:str = "", threshold=0.5):
+def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_loader,device, is_binary, optional_name:str = "", threshold=0.5, multi_gpu=False):
     """Trains the model and returns the trained model, criterion, optimizer and lr_scheduler.
 
     Args:
@@ -263,9 +271,18 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
     train_metrics_arr = []
     val_metrics_arr = []
 
+    # Distributed Training Sync
+    if multi_gpu:
+        dist.barrier()
+
     # Start training loop
     for epoch in tqdm(range(epochs),desc="Training model:"):
         
+        if multi_gpu:
+            # Set epoch for DistributedSampler
+            train_loader.sampler.set_epoch(epoch)
+            val_loader.sampler.set_epoch(epoch)
+   
         # Run training phase
         train_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'train', train_loader, network, criterion, optimizer, lr_scheduler,device, is_binary, threshold)
         
@@ -329,7 +346,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
 
 
 # Function to load network
-def load_network():
+def load_network(multi_gpu=False):
     # TODO: Check for other networks
     network = cl.config.architecture.name
 
@@ -343,25 +360,37 @@ def load_network():
     elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
     else:
-        return None
+        raise ValueError(f"Invalid network: {network}")
     
     Logger.info(f"Using Model: {model}")
+
+    # Initialize weights
+    model = model.apply(init_weights)
+
+    if multi_gpu:
+        return DDP(model)
+
     # Return initialized model
-    return model.apply(init_weights)
+    return model
 
 # Function to load optimizer
-def load_optim(model):
+def load_optim(model, multi_gpu=False):
     optim_name = cl.config.optim.name
     lr = cl.config.optim.learning_rate
     momentum = cl.config.optim.momentum
     weight_decay = cl.config.optim.weight_decay
-
+    
     if optim_name == "adam":
         Logger.info(f"Using Adam optimizer with params: lr={lr}, weight_decay={weight_decay}")
-        return optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        opt = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optim_name == "sgd":
         Logger.info(f"Using SGD optimizer with params: lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
-        return optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay,momentum=momentum)
+        opt = optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay,momentum=momentum)
+
+    if multi_gpu:
+        return DistOpt(opt)
+    else:
+        return opt
 
 # Function to load criterion
 def load_criterion(weights):
@@ -497,3 +526,22 @@ def init_weights(model):
                         raise ValueError
         
         return model
+
+
+# Function to setup DDP
+def ddp_setup():
+    world_size = cl.config.world_size
+    is_multi_gpu = world_size > 1
+    if is_multi_gpu:
+        rank = 0
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = "27575"
+        init_process_group(backend="nccl", rank=rank, world_size=world_size)
+        torch.cuda.set_device(rank)
+    return is_multi_gpu
+    
+# Function to destroy DDP
+def ddp_destroy():
+    world_size = cl.config.world_size
+    if world_size > 1:
+        destroy_process_group()

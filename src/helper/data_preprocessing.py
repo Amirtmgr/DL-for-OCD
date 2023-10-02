@@ -19,6 +19,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
+from torch.utils.data.distributed import DistributedSampler
 
 GROUPED_FILES = None
 
@@ -192,7 +193,7 @@ def load_dataset(dataFrames):
 
 
 # Function to prepare dataloaders
-def load_dataloader(dataset):
+def load_dataloader(dataset, multi_gpu=False):
     """Method to load train and val dataloaders
     Args:
         dataset (torch.utils.data.Dataset): Dataset
@@ -209,12 +210,15 @@ def load_dataloader(dataset):
     gen = torch.Generator()
     gen.manual_seed(cl.config.dataset.random_seed)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                            num_workers=num_workers, 
-                            pin_memory=pin_memory,
-                             generator=gen)
-    
-    return data_loader
+    if multi_gpu:
+        return DataLoader(dataset, batch_size=batch_size, shuffle=False,
+                            num_workers=num_workers,
+                            pin_memory=True, 
+                             sampler=DistributedSampler(dataset))
+    else:
+        return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+                            num_workers=num_workers, pin_memory=pin_memory,
+                            generator=gen)
   
 # Function to compute class weights
 def compute_weights(dataset):
