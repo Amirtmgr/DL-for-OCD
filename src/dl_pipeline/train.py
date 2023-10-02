@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.nn.parallel import DistributedOptimizer as DistOpt
 import torch.distributed as dist
 from torch.distributed import init_process_group, get_rank, get_world_size, destroy_process_group
 
@@ -387,11 +386,12 @@ def load_optim(model, multi_gpu=False):
         Logger.info(f"Using SGD optimizer with params: lr={lr}, momentum={momentum}, weight_decay={weight_decay}")
         opt = optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay,momentum=momentum)
 
-    if multi_gpu:
-        return DistOpt(opt)
-    else:
-        return opt
-
+    #if multi_gpu:
+    #    return DistOpt(opt)
+    #else:
+    #    return opt
+    return opt
+    
 # Function to load criterion
 def load_criterion(weights):
     loss = cl.config.criterion.name
@@ -539,7 +539,7 @@ def ddp_setup():
         init_process_group(backend="nccl", rank=rank, world_size=world_size)
         torch.cuda.set_device(rank)
     return is_multi_gpu
-    
+
 # Function to destroy DDP
 def ddp_destroy():
     world_size = cl.config.world_size
