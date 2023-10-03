@@ -53,10 +53,15 @@ def train():
     # Setup CUDA
     device = setup_cuda()
     print("Device:", device)
-    
+
     # Check if Multi-GPUs
     #multi_gpu = t.ddp_setup()
+    
+    print("Using", torch.cuda.device_count(), "GPUs!")
+    
     multi_gpu = cl.config.world_size > 1
+
+    Logger.info(f"Using {torch.cuda.device_count()} GPUs!")
 
     cv = cl.config.train.cross_validation.name
     num_classes = cl.config.dataset.num_classes
