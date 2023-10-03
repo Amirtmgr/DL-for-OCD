@@ -223,7 +223,7 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
     metrics.compute_optim_threshold()
     
     #Empty Cuda Cache
-    if device == 'cuda':
+    if device == 'cuda:0':
         torch.cuda.empty_cache()
 
     #Return epoch loss and metrics
@@ -348,7 +348,8 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
 def load_network(multi_gpu=False):
     # TODO: Check for other networks
     network = cl.config.architecture.name
-
+    world_size = cl.config.world_size
+    gpu_ids = range(world_size)
     if network == "cnn":
         # TO DO:
         raise NotImplementedError
@@ -368,7 +369,7 @@ def load_network(multi_gpu=False):
 
     if multi_gpu:
         #return DDP(model)
-        return nn.DataParallel(model)
+        return nn.DataParallel(model, gpu_ids=gpu_ids)
     # Return initialized model
     return model
 

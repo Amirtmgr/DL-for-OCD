@@ -15,14 +15,14 @@ machine: 'cluster' #'local' #'cluster'
 # Global variables
 global:
   - &window_size 200
-  - &num_epochs 200
-  - &num_classes 2
+  - &num_epochs 10
+  - &num_classes 3
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
   - &random_seed 777
   - &use_warn_metrics True
-  - &cHW_detection True
+  - &cHW_detection False
   - &binary_threshold 0.5
   - &sampling False
   
@@ -82,7 +82,7 @@ optim:
 
 # Loss function parameters
 criterion:
-  name: 'bce' #'cross_entropy'
+  name: 'cross_entropy' #'bce' #'cross_entropy'
   weighted: True
   reduction: 'mean'
 
@@ -91,8 +91,8 @@ lr_scheduler:
   name: 'reduce_lr_on_plateau' #'step_lr' #'reduce_lr_on_plateau'
   step_size: 10 # For step_lr
   gamma: 0.1 # For step_lr
-  factor: 0.99 
-  patience: 5 # For reduce_lr_on_plateau
+  factor: 0.8 
+  patience: 10 # For reduce_lr_on_plateau
   mode: 'min' # For reduce_lr_on_plateau
   verbose: True 
   threshold: 0.0001 # For reduce_lr_on_plateau
