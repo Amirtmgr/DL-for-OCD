@@ -178,7 +178,7 @@ class Metrics:
     # Compute optimal threshold
     def compute_optim_threshold(self, metric='f1', num_thresholds=100):
 
-        if isinstance(self.outputs, type(None)):
+        if not self.is_binary:
             return self.best_threshold
 
         thresholds = np.linspace(0, 1, num_thresholds)
