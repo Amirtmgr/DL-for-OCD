@@ -41,7 +41,7 @@ def setup_cuda():
         print("GPUs Count:", num_gpus)
         
         # Set device
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         cudnn.benchmark = True
         cudnn.fastest = True
         cudnn.deterministic = True

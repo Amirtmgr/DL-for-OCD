@@ -23,7 +23,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 
 
-def subwise_k_fold_cv(device):
+def subwise_k_fold_cv(device, multi_gpu=False):
     print("======"*5)
     # start
     start = datetime.datetime.now()

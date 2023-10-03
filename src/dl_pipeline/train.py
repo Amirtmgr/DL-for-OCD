@@ -214,12 +214,12 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
 
     #Calculate metrics
     metrics = Metrics(epoch, is_binary)
+    metrics.set_loss(epoch_loss)
     metrics.phase = phase
     metrics.outputs = epoch_outputs
     metrics.y_true = epoch_targets
     metrics.y_pred = epoch_preds
     metrics.calculate_metrics()
-    metrics.set_loss(epoch_loss)
     metrics.compute_optim_threshold()
     
     #Empty Cuda Cache
