@@ -62,6 +62,11 @@ def main():
     #print(X[1304], y[1304])
     
     # Perform DL pipeline
+    if cl.config.world_size == 2:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+    elif cl.config.world_size == 4:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+        
     dl.train()
  
 if __name__ == '__main__':

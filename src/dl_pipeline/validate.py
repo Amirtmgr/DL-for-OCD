@@ -24,6 +24,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 
 def subwise_k_fold_cv(device, multi_gpu=False):
+    print("Device:", device)
+
     print("======"*5)
     # start
     start = datetime.datetime.now()
@@ -158,8 +160,10 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         # Train model
         Logger.info(f"k-Fold:{i+1} ===> Loading model...")
         # Load Traning parameters
-        model = t.load_network()
+        model = t.load_network(multi_gpu)
         model = model.to(device)
+        print("Model loaded on device: ", device)
+        print("Multiple GPUs: ", multi_gpu) 
         optimizer = t.load_optim(model)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)
@@ -454,6 +458,9 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         # Load Traning parameters
         model = t.load_network(multi_gpu)
         model = model.to(device)
+        print("Model loadded on device: ", device)
+        print("Multiple GPUs: ", multi_gpu)
+
         optimizer = t.load_optim(model, multi_gpu)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)

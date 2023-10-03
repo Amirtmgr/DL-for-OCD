@@ -52,9 +52,11 @@ def setup_cuda():
 def train():
     # Setup CUDA
     device = setup_cuda()
+    print("Device:", device)
     
     # Check if Multi-GPUs
-    multi_gpu = t.ddp_setup()
+    #multi_gpu = t.ddp_setup()
+    multi_gpu = cl.config.world_size > 1
 
     cv = cl.config.train.cross_validation.name
     num_classes = cl.config.dataset.num_classes
@@ -111,7 +113,7 @@ def train():
         state.plot_f1_scores()
     
     # Clean up
-    t.ddp_destroy()
+    #t.ddp_destroy()
 
 
 

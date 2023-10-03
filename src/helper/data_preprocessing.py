@@ -210,16 +210,18 @@ def load_dataloader(dataset, multi_gpu=False):
     gen = torch.Generator()
     gen.manual_seed(cl.config.dataset.random_seed)
 
-    if multi_gpu:
-        return DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                            num_workers=num_workers,
-                            pin_memory=True, 
-                             sampler=DistributedSampler(dataset))
-    else:
-        return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
-                            num_workers=num_workers, pin_memory=pin_memory,
-                            generator=gen)
-  
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,generator=gen, num_workers=num_workers, pin_memory=pin_memory)
+    
+    # if multi_gpu:
+    #     return DataLoader(dataset, batch_size=batch_size, shuffle=False,
+    #                         num_workers=num_workers,
+    #                         pin_memory=True, 
+    #                          sampler=DistributedSampler(dataset))
+    # else:
+    #     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,
+    #                         num_workers=num_workers, pin_memory=pin_memory,
+    #                         generator=gen)
+    
 # Function to compute class weights
 def compute_weights(dataset):
     """Method to compute class weights

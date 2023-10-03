@@ -367,8 +367,8 @@ def load_network(multi_gpu=False):
     model = model.apply(init_weights)
 
     if multi_gpu:
-        return DDP(model)
-
+        #return DDP(model)
+        return nn.DataParallel(model)
     # Return initialized model
     return model
 
