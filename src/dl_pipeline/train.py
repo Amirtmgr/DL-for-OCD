@@ -350,6 +350,7 @@ def load_network(multi_gpu=False):
     network = cl.config.architecture.name
     world_size = cl.config.world_size
     gpu_ids = range(world_size)
+    print("Using gpus: ", gpu_ids)
     if network == "cnn":
         # TO DO:
         raise NotImplementedError
@@ -369,7 +370,7 @@ def load_network(multi_gpu=False):
 
     if multi_gpu:
         #return DDP(model)
-        return nn.DataParallel(model, gpu_ids=gpu_ids)
+        return nn.DataParallel(model, device_ids=gpu_ids)
     # Return initialized model
     return model
 
