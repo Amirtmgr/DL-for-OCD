@@ -531,8 +531,14 @@ def init_weights(model):
 # Function to setup DDP
 def ddp_setup():
     world_size = cl.config.world_size
+    
     is_multi_gpu = world_size > 1
     if is_multi_gpu:
+        if world_size == 2:
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+        elif world_size == 4:
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+
         rank = 0
         os.environ["MASTER_ADDR"] = "localhost"
         os.environ["MASTER_PORT"] = "27575"
