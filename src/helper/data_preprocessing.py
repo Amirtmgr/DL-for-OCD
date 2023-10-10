@@ -60,6 +60,13 @@ def split_subjects(subjects):
     random.shuffle(subjects)
 
     # Remove personalized subject
+    personalized_subject = str(cl.config.dataset.personalized_subject)
+    
+    if cl.config.dataset.personalization and personalized_subject in subjects:
+        Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
+        print("Removing personalized subject:")
+        subjects.remove(personalized_subject)
+
     if cl.config.dataset.personalized_subject in subjects:
         subjects.remove(cl.config.dataset.personalized_subject)
     

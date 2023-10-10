@@ -342,6 +342,14 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     # All subjects
     subjects = list(X_dict.keys())
     
+    # Remove personalized subject
+    personalized_subject = str(cl.config.dataset.personalized_subject)
+    if cl.config.dataset.personalization and personalized_subject in subjects:
+        Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
+        print("Removing personalized subject:")
+        subjects.remove(personalized_subject)
+    print("Subjects applied:", subjects)
+
     X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
     y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
 
