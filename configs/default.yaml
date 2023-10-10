@@ -25,7 +25,7 @@ global:
   - &use_warn_metrics True
   - &cHW_detection False
   - &binary_threshold 0.5
-  - &sampling False
+  - &sampling True
   
 # Model architecture parameters
 architecture:
@@ -106,7 +106,7 @@ train:
   cHW_detection: *cHW_detection
   random_seed: *random_seed
   cross_validation:
-    name: 'stratified' #'kfold' #'losocv'
+    name: 'kfold' #'stratified' #'kfold' #'losocv'
     k_folds: 2
     
 # Dataset parameters

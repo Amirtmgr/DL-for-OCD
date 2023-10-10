@@ -105,8 +105,15 @@ def subwise_k_fold_cv(device, multi_gpu=False):
             #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
             k = 7
             #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
+            counts = Counter(y_train.astype(int))
+            max_count = max(counts.values())
+            print(f"Before sampling: {Counter(y_train.astype(int))}")
+            under_sampling_strategy = {
+                0: int(max_count*cl.config.dataset.alpha)
+            }
+            print("Sampling strategy:", under_sampling_strategy)
 
-            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=new_seed)
+            undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, y_train)
             X_train = X_sample.reshape(-1, window_size, num_features)
             y_train = y_sample
@@ -409,8 +416,15 @@ def stratified_k_fold_cv(device, multi_gpu=False):
             #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
             k = 7
             #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
+            counts = Counter(train_labels.astype(int))
+            max_count = max(counts.values())
+            print(f"Before sampling: {Counter(train_labels.astype(int))}")
+            under_sampling_strategy = {
+                0: int(max_count*cl.config.dataset.alpha)
+            }
+            print("Sampling strategy:", under_sampling_strategy)
 
-            undersample = RandomUnderSampler(sampling_strategy='not minority', random_state=new_seed)
+            undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, train_labels)
             train_data = X_sample.reshape(-1, window_size, num_features)
             train_labels = y_sample
