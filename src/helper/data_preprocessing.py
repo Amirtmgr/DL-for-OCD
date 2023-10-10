@@ -62,7 +62,7 @@ def split_subjects(subjects):
     # Remove personalized subject
     personalized_subject = str(cl.config.dataset.personalized_subject)
     
-    if cl.config.dataset.personalization and personalized_subject in subjects:
+    if personalized_subject in subjects:
         Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
         print("Removing personalized subject:")
         subjects.remove(personalized_subject)
@@ -275,7 +275,7 @@ def get_scaler():
     return scaler
 
 
-def load_shelves(filename):
+def load_shelves(filename, subjects=None):
     # Create path
     path = dm.create_folder("datasets", dm.FolderType.data)
     x_path = os.path.join(path, filename+"_X")
@@ -285,10 +285,21 @@ def load_shelves(filename):
     X_db = shelve.open(x_path, 'r')
     y_db = shelve.open(y_path, 'r')
 
-    # Convert to dict
-    X = dict(X_db)
-    y = dict(y_db)
+    # Empty dict
+    X = {}
+    y = {}
+    
+    if subjects is None:
+        # Convert to dict
+        X = dict(X_db)
+        y = dict(y_db)
+    else:
+        if isinstance(subjects, str):
+            subjects = [subjects]
 
+        for subject in subjects:
+            X[subject] = X_db[subject]
+            y[subject] = y_db[subject]
     # Close the db
     X_db.close()
     y_db.close()

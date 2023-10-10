@@ -46,19 +46,19 @@ def save_state(state:State, optional_name:str = ""):
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
     
-    state_dict = {
-        'path':model_path,
-        'filename':filename,
-        'epoch': state.best_epoch, 
-        'state_dict': state.best_model.state_dict(),
-        'optimizer': state.best_optimizer.state_dict(),
-        'train_metrics': state.best_train_metrics, 
-        'val_metrics': state.best_val_metrics,
-        'criterion': state.best_criterion_weight
-        }
+    # state_dict = {
+    #     'path':model_path,
+    #     'filename':filename,
+    #     'epoch': state.best_epoch, 
+    #     'state_dict': state.best_model.state_dict(),
+    #     'optimizer': state.best_optimizer.state_dict(),
+    #     'train_metrics': state.best_train_metrics, 
+    #     'val_metrics': state.best_val_metrics,
+    #     'criterion': state.best_criterion_weight
+    #     }
 
-    if state.best_lr_scheduler:
-        state_dict['lr_scheduler'] = state.best_lr_scheduler.state_dict()
+    # if state.best_lr_scheduler:
+    #     state_dict['lr_scheduler'] = state.best_lr_scheduler.state_dict()
             
     #Save model    
     try:
@@ -71,37 +71,39 @@ def save_state(state:State, optional_name:str = ""):
     
 # Function to load state of the model
 # todo: check
-def load_checkpoint(model, filename, optimizer= None, lr_scheduler=None):
-    full_path = os.path.join(cl.config.models_path,filename)
+def load_checkpoint(filename):
+    full_path = os.path.join(cl.config.models_folder,filename)
+    state = State()
+
     if os.path.isfile(full_path):
         print("Loading checkpoint '{}'".format(filename))
         checkpoint = torch.load(full_path)
         
+        return checkpoint
         # Set state object
-        state = State()
-        state.set_file_name(filename)
-        state.set_path(full_path)
-        state.best_epoch = checkpoint['epoch']
-        state.best_model = model.load_state_dict(checkpoint['state_dict'])
-        state.best_train_metrics = checkpoint['train_metrics']
-        state.best_val_metrics = checkpoint['val_metrics']
-        state.best_criterion_weight = checkpoint['criterion']
+    #     state.set_file_name(filename)
+    #     state.set_path(full_path)
+    #     state.best_epoch = checkpoint['epoch']
+    #     state.best_model = model.load_state_dict(checkpoint['state_dict'])
+    #     state.best_train_metrics = checkpoint['train_metrics']
+    #     state.best_val_metrics = checkpoint['val_metrics']
+    #     state.best_criterion_weight = checkpoint['criterion']
 
-        if optimizer != None:
-            state.best_optimizer= optimizer.load_state_dict(checkpoint['optimizer'])
+    #     if optimizer != None:
+    #         state.best_optimizer= optimizer.load_state_dict(checkpoint['optimizer'])
         
-        if lr_scheduler != None:
-            try:
-                state.best_lr_scheduler = lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-            except Exception as e:
-                print(f"An error occurred: {str(e)}")
-                print("No lr_scheduler found in checkpoint")
-                state.best_lr_scheduler = None
+    #     if lr_scheduler != None:
+    #         try:
+    #             state.best_lr_scheduler = lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+    #         except Exception as e:
+    #             print(f"An error occurred: {str(e)}")
+    #             print("No lr_scheduler found in checkpoint")
+    #             state.best_lr_scheduler = None
 
-        print("Loaded checkpoint '{}' (Epoch {})"
-                  .format(filename, checkpoint['epoch']))
-    else:
-        print("No checkpoint found at '{}'".format(filename))
+    #     print("Loaded checkpoint '{}' (Epoch {})"
+    #               .format(filename, checkpoint['epoch']))
+    # else:
+    #     print("No checkpoint found at '{}'".format(filename))
         
     return state
 

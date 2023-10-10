@@ -27,6 +27,7 @@ from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
 from src.dl_pipeline import validate as v
+from src.dl_pipeline import personalize as p
 
 def setup_cuda():
     # Check CUDA
@@ -84,39 +85,44 @@ def train():
     print(msg)
     cl.print_config_dict()
 
-    if cv == "loso"  or cv == "kfold":
-        v.subwise_k_fold_cv(device, multi_gpu)
-    elif cv == "stratified":
-        v.stratified_k_fold_cv(device, multi_gpu)
-    else:
-        # Load dataset
-        train_dataset, val_dataset = dp.get_datasets()
+    if cl.config.dataset.personalization:
+        p.run(device, multi_gpu)
+    else: 
+        if cv == "loso"  or cv == "kfold":
+            v.subwise_k_fold_cv(device, multi_gpu)
+        elif cv == "stratified":
+            v.stratified_k_fold_cv(device, multi_gpu)
+        elif cv == "personalized":
+            p.run(device, multi_gpu)
+        else:
+            # Load dataset
+            train_dataset, val_dataset = dp.get_datasets()
 
-        # Load dataloaders
-        train_loader = dp.load_dataloader(train_dataset)
-        val_loader = dp.load_dataloader(val_dataset)
+            # Load dataloaders
+            train_loader = dp.load_dataloader(train_dataset)
+            val_loader = dp.load_dataloader(val_dataset)
+            
+            # Get class weights
+            class_weights = dp.compute_weights(train_dataset)
+
+            # Load Traning parameters
+            model = t.init_weights(t.load_network())
+            optimizer = t.load_optim(model)
+            criterion = t.load_criterion(class_weights)
+            lr_scheduler = t.load_lr_scheduler(optimizer)
+
+            # Train Model
+            state = t.train_model(model, criterion, 
+                                optimizer, lr_scheduler,
+                                train_loader, val_loader, device,
+                                threshold=cl.config.train.threshold)
+
+            state.info()
+
+            # Visuals
+            state.plot_losses()
+            state.plot_f1_scores()
         
-        # Get class weights
-        class_weights = dp.compute_weights(train_dataset)
-
-        # Load Traning parameters
-        model = t.init_weights(t.load_network())
-        optimizer = t.load_optim(model)
-        criterion = t.load_criterion(class_weights)
-        lr_scheduler = t.load_lr_scheduler(optimizer)
-
-        # Train Model
-        state = t.train_model(model, criterion, 
-                            optimizer, lr_scheduler,
-                            train_loader, val_loader, device,
-                            threshold=cl.config.train.threshold)
-
-        state.info()
-
-        # Visuals
-        state.plot_losses()
-        state.plot_f1_scores()
-    
     # Clean up
     #t.ddp_destroy()
 

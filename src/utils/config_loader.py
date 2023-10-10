@@ -64,6 +64,11 @@ class __ConfigLoader:
         folder = dt.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
         print("Folder: ", folder)
         temp["folder"] = folder
+        temp["models_folder"] = os.path.join(self.main_path,"saved", "models")
+        temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
+        temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")
+        temp["charts_folder"] = os.path.join(self.main_path,"saved", "charts")
+        
         temp["models_path"] = os.path.join(self.main_path,"saved", "models",folder)
         temp["results_path"] = os.path.join(self.main_path,"saved", "results", folder)
         temp["logs_path"] = os.path.join(self.main_path,"saved", "logs", folder)
