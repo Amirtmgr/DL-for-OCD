@@ -15,7 +15,7 @@ world_size: 1
 
 # Global variables
 global:
-  - &window_size 250
+  - &window_size 100
   - &num_epochs 100
   - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
@@ -112,7 +112,7 @@ train:
   
 # Dataset parameters
 dataset:
-  name: 'OCDetect_raw_250' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'processed' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size

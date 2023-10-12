@@ -5,6 +5,7 @@ data/test
 data/processed
 data/processed.zip
 data/datasets
+data/*
 
 # Configs
 configs/*
@@ -35,6 +36,7 @@ saved/cluster_results/err/*
 # sync
 .sync
 .sync_old
+.sync*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
