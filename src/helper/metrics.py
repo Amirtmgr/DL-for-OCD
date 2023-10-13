@@ -96,7 +96,8 @@ class Metrics:
                 
                 self.print_cm()
                 print(f"Report:\n {self.classification_report}")
-
+                Logger.info(f"Report:\n {self.classification_report}")
+                
                 # Specificity
                 if len(self.labels) == 2:
                     tn, fp, fn, tp = self.confusion_matrix.ravel()
@@ -174,6 +175,9 @@ class Metrics:
 
         # Print the confusion matrix as a table
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+        Logger.info(f"Epoch: {self.epoch+1} Confusion Matrix:")
+        Logger.info("\n"+tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+
 
     # Compute optimal threshold
     def compute_optim_threshold(self, metric='f1', num_thresholds=100):

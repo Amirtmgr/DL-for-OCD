@@ -133,3 +133,8 @@ class DeepConvLSTM(nn.Module):
         x = x[:, -1, :]
         #print(output.shape)
         return x
+
+
+    def number_of_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        

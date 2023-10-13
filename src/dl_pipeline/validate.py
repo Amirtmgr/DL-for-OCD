@@ -60,6 +60,9 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     else:
         k_folds = ds.divide_into_groups(train_subjects, cl.config.train.cross_validation.k_folds)
 
+    print(f"Train subjects: {train_subjects}")
+    print(f"Inference subjects: {inference_subjects}")
+
     # Loop through folds
     for i, fold_val_subjects in enumerate(k_folds):
         # start of k-fold

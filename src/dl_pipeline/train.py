@@ -35,6 +35,7 @@ from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
 from src.dl_pipeline.architectures.Transformer import CNNTransformer
+from src.dl_pipeline.architectures.TinyHAR import TinyHAR_Model
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -324,7 +325,10 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             state.best_epoch = epoch + 1
             state.best_model = network
             state.best_optimizer = optimizer
-            state.best_criterion_weight = criterion.weight
+            if is_binary:
+                state.best_criterion_weight = criterion.pos_weight
+            else:
+                state.best_criterion_weight = criterion.weight
             state.best_train_metrics = train_metrics
             state.best_val_metrics = val_metrics
             
@@ -362,6 +366,18 @@ def load_network(multi_gpu=False):
         model = DeepConvLSTM(cl.config_dict['architecture'])
     elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
+    elif network == "tinyhar":
+        sensors = 6 if cl.config.architecture.sensors == "both" else 3
+        batch_size = 1 #cl.config.train.batch_size
+        window_size = cl.config.architecture.window_size
+        num_classes = cl.config.dataset.num_classes
+        filter_num = 1 #cl.config.architecture.tinyhar_filter_num
+        nb_conv_layers = cl.config.architecture.tinyhar_nb_conv_layers
+        filter_size = cl.config.architecture.tinyhar_filter_size
+        input_shape = (batch_size, filter_num, window_size, sensors)
+        dropout = cl.config.architecture.tinyhar_dropout
+        model = TinyHAR_Model(input_shape, num_classes, 1, nb_conv_layers,
+        filter_size, dropout=dropout)    
     else:
         raise ValueError(f"Invalid network: {network}")
     
@@ -397,7 +413,7 @@ def load_optim(model, multi_gpu=False):
     return opt
     
 # Function to load criterion
-def load_criterion(weights):
+def load_criterion(weights=None):
     loss = cl.config.criterion.name
     
     criterion = nn.CrossEntropyLoss()
