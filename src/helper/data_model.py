@@ -3,6 +3,13 @@ from enum import Enum, IntEnum
 LABELS = ["Null", "rHW", "cHW"]
 
 
+class TaskType(Enum):
+    cHW_detection = 0 # Null vs cHW # Binary
+    HW_detection = 1 # Null vs HW # Binary
+    HW_classification = 2 # rHW vs cHW # Multiclass
+    Multiclass_classification = 3 # Null vs rHW vs cHW # Multiclass
+    
+
 # HandWashing Type
 class HandWashingType(IntEnum):
     NoHandWash = 0

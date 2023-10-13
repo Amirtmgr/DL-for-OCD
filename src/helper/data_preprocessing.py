@@ -9,6 +9,7 @@ from collections import Counter
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
 import src.helper.directory_manager as dm
+from src.helper.data_model import TaskType
 from src.helper import df_manager as dfm
 from src.helper import data_structures as ds
 from src.helper.sliding_window import process_dataframes, get_windows
@@ -305,7 +306,7 @@ def load_shelves(filename, subjects=None):
     y_db.close()
 
     if cl.config.dataset.num_classes == 2:
-        X, y = prepare_binary_data(X, y, cl.config.train.cHW_detection)
+        X, y = prepare_binary_data(X, y, cl.config.train.task_type)
 
     return X, y 
      
@@ -349,27 +350,22 @@ def replace_labels(labels, label_mapping):
 
     return replaced_labels
 
-def prepare_binary_data(X_dict:dict, y_dict:dict, cHW_detection:bool=False):
+def prepare_binary_data(X_dict:dict, y_dict:dict, task_type:TaskType):
     """Method to prepare binary data
     Args:
         X_dict (dict): X dictionary
         y_dict (dict): y dictionary
-        cHW_detection (bool, optional): Whether to prepare data for cHW detection. Defaults to False.
+        task_type (TaskType): To prepare data for different types of tasks.
     Returns:
         dict: X dictionary
         dict: y dictionary
     """
 
-    if cHW_detection:
-        Logger.info("Binary Classification : rHW vs cHW")
-    else:
-        Logger.info("Binary Classification : Null vs HW")
-
     for subject in list(X_dict.keys()):
         X = X_dict[subject]
         y = y_dict[subject]
         
-        if cHW_detection:
+        if task_type == TaskType.HW_classification:
             # Filter classes
             temp_X, temp_y = filter_out_class(X, y, 0)
             
@@ -385,10 +381,14 @@ def prepare_binary_data(X_dict:dict, y_dict:dict, cHW_detection:bool=False):
              # Add to dict
             X_dict[subject] = temp_X
                     
-        else:
+        elif task_type == TaskType.HW_detection:
             # Replace labels
             temp_y = replace_labels(y, {0:0, 1:1, 2:1})
-       
+
+        elif task_type == TaskType.cHW_detection:
+            # Replace labels
+            temp_y = replace_labels(y, {0:0, 1:0, 2:1})
+        
         y_dict[subject] = temp_y
 
         Logger.info(f"For Subject: {subject} | Before: {Counter(y)} | After: {Counter(temp_y)}")

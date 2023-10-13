@@ -20,6 +20,7 @@ from src.helper import df_manager as dfm
 from src.helper import data_structures as ds
 from src.helper.data_model import CSVHeader, HandWashingType, LABELS
 from src.helper.sliding_window import get_windows, process_dataframes
+from src.helper.data_model import TaskType
 
 from src.utils.config_loader import config_loader as cl
 from src.helper.logger import Logger
@@ -66,20 +67,27 @@ def train():
 
     cv = cl.config.train.cross_validation.name
     num_classes = cl.config.dataset.num_classes
+    task_type = TaskType(cl.config.dataset.task_type)
+    cl.config.train.task_type = task_type
 
-    if num_classes == 2:
+    if task_type == TaskType.cHW_detection:
         msg = "==============Binary classification============="
-        
-        if cl.config.train.cHW_detection:
-            msg += "\n=============== rHW vs cHW =============="
-            cl.config.dataset.labels = cl.config.dataset.labels[1:]
-        else:
-            msg += "\n=============== Null vs HW =============="
-            cl.config.dataset.labels = ["Null", "HW"]
-    elif num_classes == 3:
+        msg += "\n=============== Null vs cHW =============="
+        cl.config.dataset.labels = ["Null", "cHW"]
+
+    elif task_type == TaskType.HW_detection:
+        msg = "==============Binary classification============="
+        msg += "\n=============== Null vs HW =============="
+        cl.config.dataset.labels = ["Null", "HW"]
+    elif task_type == TaskType.HW_classification:
+        msg = "==============Binary classification============="
+        msg += "\n=============== rHW vs cHW =============="
+        cl.config.dataset.labels = ["rHW", "cHW"]
+    elif task_type == TaskType.Multiclass_classification:
         msg = "==============Multiclass classification========="
-    else:
-        raise ValueError("Number of classes must be 2 or 3 in config yaml file")
+        cl.config.dataset.labels = ["Null", "rHW", "cHW"]
+    else: 
+        raise ValueError("Task type not found in config file.")
     
     Logger.info(msg)
     print(msg)
