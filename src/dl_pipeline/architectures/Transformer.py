@@ -86,7 +86,7 @@ class CNNTransformer(nn.Module):
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
-        self.output_neurons = self.num_classes if self.task_type > 2 else 1
+        self.output_neurons = self.num_classes if self.task_type >= 2 else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
 
         # Dropout
