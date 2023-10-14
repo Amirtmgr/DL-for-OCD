@@ -13,6 +13,7 @@ class CNNTransformer(nn.Module):
         self.window_size = config.get('window_size', 150)
         self.num_classes = config.get('num_classes', 3)
         self.sensors = config.get('sensors', 'both')
+        self.task_type = config.get('task_type')
         
         # CNN Parameters
         self.input_features = 6 if self.sensors == 'both' else 3
@@ -85,7 +86,7 @@ class CNNTransformer(nn.Module):
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
-        self.output_neurons = self.num_classes if self.num_classes > 2 else 1
+        self.output_neurons = self.num_classes if task_type.value > 2 else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
 
         # Dropout

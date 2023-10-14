@@ -35,7 +35,7 @@ architecture:
   window_size: *window_size
   device: *device
   task_type: *task_type
-
+  
   # For CNN
   input_channels: 1
   hidden_channels: [64, 64, 64, 64]
