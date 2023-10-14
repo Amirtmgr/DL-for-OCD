@@ -37,7 +37,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     best_val_loss = np.inf
     best_f1_score = 0.0
     best_fold = None
-    is_binary = cl.config.train.task_type < 2
+    is_binary = cl.config.train.task_type.value < 2
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
     shuffle = cl.config.dataset.shuffle
@@ -338,7 +338,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     best_f1_score = 0.0
     best_fold = None
     #is_binary = cl.config.dataset.num_classes < 3
-    is_binary = cl.config.train.task_type < 2
+    is_binary = cl.config.train.task_type.value < 2
 
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
