@@ -4,6 +4,7 @@ LABELS = ["Null", "rHW", "cHW"]
 
 
 class TaskType(Enum):
+    rHW_cHW_binary = -1 # rHW vs cHW #Binary
     cHW_detection = 0 # Null vs cHW # Binary
     HW_detection = 1 # Null vs HW # Binary
     HW_classification = 2 # rHW vs cHW # Multiclass

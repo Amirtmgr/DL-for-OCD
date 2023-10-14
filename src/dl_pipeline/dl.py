@@ -70,7 +70,7 @@ def train():
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
 
-    if task_type == TaskType.cHW_detection:
+    if task_type == TaskType.cHW_detection or task_type == TaskType.rHW_cHW_binary:
         msg = "==============Binary classification============="
         msg += "\n=============== Null vs cHW =============="
         cl.config.dataset.labels = ["Null", "cHW"]

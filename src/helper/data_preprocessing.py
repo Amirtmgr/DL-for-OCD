@@ -365,7 +365,7 @@ def prepare_binary_data(X_dict:dict, y_dict:dict, task_type:TaskType):
         X = X_dict[subject]
         y = y_dict[subject]
         
-        if task_type == TaskType.HW_classification:
+        if task_type == TaskType.HW_classification or task_type == TaskType.rHW_cHW_binary:
             # Filter classes
             temp_X, temp_y = filter_out_class(X, y, 0)
             
