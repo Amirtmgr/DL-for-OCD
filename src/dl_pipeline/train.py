@@ -420,7 +420,7 @@ def load_criterion(weights=None):
 
     if cl.config.criterion.weighted and weights is not None:
         class_weights = weights.to(cl.config.train.device)
-        if cl.config.
+        
         if loss == 'cross_entropy' and cl.config.dataset.num_classes > 2:
             criterion = nn.CrossEntropyLoss(weight=class_weights)
             Logger.info(f"Using CrossEntropyLoss with class weights: {class_weights}")
