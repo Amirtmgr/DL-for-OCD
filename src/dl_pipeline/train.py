@@ -421,13 +421,14 @@ def load_criterion(weights=None):
     if cl.config.criterion.weighted and weights is not None:
         class_weights = weights.to(cl.config.train.device)
         
-        if loss == 'cross_entropy' and cl.config.dataset.num_classes > 2:
+        if loss == 'cross_entropy':
             criterion = nn.CrossEntropyLoss(weight=class_weights)
             Logger.info(f"Using CrossEntropyLoss with class weights: {class_weights}")
         elif loss == 'bce' and cl.config.dataset.num_classes == 2:
             # Pass positive class weight only
-            criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights[1])
-            Logger.info(f"Using BCEWithLogitsLoss with class weights: {class_weights[1]}")
+            wt = class_weights if class_weights.ndimension() == 0 else class_weights[1]
+            criterion = nn.BCEWithLogitsLoss(pos_weight=wt)
+            Logger.info(f"Using BCEWithLogitsLoss with class weights: {wt}")
     else:
         if cl.config.dataset.num_classes == 2:
             criterion = nn.BCEWithLogitsLoss()

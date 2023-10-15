@@ -70,21 +70,24 @@ def train():
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
 
-    if task_type == TaskType.cHW_detection or task_type == TaskType.rHW_cHW_binary:
+    if task_type == TaskType.rHW_cHW_binary:
+        msg = "==============Binary classification============="
+        msg += "\n=============== rHW vs cHW =============="
+        cl.config.dataset.labels = ["rHW", "cHW"]
+    elif task_type == TaskType.cHW_detection:
         msg = "==============Binary classification============="
         msg += "\n=============== Null vs cHW =============="
         cl.config.dataset.labels = ["Null", "cHW"]
-
     elif task_type == TaskType.HW_detection:
         msg = "==============Binary classification============="
         msg += "\n=============== Null vs HW =============="
         cl.config.dataset.labels = ["Null", "HW"]
     elif task_type == TaskType.HW_classification:
-        msg = "==============Binary classification============="
+        msg = "==============Multi-class classification============="
         msg += "\n=============== rHW vs cHW =============="
         cl.config.dataset.labels = ["rHW", "cHW"]
     elif task_type == TaskType.Multiclass_classification:
-        msg = "==============Multiclass classification========="
+        msg = "==============Multi-class classification========="
         cl.config.dataset.labels = ["Null", "rHW", "cHW"]
     else: 
         raise ValueError("Task type not found in config file.")
