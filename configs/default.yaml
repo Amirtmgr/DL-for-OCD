@@ -23,10 +23,10 @@ global:
   - &num_workers 4
   - &random_seed 875
   - &use_warn_metrics True
-  - &task_type -1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
+  - &task_type 0 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
   - &binary_threshold 0.5
   - &personalization False
-  - &sampling False
+  - &sampling True
   - &checkpoint '2023_10_10-03_39_29/cnn_transformer_cv-1_stratified_fold_2023-10-10_22-19-38.pth'
   
 # Model architecture parameters
@@ -132,7 +132,7 @@ dataset:
   pin_memory: False
   scaler_type: #'Robust' #"MinMax" # "Standard" # "Robust"
   sampling: *sampling
-  alpha: 0.25 # Sampling ratio
+  alpha: 0.015 # Sampling ratio
 
 # Filter parameters
 filter:

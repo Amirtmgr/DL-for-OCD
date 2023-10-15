@@ -38,7 +38,7 @@ class Metrics:
         self.accuracy = 0.0
         self.y_true = None
         self.y_pred = None
-        self.labels = [0, 1] if is_binary else [0, 1, 2]
+        self.labels = [0, 1] if cl.config.dataset.task_type < 3 else [0, 1, 2]
         self.zero_division_warn = False
         self.classification_report = None
         self.outputs = None
