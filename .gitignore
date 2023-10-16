@@ -7,6 +7,11 @@ data/processed.zip
 data/datasets
 data/*
 
+# test file
+test.ipynb
+.ipynb_checkpoints
+.ipynb
+
 # Configs
 configs/*
 !configs/default.yaml
