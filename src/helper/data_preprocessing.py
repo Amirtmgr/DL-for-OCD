@@ -394,3 +394,15 @@ def prepare_binary_data(X_dict:dict, y_dict:dict, task_type:TaskType):
         Logger.info(f"For Subject: {subject} | Before: {Counter(y)} | After: {Counter(temp_y)}")
         
     return X_dict, y_dict
+
+
+def split_data(data, train_ratio, validation_ratio, random_seed=None):
+    if not (0 <= train_ratio <= 1) or not (0 <= validation_ratio <= 1) or not (train_ratio + validation_ratio <= 1):
+        raise ValueError("Ratios must be between 0 and 1 and sum to 1.")
+    
+    inference_ratio = 1 - train_ratio - validation_ratio
+
+    train_data, temp_data = train_test_split(data, test_size=1 - train_ratio, random_state=random_seed)
+    validation_data, inference_data = train_test_split(temp_data, test_size=inference_ratio / (inference_ratio + validation_ratio), random_state=random_seed)
+    
+    return train_data, validation_data, inference_data

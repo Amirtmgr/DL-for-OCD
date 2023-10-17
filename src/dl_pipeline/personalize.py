@@ -37,9 +37,13 @@ def run(device, multi_gpu=False):
     shuffle = cl.config.dataset.shuffle
     cv_name = cl.config.train.cross_validation.name
     personalized_subject = str(cl.config.dataset.personalized_subject)
-    test_ratio = 1 - cl.config.dataset.train_ratio
-    train_ratio = 1 - test_ratio*2
+    train_ratio = cl.config.dataset.train_ratio
+    test_ratio = cl.config.dataset.test_ratio
+    inference_ratio = 1 - train_ratio - test_ratio
     
+    if inference_ratio < 0:
+        raise ValueError("Inference ratio cannot be negative. Decrease train or test ratio.")
+
     binary_threshold = cl.config.train.binary_threshold
 
     # Load python dataset
@@ -57,12 +61,12 @@ def run(device, multi_gpu=False):
     # Split data
     if shuffle:
         X_train, X_others, y_train, y_others = train_test_split(X_personalized, y_personalized, train_size = train_ratio, stratify = y_personalized, shuffle=True, random_state = random_seed)
-        X_infer, X_val, y_infer, y_val = train_test_split(X_others, y_others, test_size= 0.5, stratify = y_others, shuffle=True, random_state = random_seed)
+        X_val, X_infer, y_val, y_infer = train_test_split(X_others, y_others, test_size= inference_ratio / (inference_ratio + test_ratio), stratify = y_others, shuffle=True, random_state = random_seed)
         #X, X_infer, y, y_infer = train_test_split(X_personalized, y_personalized, train_size = train_ratio, stratify = y_personalized, shuffle=True, random_state = random_seed)
         #X_train, X_val, y_train, y_val = train_test_split(X, y, test_size= test_ratio, stratify = y, shuffle=shuffle, random_state = random_seed)
     else:
         X_train, X_others, y_train, y_others = train_test_split(X_personalized, y_personalized, train_size = train_ratio, shuffle=False)
-        X_infer, X_val, y_infer, y_val = train_test_split(X_others, y_others, test_size= 0.5, shuffle=False)
+        X_val, X_infer, y_val, y_infer = train_test_split(X_others, y_others, test_size= inference_ratio / (inference_ratio + test_ratio), shuffle=False)
         #X, X_infer, y, y_infer = train_test_split(X_personalized, y_personalized, train_size = train_ratio, shuffle=False)
         #X_train, X_val, y_train, y_val = train_test_split(X, y, test_size= test_ratio, shuffle=False)
 

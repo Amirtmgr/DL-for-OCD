@@ -17,7 +17,7 @@ import src.dl_pipeline.dl as dl
 import src.helper.plotter as plot
 from src.data_processing import cleaner as cln
 from src.data_processing import process as prc
-
+from collections import Counter
 
 def main():
     # Parse the arguments
@@ -55,11 +55,14 @@ def main():
     #cln.clean_all()
 
     # Prepare datset
-    #prc.prepare_datasets("OCDetect_raw_300")
-    #X, y  = prc.load_dataset(4, "OCDetect_raw_300")
-    #print(X.shape)
-    #print(y.shape)
-    #print(X[1304], y[1304])
+    #prc.prepare_datasets("Subset_proc_50")
+    # X, y  = prc.load_dataset(15, "Subset_proc_50")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+    
+    # Prepare sub-datasets
+    #prc.prepare_subset()
     
     # Perform DL pipeline
     if cl.config.world_size == 2:
