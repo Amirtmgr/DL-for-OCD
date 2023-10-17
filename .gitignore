@@ -11,6 +11,7 @@ data/*
 test.ipynb
 .ipynb_checkpoints
 .ipynb
+.test
 
 # Configs
 configs/*
