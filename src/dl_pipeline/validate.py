@@ -89,17 +89,17 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         
 
         # Check sensor type 
-        # if cl.config.dataset.sensor == "acc":
-        #     X_train = X_train[:, :, :3]
-        #     X_val = X_val[:, :, :3]
-        #     y_train = y_train[:, :, :3]
-        #     y_val = y_val[:, :, :3]
-        # elif cl.config.dataset.sensor == "gyro":
-        #     X_train = X_train[:, :, 3:]
-        #     X_val = X_val[:, :, 3:]
-        #     y_train = y_train[:, :, 3:]
-        #     y_val = y_val[:, :, 3:]
+        if cl.config.dataset.sensor == "acc":
+            X_train = X_train[:, :, :3]
+            X_val = X_val[:, :, :3]
+            Logger.info("Using accelerometer data only.")
+        elif cl.config.dataset.sensor == "gyro":
+            X_train = X_train[:, :, 3:]
+            X_val = X_val[:, :, 3:]
+            Logger.info("Using gyroscope data only.")
         
+        Logger.info(f"k-Fold:{i+1} ===> X_train shape: {X_train.shape} | X_val shape: {X_val.shape}")
+
         # Sampling
         if cl.config.dataset.sampling:
             samples, window_size, num_features = X_train.shape
@@ -243,6 +243,15 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     X_inference = np.concatenate([X_dict[subject] for subject in inference_subjects], axis=0)
     y_inference = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
 
+    if cl.config.dataset.sensor == "acc":
+        X_inference = X_inference[:, :, :3]
+        Logger.info("Using accelerometer data only.")
+    elif cl.config.dataset.sensor == "gyro":
+        X_inference = X_inference[:, :, 3:]
+        Logger.info("Using gyroscope data only.")
+    
+    Logger.info(f"Inference data shape: {X_inference.shape} | Inference labels shape: {y_inference.shape}")
+    
     # Scale
     if best_state.scalar:
         X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
@@ -365,6 +374,15 @@ def stratified_k_fold_cv(device, multi_gpu=False):
 
     X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
     y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
+
+    if cl.config.dataset.sensor == "acc":
+       X_all = X_all[:, :, :3]
+       Logger.info("Using accelerometer data only.")
+    elif cl.config.dataset.sensor == "gyro":
+       X_all = X_all[:, :, 3:]
+       Logger.info("Using gyroscope data only.")
+    
+    Logger.info(f"Total data shape: {X_all.shape} | Total labels shape: {y_all.shape}")
 
     # Reshape
     num, window_size, num_features = X_all.shape
