@@ -135,6 +135,7 @@ dataset:
   personalized_subject: 15
   random_seed: *random_seed
   shuffle: True
+  batch_shuffle: False
   num_workers: *num_workers
   pin_memory: False
   scaler_type: #'Robust' #"MinMax" # "Standard" # "Robust"

@@ -211,7 +211,7 @@ def load_dataloader(dataset, multi_gpu=False):
 
     # Parse config
     batch_size = cl.config.train.batch_size
-    shuffle = cl.config.dataset.shuffle
+    shuffle = cl.config.dataset.batch_shuffle
     num_workers = cl.config.dataset.num_workers
     pin_memory = cl.config.dataset.pin_memory
 
@@ -406,3 +406,24 @@ def split_data(data, train_ratio, validation_ratio, random_seed=None):
     validation_data, inference_data = train_test_split(temp_data, test_size=inference_ratio / (inference_ratio + validation_ratio), random_state=random_seed)
     
     return train_data, validation_data, inference_data
+
+# Normalize the array to the desired range
+def normalize_array(arr, bound = None):
+    # Calculate the mean and standard deviation along the sensor_channels axis
+    channel_means = np.mean(arr, axis=2, keepdims=True)
+    channel_stddev = np.std(arr, axis=2, keepdims=True)
+
+    # Normalize the array
+    normalized_arr = (arr - channel_means) / channel_stddev
+
+    # Scale the normalized values to the desired range
+    min_value = np.min(normalized_arr)
+    max_value = np.max(normalized_arr)
+    
+    normalized_arr = (normalized_arr - min_value) / (max_value - min_value)  # Scale to [0, 1]
+    
+    if bound:
+        lower_bound, upper_bound = bound
+        normalized_arr = normalized_arr * (upper_bound - lower_bound) + lower_bound  # Scale to [lower_bound, upper_bound]
+
+    return normalized_arr

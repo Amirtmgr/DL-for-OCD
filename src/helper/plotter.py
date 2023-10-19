@@ -253,7 +253,7 @@ def save_plot(plt, title):
 
      
 
-def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, save = False, title=None):
+def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, save = False, title=None, sensor='both'):
     """
     Plot sensor data with expanded predictions and ground truth using Plotly.
 
@@ -333,20 +333,32 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     '#E0E0D8',  # Light Grayish Blue
     ]
 
-    channel_colors = light_colors
-    channels = ['acc x', 'acc y', 'acc z', 'gyro x', 'gyro y', 'gyro z']
-    pallete = ["ffa69e","faf3dd","b8f2e6","aed9e0","5e6472"]
+    # sensors = ['#016d6b', '#65aba9', '#b2eeeb', '#b42291', '#dc85c0', '#ffd7f1']
+    # channel_colors = sensors
     
+    channels = ['acc x', 'acc y', 'acc z', 'gyro x', 'gyro y', 'gyro z']
+    # pallete = ["ffa69e","faf3dd","b8f2e6","aed9e0","5e6472"]
+    
+    if sensor == 'acc':
+        num_channels = 3
+        channel_ids = [0, 1, 2]
+    elif sensor == 'gyro':
+        num_channels = 3
+        channel_ids = [3, 4, 5]
+    else:
+        num_channels = 6
+        channel_ids = [0, 1, 2, 3, 4, 5]
+
     # Add traces for data points, predictions, and ground truth for each channel
-    for i in range(num_channels):
+    for i in channel_ids:
         channel_name = channels[i]
         fig.add_trace(go.Scatter(x=df['Time'], y=flattened_data[:, i], mode='lines', name=channel_name,
-                                 line=dict(color=channel_colors[i], width=1), showlegend=True))
+                                 line=dict( width=1), showlegend=True))
 
     fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
-                             line=dict(color='red', width=2, dash='dot')))
+                             line=dict(color='red', width=2.5, dash='dot')))
     fig.add_trace(go.Scatter(x=df['Time'], y=df['Ground Truth'], mode='lines', name='Ground Truth',
-                             line=dict(color='green', width=2, dash='dash')))
+                             line=dict(color='blue',width=2.5, dash='dash')))
 
     # Adjust the y-axis labels to be 0 or 1
     fig.update_yaxes(tickvals=[0, 1])
@@ -356,7 +368,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         xaxis_title='Time (s)',
         yaxis_title='Value',
         title='Sensor Data, Predictions, and Ground Truth',
-        font=dict(family='Arial, sans-serif', size=14),
+        font=dict(family='Arial, sans-serif', size=24),
     )
 
     # Customize the grid settings
@@ -365,7 +377,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
             showgrid=True,  # Show the x-axis grid lines
             gridwidth=1,  # Width of major grid lines
             gridcolor='white',  # Color of major grid lines
-            dtick=1,  # Spacing of grid lines based on x-axis values
+            dtick=5,  # Spacing of grid lines based on x-axis values
         ),
         yaxis=dict(
             showgrid=True,  # Show the y-axis grid lines
@@ -378,8 +390,8 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     # Show the interactive plot or save it as an image
     if save:
         title = "Personalization Ground Truth vs Predictions" if title is None else title
-        save_path = cl.config.charts_path + "/" + title.split()[0] + "_personalization_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"  
-        pio.write_image(fig, save_path, format='png', width=6400, height=2000)
+        save_path = cl.config.charts_path + "/" + sensor + "_" + title.split()[0] + "_personalization_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"  
+        pio.write_image(fig, save_path, format='png', width=1200, height=500)
         print(f"Figure saved as {save_path}")
     else:
         fig.show()

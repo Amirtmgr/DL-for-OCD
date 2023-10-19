@@ -60,18 +60,18 @@ def run(device, multi_gpu=False):
     gc.collect()
 
     
-    X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
+    #X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
 
     # Split data
     if shuffle:
-        #X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
+        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
         X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
         if remaining_ratio > 0:
             X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
         else:
             X_val, y_val = X_temp, y_temp
     else:
-        #X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
+        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
         X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), shuffle=False)
         if remaining_ratio > 0:
             X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), shuffle=False)
@@ -159,19 +159,34 @@ def run(device, multi_gpu=False):
     state.plot_losses(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
     state.plot_f1_scores(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
     
-    infer_data = [X.numpy() for X, y in infer_loader]
+    infer_data = []
+    ground_truth = []
 
+    for X, y in infer_loader:
+        infer_data.append(X.numpy())
+        ground_truth.append(y.numpy())
+     
     # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
     infer_array = np.concatenate(infer_data, axis=0)
+    ground_truth_array = np.concatenate(ground_truth, axis=0)
+
+    # Normalize
+    infer_array = dp.normalize_array(infer_array)
 
     # Check the shape of the resulting NumPy array
     print("Shape of Infer array:", infer_array.shape)
 
     # Visuals
-    pl.plot_sensor_data(infer_array, infer_metrics_0.y_true, infer_metrics_0.y_pred, save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
-    pl.plot_sensor_data(infer_array, infer_metrics_1.y_true, infer_metrics_1.y_pred, save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+    pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_0.y_pred, save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
+    pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_1.y_pred, save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
 
-    lower = 20
-    upper = 22
-    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_0.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
-    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_1.y_true[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+    lower = 19
+    upper = 27
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")
+
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="gyro")
+    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="gyro")
