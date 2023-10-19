@@ -188,3 +188,14 @@ def run(device, multi_gpu=False):
 
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="gyro")
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="gyro")
+
+    
+    # Trainable parameters
+    trainable_params = sum(p.numel() for p in state.best_model.parameters() if p.requires_grad)
+    print("Trainable parameters:", trainable_params)
+    # Total parameters
+    total_params = sum(p.numel() for p in state.best_model.parameters())
+    print("Total parameters:", total_params)
+
+    Logger.info(f"Trainable parameters: {trainable_params}")
+    Logger.info(f"Total parameters: {total_params}")
