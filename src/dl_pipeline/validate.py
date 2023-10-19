@@ -251,7 +251,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         Logger.info("Using gyroscope data only.")
     
     Logger.info(f"Inference data shape: {X_inference.shape} | Inference labels shape: {y_inference.shape}")
-    
     # Scale
     if best_state.scalar:
         X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)

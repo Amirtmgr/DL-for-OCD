@@ -6,7 +6,7 @@
 
 import os
 import numpy as np
-import src.helper.plotter as plot   
+import src.helper.plotter as pl   
 from src.helper.logger import Logger
 from collections import Counter
 
@@ -118,7 +118,8 @@ class State:
         train_losses = self.get_list_of(item='loss', phase='train')
         val_losses = self.get_list_of(item='loss', phase='val')
         data_lists = [train_losses, val_losses]
-        plot.arrays(data_lists, title, x_label, y_label, legend_labels)
+        #plot.arrays(data_lists, title, x_label, y_label, legend_labels)
+        pl.plotly_arrays(data_lists, title, x_label, y_label, legend_labels)
     
     def plot_f1_scores(self, title=""):
         title = "Train F1 Scores vs Validataion F1 Scores"+ title
@@ -128,7 +129,8 @@ class State:
         train_f1_scores = self.get_list_of(item='f1_score', phase='train')
         val_f1_scores = self.get_list_of(item='f1_score', phase='val')
         data_lists = [train_f1_scores, val_f1_scores]
-        plot.arrays(data_lists, title, x_label, y_label, legend_labels)
+        #plot.arrays(data_lists, title, x_label, y_label, legend_labels)
+        pl.plotly_arrays(data_lists, title, x_label, y_label, legend_labels)
         
 
     def get_mean(self, item='loss', phase='train'):

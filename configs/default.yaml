@@ -16,7 +16,7 @@ world_size: 1
 # Global variables
 global:
   - &window_size 250
-  - &num_epochs 25
+  - &num_epochs 1
   - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
@@ -61,7 +61,7 @@ architecture:
   encode_position: True
   
   # For TinyHAR
-  tinyhar_filter_num: 64
+  tinyhar_filter_num: 1
   tinyhar_nb_conv_layers: 2
   tinyhar_filter_size: 1
   tinyhar_dropout: 0.25

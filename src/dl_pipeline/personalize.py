@@ -177,13 +177,11 @@ def run(device, multi_gpu=False):
     print("Shape of Infer array:", infer_array.shape)
 
     # Visuals
-    pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_0.y_pred, save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
-    pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_1.y_pred, save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+    #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_0.y_pred, save=False, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="accx")
+    #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_1.y_pred, save=False, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="accx")
 
-    lower = 19
-    upper = 27
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+    lower = 50
+    upper = 60
 
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")

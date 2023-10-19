@@ -345,9 +345,12 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     elif sensor == 'gyro':
         num_channels = 3
         channel_ids = [3, 4, 5]
-    else:
+    elif sensor == 'both':
         num_channels = 6
         channel_ids = [0, 1, 2, 3, 4, 5]
+    else:
+        num_channels = 1
+        channel_ids = [0]
 
     # Add traces for data points, predictions, and ground truth for each channel
     for i in channel_ids:
@@ -361,15 +364,18 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
                              line=dict(color='blue',width=2.5, dash='dash')))
 
     # Adjust the y-axis labels to be 0 or 1
-    fig.update_yaxes(tickvals=[0, 1])
+    #fig.update_yaxes(tickvals=[0, 1])
 
     # Set the layout with better font style
     fig.update_layout(
         xaxis_title='Time (s)',
         yaxis_title='Value',
         title='Sensor Data, Predictions, and Ground Truth',
-        font=dict(family='Arial, sans-serif', size=24),
+        font=dict(family='Arial, sans-serif', size=24, color='black'),
     )
+
+    fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
+    fig.update_yaxes(showline=True, linewidth=1, linecolor='black')
 
     # Customize the grid settings
     fig.update_layout(
@@ -386,6 +392,9 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
             dtick=1,  # Spacing of grid lines based on y-axis values
         )
     )
+    
+    # Black ticks
+    #fig.update_xaxes(gridcolor='black', griddash='dash', minor_griddash="dot")
 
     # Show the interactive plot or save it as an image
     if save:
@@ -395,3 +404,98 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         print(f"Figure saved as {save_path}")
     else:
         fig.show()
+
+def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=None, save_fig=True, grid=True):
+    """
+    Plot lists of lists of numbers using Plotly.
+
+    Args:
+        data_lists (list of lists): The data to plot, where each list represents a data series.
+        title (str): The title of the plot (optional).
+        x_label (str): The label for the x-axis (optional).
+        y_label (str): The label for the y-axis (optional).
+        legend_labels (list): List of legend labels for each data series (optional).
+        save_fig (bool): Save option (default is True).
+        grid (bool): Toggle grid on or off (default is True).
+        save_path (str): Path to save the plot as an HTML file (default is "plotly_plot.html").
+
+    Returns:
+        None
+    """
+    fig = go.Figure()
+
+    for i, data in enumerate(data_lists):
+        label = legend_labels[i] if legend_labels and i < len(legend_labels) else f"List {i + 1}"
+        fig.add_trace(go.Scatter(x=list(range(len(data))), y=data, mode='lines', name=label))
+
+    # Update layout and axis labels
+    fig.update_layout(title=title,
+        font=dict(family='Arial, sans-serif', size=18)
+        )
+    # Y-axis line color)
+
+    fig.update_xaxes(showline=True, linewidth =1, linecolor='black',title_text=x_label)
+    fig.update_yaxes(showline=True, linewidth=1, linecolor='black', title_text=y_label)
+    
+    # Add legend if legend_labels are provided
+    if legend_labels:
+        fig.update_layout(showlegend=True)
+
+    # Toggle grid on or off
+    # Customize the grid settings
+    if grid:
+        fig.update_layout(
+            xaxis=dict(
+                showgrid=True,  # Show the x-axis grid lines
+                gridwidth=1,  # Width of major grid lines
+                gridcolor='white',  # Color of major grid lines
+                dtick=5,  # Spacing of grid lines based on x-axis values
+            ),
+            yaxis=dict(
+                showgrid=True,  # Show the y-axis grid lines
+                gridwidth=1,  # Width of major grid lines
+                gridcolor='white',  # Color of major grid lines
+                dtick=1,  # Spacing of grid lines based on y-axis values
+            )
+        )
+
+    if save_fig:
+        path = cl.config.charts_path
+        file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
+        save_path = path + "/" + file_name
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        try:
+            pio.write_image(fig, save_path, format='png', width=800, height=500)
+            print(f"Figure saved as {save_path}")
+            Logger.info(f"Plot saved as {file_name} inside path {path}")
+        except Exception as e:
+            Logger.error(f"{e} while saving plot as {file_name}")
+    else:
+        fig.show()
+
+
+def save_ploty(plt, title):
+    """
+    Saves a plot to a file.
+
+    Args:
+        plt (plotly.go.Figure): The plot to save.
+        file_name (str): The name of the file to save the plot to.
+    """
+
+    path = cl.config.charts_path
+    file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
+    save_path = path + "/" + file_name
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    try:
+        pio.write_image(plt, save_path, format='png', width=1200, height=500)
+        print(f"Figure saved as {save_path}")
+        Logger.info(f"Plot saved as {file_name} inside path {path}")
+    except Exception as e:
+        Logger.error(f"{e} while saving plot as {file_name}")
