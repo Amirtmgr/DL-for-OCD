@@ -35,7 +35,7 @@ from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
 from src.dl_pipeline.architectures.Transformer import CNNTransformer
-from src.dl_pipeline.architectures.TinyHAR import TinyHAR_Model
+from src.dl_pipeline.architectures.TinyHAR import TinyHAR, DimTinyHAR
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -355,6 +355,7 @@ def load_network(multi_gpu=False):
     # TODO: Check for other networks
     network = cl.config.architecture.name
     world_size = cl.config.world_size
+    task_type = cl.config.architecture.task_type
     gpu_ids = range(world_size)
     print("Using gpus: ", gpu_ids)
     if network == "cnn":
@@ -370,13 +371,13 @@ def load_network(multi_gpu=False):
         sensors = 6 if cl.config.architecture.sensors == "both" else 3
         batch_size = 1 #cl.config.train.batch_size
         window_size = cl.config.architecture.window_size
-        num_classes = cl.config.dataset.num_classes
+        num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
         filter_num = 1 #cl.config.architecture.tinyhar_filter_num
         nb_conv_layers = cl.config.architecture.tinyhar_nb_conv_layers
         filter_size = cl.config.architecture.tinyhar_filter_size
         input_shape = (batch_size, filter_num, window_size, sensors)
         dropout = cl.config.architecture.tinyhar_dropout
-        model = TinyHAR_Model(input_shape, num_classes, 1, nb_conv_layers,
+        model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
         filter_size, dropout=dropout)    
     else:
         raise ValueError(f"Invalid network: {network}")

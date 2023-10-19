@@ -12,6 +12,9 @@ import seaborn as sns
 from sklearn.metrics import ConfusionMatrixDisplay
 from src.utils.config_loader import config_loader as cl
 import datetime as dt
+import plotly.graph_objects as go
+import plotly.io as pio
+import uuid
 
 def plot_3d(df, axes=['acc x','acc y', 'acc z'], opacity=0.75):
     # 3D scatter plot using Plotly
@@ -236,7 +239,7 @@ def save_plot(plt, title):
     """
 
     path = cl.config.charts_path
-    file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".png"
+    file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -249,4 +252,134 @@ def save_plot(plt, title):
         Logger.error(f"{e} while saving plot as {file_name}")
 
      
+
+def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, save = False, title=None):
+    """
+    Plot sensor data with expanded predictions and ground truth using Plotly.
+
+    Parameters:
+        input_data (numpy.ndarray): Input data of shape (10, 250, 6).
+        predictions (numpy.ndarray): Predicted values for each window (shape: (10,)).
+        ground_truth (numpy.ndarray): Ground truth values for each window (shape: (10,)).
+        sampling_rate (int): Sampling rate in Hz (default is 50).
+        window_size (int): Size of each window (default is 250).
+        save_path (str): File path for saving the figure (e.g., 'plot.png').
+
+    Returns:
+        None
+    """
+    num_windows = input_data.shape[0]
+    window_size = input_data.shape[1]
+    num_channels = input_data.shape[2]
+
+    # Calculate the time axis based on the sampling rate and data length
+    time_axis = np.arange(1, (window_size*num_windows)+1) / sampling_rate
     
+    # Expand predictions and ground truth to match the window size
+    expanded_predictions = np.repeat(predictions, window_size)
+    expanded_ground_truth = np.repeat(ground_truth, window_size)
+
+    # Flatten all channels from the input data
+    flattened_data = input_data.reshape(-1, num_channels)
+
+    print(f"Time axis shape: {time_axis.shape}")
+    print(f"Expanded predictions shape: {expanded_predictions.shape}")
+    print(f"Expanded ground truth shape: {expanded_ground_truth.shape}")
+    print(f"Flattened data shape: {flattened_data.shape}")
+
+    # Create a DataFrame to make it easier to work with the data
+    df = pd.DataFrame({'Time': time_axis, 'Predictions': expanded_predictions, 'Ground Truth': expanded_ground_truth})
+
+    # Create a figure using Plotly
+    fig = go.Figure()
+
+    lighter_colors = [
+    '#D3D3D3',  # Light Gray
+    '#87CEFA',  # Light Sky Blue
+    '#7FFFD4',  # Aquamarine
+    '#DDA0DD',  # Plum
+    '#ADFF2F',  # Green Yellow
+    '#F08080',  # Light Coral
+    '#FFA07A',  # Light Salmon
+    '#CD853F',  # Peru
+    '#B0E0E6',  # Powder Blue
+    '#E6E6FA',  # Lavender
+    ]
+
+    light_colors = ['#E6E6E6', '#FFD700', '#98FB98', '#ADD8E6' , '#F5DEB3', '#FFA07A', '#F0E68C', '#FFC0CB', '#D3D3D3', '#00CED1']
+    lighter_colors_2 = [
+    '#EDEDED',  # Light Gray
+    '#B0E2FF',  # Light Sky Blue
+    '#AFEEEE',  # Pale Turquoise
+    '#E6C9E6',  # Pale Plum
+    '#DFFFBF',  # Light Green Yellow
+    '#FFCCCC',  # Light Light Coral
+    '#FFDAB9',  # Light Light Salmon
+    '#DAA520',  # Light Goldenrod
+    '#C0E0F2',  # Light Powder Blue
+    '#F0F0FF',  # Alice Blue
+    ]
+
+    light_shades = [
+    '#F0E8E8',  # Light Grayish Pink
+    '#B4B4B4',  # Light Gray
+    '#A0A0A0',  # Light Silver
+    '#E6E0D8',  # Light Beige
+    '#C4B0A8',  # Light Mauve
+    '#F2EFEF',  # Light Platinum
+    '#D8D0C0',  # Light Tan
+    '#D8D8E6',  # Light Lavender Gray
+    '#D2C9C9',  # Light Pinkish Gray
+    '#E0E0D8',  # Light Grayish Blue
+    ]
+
+    channel_colors = light_colors
+    channels = ['acc x', 'acc y', 'acc z', 'gyro x', 'gyro y', 'gyro z']
+    pallete = ["ffa69e","faf3dd","b8f2e6","aed9e0","5e6472"]
+    
+    # Add traces for data points, predictions, and ground truth for each channel
+    for i in range(num_channels):
+        channel_name = channels[i]
+        fig.add_trace(go.Scatter(x=df['Time'], y=flattened_data[:, i], mode='lines', name=channel_name,
+                                 line=dict(color=channel_colors[i], width=1), showlegend=True))
+
+    fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
+                             line=dict(color='red', width=2, dash='dot')))
+    fig.add_trace(go.Scatter(x=df['Time'], y=df['Ground Truth'], mode='lines', name='Ground Truth',
+                             line=dict(color='green', width=2, dash='dash')))
+
+    # Adjust the y-axis labels to be 0 or 1
+    fig.update_yaxes(tickvals=[0, 1])
+
+    # Set the layout with better font style
+    fig.update_layout(
+        xaxis_title='Time (s)',
+        yaxis_title='Value',
+        title='Sensor Data, Predictions, and Ground Truth',
+        font=dict(family='Arial, sans-serif', size=14),
+    )
+
+    # Customize the grid settings
+    fig.update_layout(
+        xaxis=dict(
+            showgrid=True,  # Show the x-axis grid lines
+            gridwidth=1,  # Width of major grid lines
+            gridcolor='white',  # Color of major grid lines
+            dtick=1,  # Spacing of grid lines based on x-axis values
+        ),
+        yaxis=dict(
+            showgrid=True,  # Show the y-axis grid lines
+            gridwidth=1,  # Width of major grid lines
+            gridcolor='white',  # Color of major grid lines
+            dtick=1,  # Spacing of grid lines based on y-axis values
+        )
+    )
+
+    # Show the interactive plot or save it as an image
+    if save:
+        title = "Personalization Ground Truth vs Predictions" if title is None else title
+        save_path = cl.config.charts_path + "/" + title.split()[0] + "_personalization_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"  
+        pio.write_image(fig, save_path, format='png', width=6400, height=2000)
+        print(f"Figure saved as {save_path}")
+    else:
+        fig.show()

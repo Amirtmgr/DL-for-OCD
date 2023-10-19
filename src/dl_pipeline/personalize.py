@@ -39,10 +39,12 @@ def run(device, multi_gpu=False):
     personalized_subject = str(cl.config.dataset.personalized_subject)
     train_ratio = cl.config.dataset.train_ratio
     test_ratio = cl.config.dataset.test_ratio
-    inference_ratio = 1 - train_ratio - test_ratio
-    
-    if inference_ratio < 0:
-        raise ValueError("Inference ratio cannot be negative. Decrease train or test ratio.")
+    inference_ratio = cl.config.dataset.inference_ratio
+    remaining_ratio = 1 - (train_ratio + test_ratio + inference_ratio)
+
+    if inference_ratio + test_ratio + train_ratio > 1:
+        raise ValueError("Total ratio is greater than 1. Adjust the ratios in config file.")
+
 
     binary_threshold = cl.config.train.binary_threshold
 
@@ -58,24 +60,31 @@ def run(device, multi_gpu=False):
     gc.collect()
 
     
+    
     # Split data
     if shuffle:
-        X_train, X_others, y_train, y_others = train_test_split(X_personalized, y_personalized, train_size = train_ratio, stratify = y_personalized, shuffle=True, random_state = random_seed)
-        X_val, X_infer, y_val, y_infer = train_test_split(X_others, y_others, test_size= inference_ratio / (inference_ratio + test_ratio), stratify = y_others, shuffle=True, random_state = random_seed)
-        #X, X_infer, y, y_infer = train_test_split(X_personalized, y_personalized, train_size = train_ratio, stratify = y_personalized, shuffle=True, random_state = random_seed)
-        #X_train, X_val, y_train, y_val = train_test_split(X, y, test_size= test_ratio, stratify = y, shuffle=shuffle, random_state = random_seed)
+        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
+        X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
+        if remaining_ratio > 0:
+            X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
+        else:
+            X_val, y_val = X_temp, y_temp
     else:
-        X_train, X_others, y_train, y_others = train_test_split(X_personalized, y_personalized, train_size = train_ratio, shuffle=False)
-        X_val, X_infer, y_val, y_infer = train_test_split(X_others, y_others, test_size= inference_ratio / (inference_ratio + test_ratio), shuffle=False)
-        #X, X_infer, y, y_infer = train_test_split(X_personalized, y_personalized, train_size = train_ratio, shuffle=False)
-        #X_train, X_val, y_train, y_val = train_test_split(X, y, test_size= test_ratio, shuffle=False)
+        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
+        X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), shuffle=False)
+        if remaining_ratio > 0:
+            X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), shuffle=False)
+        else:
+            X_val, y_val = X_temp, y_temp
 
-    del X_others, y_others
-    gc.collect()
-
+    
     Logger.info(f"X_train shape: {X_train.shape} | y_train shape: {y_train.shape}")
     Logger.info(f"X_val shape: {X_val.shape} | y_val shape: {y_val.shape}")
     Logger.info(f"X_infer shape: {X_infer.shape} | y_infer shape: {y_infer.shape}")
+    Logger.info(f"X_temp shape: {X_temp.shape} | y_temp shape: {y_temp.shape}")
+
+    del X_temp, y_temp
+    gc.collect()
 
     # Create datasets
     train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train).float())
@@ -94,7 +103,6 @@ def run(device, multi_gpu=False):
     if state_checkpoint is None:
         Logger.info("No checkpoint loaded")
 
-    
 
     # Compute weights
     #class_weights = torch.from_numpy(np.array([1.0433, 0.9601])).float()
@@ -120,6 +128,9 @@ def run(device, multi_gpu=False):
     # Save inference metrics
     msg_0 = om.save_object(infer_metrics_0, cl.config.folder, dm.FolderType.results, "inference_metrics_before.pkl" )
     Logger.info(msg_0)
+
+    del X_train, X_val, X_infer, y_train, y_val, y_infer, X_personalized, y_personalized, train_dataset, val_dataset, infer_dataset
+    gc.collect()
 
     # Train Model
     state = t.train_model(state_checkpoint.best_model, criterion, 
@@ -147,3 +158,19 @@ def run(device, multi_gpu=False):
     state.plot_losses(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
     state.plot_f1_scores(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
     
+    infer_data = [X.numpy() for X, y in infer_loader]
+
+    # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
+    infer_array = np.concatenate(infer_data, axis=0)
+
+    # Check the shape of the resulting NumPy array
+    print("Shape of Infer array:", infer_array.shape)
+
+    # Visuals
+    pl.plot_sensor_data(infer_array, infer_metrics_0.y_true, infer_metrics_0.y_pred, save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
+    pl.plot_sensor_data(infer_array, infer_metrics_1.y_true, infer_metrics_1.y_pred, save=True, title=f" After Personalization | Sub ID:{personalized_subject}")
+
+    lower = 20
+    upper = 22
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_0.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_1.y_true[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}")

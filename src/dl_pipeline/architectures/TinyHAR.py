@@ -438,7 +438,7 @@ temmporal_aggregation = {"filter": FilterWeighted_Aggregation,
 
 
 
-class TinyHAR_Model(nn.Module):
+class TinyHAR(nn.Module):
     def __init__(
         self,
         input_shape ,
@@ -449,16 +449,16 @@ class TinyHAR_Model(nn.Module):
         filter_size                    = 5,
         
         cross_channel_interaction_type = "attn",    # attn  transformer  identity
-        cross_channel_aggregation_type = "filter",  # filter  naive  FC
-        temporal_info_interaction_type = "gru",     # gru  lstm  attn  transformer  identity
-        temporal_info_aggregation_type = "FC",      # naive  filter  FC 
+        cross_channel_aggregation_type = "FC",  # filter  naive  FC
+        temporal_info_interaction_type = "lstm",     # gru  lstm  attn  transformer  identity
+        temporal_info_aggregation_type = "naive",      # naive  filter  FC 
 
         dropout = 0.1,
 
         activation = "ReLU",
 
     ):
-        super(TinyHAR_Model, self).__init__()
+        super(TinyHAR, self).__init__()
         
         
         self.cross_channel_interaction_type = cross_channel_interaction_type
@@ -574,10 +574,8 @@ class TinyHAR_Model(nn.Module):
 
 
     def forward(self, x):
-        B, L, C = x.shape
-        x = x.view(B,1 ,L, C)
-
         # B F L C   
+        x = x.unsqueeze(1)
         for layer in self.layers_conv:
             x = layer(x)
 
@@ -631,13 +629,189 @@ class TinyHAR_Model(nn.Module):
 
         y = self.prediction(x)
         return y
+    
+    
+class DimTinyHAR(nn.Module):
+    def __init__(
+        self,
+        input_shape ,
+        number_class , 
+
+        filter_num,
+        nb_conv_layers                 = 4,        
+        filter_size                    = 5,
+        
+        cross_channel_interaction_type = "attn",    # attn  transformer  identity
+        cross_channel_aggregation_type = "FC",  # filter  naive  FC
+        temporal_info_interaction_type = "lstm",     # gru  lstm  attn  transformer  identity
+        temporal_info_aggregation_type = "naive",      # naive  filter  FC 
+
+        dropout = 0.1,
+
+        activation = "ReLU",
+
+    ):
+        super(DimTinyHAR, self).__init__()
+        
+        
+        self.cross_channel_interaction_type = cross_channel_interaction_type
+        self.cross_channel_aggregation_type = cross_channel_aggregation_type
+        self.temporal_info_interaction_type = temporal_info_interaction_type
+        self.temporal_info_aggregation_type = temporal_info_aggregation_type
+        
+        
+        """
+        PART 1 , ============= Channel wise Feature Extraction =============================        
+        输入的格式为  Batch, filter_num, length, Sensor_channel        
+        输出格式为为  Batch, filter_num, downsampling_length, Sensor_channel
+        """
+        filter_num_list=[1]
+        filter_num_step=int(filter_num/nb_conv_layers)
+        for i in range(nb_conv_layers-1):
+            #filter_num_list.append((1+i)*filter_num_step)
+            filter_num_list.append(filter_num)
+        filter_num_list.append(filter_num)
+
+        layers_conv = []
+        for i in range(nb_conv_layers):
+            in_channel  = filter_num_list[i]
+            out_channel = filter_num_list[i+1]
+            if i%2 == 1:
+                layers_conv.append(nn.Sequential(
+                    nn.Conv2d(in_channel, out_channel, (filter_size, 1),(2,1)),
+                    nn.ReLU(inplace=True),#))#,
+                    nn.BatchNorm2d(out_channel)))
+            else:
+                layers_conv.append(nn.Sequential(
+                    nn.Conv2d(in_channel, out_channel, (filter_size, 1),(1,1)),
+                    nn.ReLU(inplace=True),#))#,
+                    nn.BatchNorm2d(out_channel)))
+        self.layers_conv = nn.ModuleList(layers_conv)
+        # 这是给最后时间维度 vectorize的时候用的
+        downsampling_length = self.get_the_shape(input_shape)        
+        
+
+        """
+        PART2 , ================ Cross Channel interaction  =================================
+        这里可供选择的  attn   transformer  itentity
+        输出格式为  Batch, filter_num, downsampling_length, Sensor_channel
+        
+        """
+
+        self.channel_interaction = crosschannel_interaction[cross_channel_interaction_type](input_shape[3], filter_num)
+        # 这里还是 B F C L  需要permute++++++++++++++
+
+        
+
+        """
+        PART3 , =============== Cross Channel Fusion  ====================================
+        这里可供选择的  filter   naive  FC
+
+        输出格式为  Batch, downsampling_length, filter_num
+        """
+        if cross_channel_aggregation_type == "FC":
+            # 这里需要reshape为 B L C*F++++++++++++++
+            self.channel_fusion = crosschannel_aggregation[cross_channel_aggregation_type](input_shape[3]*filter_num,2*filter_num)
+        elif cross_channel_aggregation_type in ["SFCC", "SFCF"]:
+            self.channel_fusion = crosschannel_aggregation[cross_channel_aggregation_type](input_shape[3],           2*filter_num)
+        else:
+            # 这里需要沿着时间轴走
+            self.channel_fusion = crosschannel_aggregation[cross_channel_aggregation_type](input_shape[3],           2*filter_num)
+            # --> B F L
+            # 需要reshape++++++++++++++++++++++++++++++
+
+            
+        # BLF
+        self.activation = nn.ReLU() 
 
 
+        """
+        PART4  , ============= Temporal information Extraction =========================
+        这里可供选择的  gru lstm attn transformer   identity
+
+        输出格式为  Batch, downsampling_length, filter_num
+        """
+        
+        # ++++++++++++ 这里需要讨论
+        self.temporal_interaction = temporal_interaction[temporal_info_interaction_type](input_shape[3],           2*filter_num)
+        
+        
+        """
+        PART 5 , =================== Temporal information Aggregation ================
 
 
+        输出格式为  Batch, downsampling_length, filter_num
+        """        
+
+        self.dropout = nn.Dropout(dropout)
+        
+        if temporal_info_aggregation_type == "FC":
+            self.flatten = nn.Flatten()
+            self.temporal_fusion = temmporal_aggregation[temporal_info_aggregation_type](downsampling_length*2*filter_num,2*filter_num)
+        else:
+            self.temporal_fusion = temmporal_aggregation[temporal_info_aggregation_type](input_shape[3],           2*filter_num)
+            
+        #--> B F
+
+        # PART 6 , ==================== Prediction ==============================
+        self.prediction = nn.Linear(2*filter_num ,number_class)
+
+    def get_the_shape(self, input_shape):
+        x = torch.rand(input_shape)
+
+        for layer in self.layers_conv:
+            x = layer(x)    
+
+        return x.shape[2]
+        
 
 
+    def forward(self, x):
+        # B F L C   
+        x = x.unsqueeze(1)
+        for layer in self.layers_conv:
+            x = layer(x)
 
+        x = x.permute(3,0,2,1) 
 
+        # ------->  B x C x L* x F*       
 
+        """ =============== cross channel interaction ==============="""
+        x = torch.cat(
+            [self.channel_interaction(x[:, :, t, :]).unsqueeze(3) for t in range(x.shape[2])],
+            dim=-1,
+        )
+        # ------->  B x C x F* x L* 
+        
+        x = self.dropout(x)
 
+        """=============== cross channel fusion ==============="""
+        
+        if self.cross_channel_aggregation_type == "FC":
+            x = x.permute(0, 3, 1, 2)
+            x = x.reshape(x.shape[0], x.shape[1], -1)
+            x = self.activation(self.channel_fusion(x))
+        elif self.cross_channel_aggregation_type in ["SFCC","SFCF","SFCF2"]:
+            x = x.permute(0,3,1,2)
+            x = self.activation(self.channel_fusion(x)) 
+        else:
+            x = torch.cat(
+                [self.channel_fusion(x[:, :, :, t]).unsqueeze(2) for t in range(x.shape[3])],
+                dim=-1,
+            )
+            x = x.permute(0,2,1)
+            x = self.activation(x)
+        # ------->  B x L* x F*
+            
+        """cross temporal interaction """
+        x = self.temporal_interaction(x)
+
+        """cross temporal fusion """
+        if self.temporal_info_aggregation_type == "FC":
+            x = self.flatten(x)
+            x = self.activation(self.temporal_fusion(x)) # B L C
+        else:
+            x = self.temporal_fusion(x)
+        
+        y = self.prediction(x)
+        return y

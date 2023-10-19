@@ -23,7 +23,7 @@ global:
   - &num_workers 4
   - &random_seed 777
   - &use_warn_metrics True
-  - &cHW_detection True
+  - &task_type  -1  # -1: rHW vs cHW binary # 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
   - &binary_threshold 0.5
   - &sampling False
   - &checkpoint '2023_10_10-03_54_17/cnn_transformer_cv-2_fold_2023-10-10_04-09-37.pth'
@@ -57,6 +57,13 @@ architecture:
   num_decoder_layers: 6
   encode_position: True
   
+  # For TinyHAR
+  tinyhar_filter_num: 64
+  tinyhar_nb_conv_layers: 2
+  tinyhar_filter_size: 3
+  tinyhar_dropout: 0.1
+  tinyhar_activation: "relu" #'gelu'
+
   # For Dropout Layer
   dropout: 0.5
   
