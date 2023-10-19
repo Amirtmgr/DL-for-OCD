@@ -455,7 +455,7 @@ def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=No
                 showgrid=True,  # Show the y-axis grid lines
                 gridwidth=1,  # Width of major grid lines
                 gridcolor='white',  # Color of major grid lines
-                dtick=1,  # Spacing of grid lines based on y-axis values
+                dtick=0.2,  # Spacing of grid lines based on y-axis values
             )
         )
 
