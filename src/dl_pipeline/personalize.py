@@ -60,17 +60,18 @@ def run(device, multi_gpu=False):
     gc.collect()
 
     
-    
+    X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
+
     # Split data
     if shuffle:
-        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
+        #X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
         X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
         if remaining_ratio > 0:
             X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), stratify = y_temp, shuffle=True, random_state = random_seed)
         else:
             X_val, y_val = X_temp, y_temp
     else:
-        X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
+        #X_infer, X_temp, y_infer, y_temp = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
         X_train, X_temp, y_train, y_temp = train_test_split(X_temp, y_temp, train_size= train_ratio/(train_ratio + test_ratio), shuffle=False)
         if remaining_ratio > 0:
             X_val, X_temp, y_val, y_temp = train_test_split(X_temp, y_temp, train_size= test_ratio/(remaining_ratio + test_ratio), shuffle=False)

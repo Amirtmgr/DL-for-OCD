@@ -17,6 +17,7 @@ from src.helper import object_manager as om
 from src.helper import directory_manager as dm
 from src.helper.state import State
 from src.helper import data_structures as ds
+from src.helper import plotter as pl
 
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -583,6 +584,22 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     msg = om.save_object(inferece_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
     Logger.info(msg)
     
+    infer_data = [X.numpy() for X, y in inference_loader]
+
+    # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
+    infer_array = np.concatenate(infer_data, axis=0)
+
+    # Check the shape of the resulting NumPy array
+    print("Shape of Infer array:", infer_array.shape)
+
+    # Visuals
+    pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
+
+    lower = 20
+    upper = 22
+    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
+
+
     # Inferece duration
     end_inference = datetime.datetime.now()
     Logger.info(f"Inference End time: {end_inference}")
