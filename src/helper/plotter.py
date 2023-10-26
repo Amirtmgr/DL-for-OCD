@@ -253,7 +253,7 @@ def save_plot(plt, title):
 
      
 
-def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, save = False, title=None, sensor='both'):
+def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, save = False, title=None, sensor='both', batch_idx=None):
     """
     Plot sensor data with expanded predictions and ground truth using Plotly.
 
@@ -268,27 +268,35 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     Returns:
         None
     """
+
     num_windows = input_data.shape[0]
     window_size = input_data.shape[1]
     num_channels = input_data.shape[2]
+    dtick = 5 #num_windows // sampling_rate
 
+    # if batch_idx:
+    #     batch_size = cl.config.train.batch_size
+    #     offset = batch_idx * batch_size
+    #     time_axis = np.arange(1+ offset, (window_size*num_windows)+1+offset) / sampling_rate
     # Calculate the time axis based on the sampling rate and data length
-    time_axis = np.arange(1, (window_size*num_windows)+1) / sampling_rate
-    
+    time_axis = np.arange(0, (window_size*num_windows)) / sampling_rate
+    print(f"Time axis shape: {time_axis.shape}")
     # Expand predictions and ground truth to match the window size
-    expanded_predictions = np.repeat(predictions, window_size)
     expanded_ground_truth = np.repeat(ground_truth, window_size)
+    print(f"Expanded ground truth shape: {expanded_ground_truth.shape}")
 
     # Flatten all channels from the input data
     flattened_data = input_data.reshape(-1, num_channels)
-
-    print(f"Time axis shape: {time_axis.shape}")
-    print(f"Expanded predictions shape: {expanded_predictions.shape}")
-    print(f"Expanded ground truth shape: {expanded_ground_truth.shape}")
     print(f"Flattened data shape: {flattened_data.shape}")
 
-    # Create a DataFrame to make it easier to work with the data
-    df = pd.DataFrame({'Time': time_axis, 'Predictions': expanded_predictions, 'Ground Truth': expanded_ground_truth})
+    if predictions:
+        expanded_predictions = np.repeat(predictions, window_size)
+        print(f"Expanded predictions shape: {expanded_predictions.shape}")
+        # Create a DataFrame to make it easier to work with the data
+        df = pd.DataFrame({'Time': time_axis, 'Predictions': expanded_predictions, 'Ground Truth': expanded_ground_truth})
+
+    else:
+        df = pd.DataFrame({'Time': time_axis, 'Ground Truth': expanded_ground_truth})
 
     # Create a figure using Plotly
     fig = go.Figure()
@@ -358,7 +366,8 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         fig.add_trace(go.Scatter(x=df['Time'], y=flattened_data[:, i], mode='lines', name=channel_name,
                                  line=dict( width=1), showlegend=True))
 
-    fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
+    if predictions:
+        fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
                              line=dict(color='red', width=2.5, dash='dot')))
     fig.add_trace(go.Scatter(x=df['Time'], y=df['Ground Truth'], mode='lines', name='Ground Truth',
                              line=dict(color='blue',width=2.5, dash='dash')))
@@ -370,7 +379,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     fig.update_layout(
         xaxis_title='Time (s)',
         yaxis_title='Value',
-        title='Sensor Data, Predictions, and Ground Truth',
+        title='Sensor Data, Predictions, and Ground Truth' if predictions else 'Sensor Data and Ground Truth (Null:0, rHW:1, cHW:2)',
         font=dict(family='Arial, sans-serif', size=24, color='black'),
     )
 
@@ -383,29 +392,92 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
             showgrid=True,  # Show the x-axis grid lines
             gridwidth=1,  # Width of major grid lines
             gridcolor='white',  # Color of major grid lines
-            dtick=5,  # Spacing of grid lines based on x-axis values
+            dtick=dtick,  # Spacing of grid lines based on x-axis values
         ),
         yaxis=dict(
             showgrid=True,  # Show the y-axis grid lines
             gridwidth=1,  # Width of major grid lines
             gridcolor='white',  # Color of major grid lines
             dtick=1,  # Spacing of grid lines based on y-axis values
-        )
+        ),
+        yaxis_range=[-5,5],
     )
     
+    fig.update_yaxes(tickfont=dict(size=10))
+    fig.update_xaxes(tickfont=dict(size=10))
+
     # Black ticks
     #fig.update_xaxes(gridcolor='black', griddash='dash', minor_griddash="dot")
 
     # Show the interactive plot or save it as an image
     if save:
         title = "Personalization Ground Truth vs Predictions" if title is None else title
-        save_path = cl.config.charts_path + "/" + sensor + "_" + title.split()[0] + "_personalization_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"  
-        pio.write_image(fig, save_path, format='png', width=1200, height=500)
+        if os.path.exists(cl.config.charts_path) == False:
+            os.makedirs(cl.config.charts_path)
+        save_path = cl.config.charts_path + "/" + sensor+ "_" + title.split()[0] + "_" + str(uuid.uuid4().hex) + ".png"  
+        pio.write_image(fig, save_path, format='png', width=1200, height=900)
         print(f"Figure saved as {save_path}")
     else:
         fig.show()
 
-def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=None, save_fig=True, grid=True):
+def plotly_scatter(data_lists, title="", x_label="", y_label="", legend_labels=None, save_fig=True, grid=True, dtick=0.4):
+    fig = go.Figure()
+
+    for i, data in enumerate(data_lists):
+        label = legend_labels[i] if legend_labels and i < len(legend_labels) else f"List {i + 1}"
+        fig.add_trace(go.Scatter(x=data, y=data_lists[2], mode='markers', name=label))
+    
+     # Update layout and axis labels
+    fig.update_layout(title=title,
+        font=dict(family='Arial, sans-serif', size=18)
+        )
+    # Y-axis line color)
+
+    fig.update_xaxes(showline=True, linewidth =1, linecolor='black',title_text=x_label)
+    fig.update_yaxes(showline=True, linewidth=1, linecolor='black', title_text=y_label)
+    
+    # Add legend if legend_labels are provided
+    if legend_labels:
+        fig.update_layout(showlegend=True)
+
+    # Toggle grid on or off
+    # Customize the grid settings
+    if grid:
+        fig.update_layout(
+            xaxis=dict(
+                showgrid=True,  # Show the x-axis grid lines
+                gridwidth=1,  # Width of major grid lines
+                gridcolor='white',  # Color of major grid lines
+                dtick=5,  # Spacing of grid lines based on x-axis values
+            ),
+            yaxis=dict(
+                showgrid=True,  # Show the y-axis grid lines
+                gridwidth=1,  # Width of major grid lines
+                gridcolor='white',  # Color of major grid lines
+                dtick=dtick,  # Spacing of grid lines based on y-axis values
+            )
+        )
+
+    if save_fig:
+        path = cl.config.charts_path
+        if not os.path.exists(path):
+            os.makedirs(path)
+        file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
+        save_path = path + "/" + file_name
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        try:
+            pio.write_image(fig, save_path, format='png', width=800, height=500)
+            print(f"Figure saved as {save_path}")
+            Logger.info(f"Plot saved as {file_name} inside path {path}")
+        except Exception as e:
+            Logger.error(f"{e} while saving plot as {file_name}")
+    else:
+        fig.show()
+
+def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=None, save_fig=True, grid=True, dtick=0.2):
     """
     Plot lists of lists of numbers using Plotly.
 
@@ -455,12 +527,14 @@ def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=No
                 showgrid=True,  # Show the y-axis grid lines
                 gridwidth=1,  # Width of major grid lines
                 gridcolor='white',  # Color of major grid lines
-                dtick=0.2,  # Spacing of grid lines based on y-axis values
+                dtick=dtick,  # Spacing of grid lines based on y-axis values
             )
         )
 
     if save_fig:
         path = cl.config.charts_path
+        if not os.path.exists(path):
+            os.makedirs(path)
         file_name = title.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
         save_path = path + "/" + file_name
 

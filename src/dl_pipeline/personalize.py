@@ -171,7 +171,7 @@ def run(device, multi_gpu=False):
     ground_truth_array = np.concatenate(ground_truth, axis=0)
 
     # Normalize
-    infer_array = dp.normalize_array(infer_array)
+    infer_array = dp.scale_arr(infer_array)
 
     # Check the shape of the resulting NumPy array
     print("Shape of Infer array:", infer_array.shape)

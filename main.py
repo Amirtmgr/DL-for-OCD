@@ -18,6 +18,8 @@ import src.helper.plotter as plot
 from src.data_processing import cleaner as cln
 from src.data_processing import process as prc
 from collections import Counter
+from src.helper import visual as vis
+from src.helper.data_model import TaskType
 
 def main():
     # Parse the arguments
@@ -51,18 +53,23 @@ def main():
     # Create Logger
     Logger.info("Logger created.")
 
+    # Task Type
+    task_type = TaskType(cl.config.dataset.task_type)
+    cl.config.train.task_type = task_type
+    Logger.info(f"Task type: {task_type}")
     # Perform data cleaning and preprocessing
     #cln.clean_all()
 
     # Prepare datset
-    #prc.prepare_datasets("Subset_proc_50")
-    # X, y  = prc.load_dataset(15, "Subset_proc_50")
+    # prc.prepare_datasets("Subset_proc_1900")
+    # X, y  = prc.load_dataset(15, "Subset_proc_1900")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))
     
     # Prepare sub-datasets
     #prc.prepare_subset()
+    
     
     # Perform DL pipeline
     if cl.config.world_size == 2:
@@ -71,6 +78,10 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
         
     dl.train()
- 
+
+    # Visualize all plots
+    #vis.show()
+
+    
 if __name__ == '__main__':
     main()

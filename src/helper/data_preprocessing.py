@@ -408,7 +408,7 @@ def split_data(data, train_ratio, validation_ratio, random_seed=None):
     return train_data, validation_data, inference_data
 
 # Normalize the array to the desired range
-def normalize_array(arr, bound = None):
+def scale_arr(arr, bound = None):
     # Calculate the mean and standard deviation along the sensor_channels axis
     channel_means = np.mean(arr, axis=2, keepdims=True)
     channel_stddev = np.std(arr, axis=2, keepdims=True)
@@ -427,3 +427,8 @@ def normalize_array(arr, bound = None):
         normalized_arr = normalized_arr * (upper_bound - lower_bound) + lower_bound  # Scale to [lower_bound, upper_bound]
 
     return normalized_arr
+
+
+# 
+def calculate_rms(data):
+    return np.sqrt(np.mean(data**2))

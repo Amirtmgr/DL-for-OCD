@@ -26,7 +26,7 @@ global:
   - &task_type -1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
   - &binary_threshold 0.5
   - &personalization False
-  - &sampling True
+  - &sampling False
   - &checkpoint '2023_10_10-03_39_29/cnn_transformer_cv-1_stratified_fold_2023-10-10_22-19-38.pth'
   
 # Model architecture parameters
@@ -111,7 +111,7 @@ lr_scheduler:
 train:
   device: *device
   num_epochs: *num_epochs
-  batch_size: 32
+  batch_size: 8
   binary_threshold: *binary_threshold
   task_type: *task_type
   random_seed: *random_seed
@@ -134,7 +134,7 @@ dataset:
   personalization: *personalization
   personalized_subject: 15
   random_seed: *random_seed
-  shuffle: True
+  shuffle: False
   batch_shuffle: False
   num_workers: *num_workers
   pin_memory: False
