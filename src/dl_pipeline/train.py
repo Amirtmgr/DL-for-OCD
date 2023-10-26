@@ -36,6 +36,7 @@ from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
 from src.dl_pipeline.architectures.Transformer import CNNTransformer
 from src.dl_pipeline.architectures.TinyHAR import TinyHAR, DimTinyHAR
+from src.dl_pipeline.architectures.TinyHAR_modified import TinyHAR as TinyHAR_modified
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -368,17 +369,19 @@ def load_network(multi_gpu=False):
     elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
     elif network == "tinyhar":
-        sensors = 6 if cl.config.architecture.sensors == "both" else 3
-        batch_size = 1 #cl.config.train.batch_size
-        window_size = cl.config.architecture.window_size
-        num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
-        filter_num = cl.config.architecture.tinyhar_filter_num
-        nb_conv_layers = cl.config.architecture.tinyhar_nb_conv_layers
-        filter_size = cl.config.architecture.tinyhar_filter_size
-        input_shape = (batch_size, filter_num, window_size, sensors)
-        dropout = cl.config.architecture.tinyhar_dropout
-        model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
-        filter_size, dropout=dropout)    
+        # sensors = 6 if cl.config.architecture.sensors == "both" else 3
+        # batch_size = 1 #cl.config.train.batch_size
+        # window_size = cl.config.architecture.window_size
+        # num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
+        # filter_num = cl.config.architecture.tinyhar_filter_num
+        # nb_conv_layers = cl.config.architecture.tinyhar_nb_conv_layers
+        # filter_size = cl.config.architecture.tinyhar_filter_size
+        # input_shape = (batch_size, filter_num, window_size, sensors)
+        # dropout = cl.config.architecture.tinyhar_dropout
+        # model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
+        # filter_size, dropout=dropout)    
+        model = TinyHAR_modified(cl.config_dict['architecture'])
+        
     else:
         raise ValueError(f"Invalid network: {network}")
     

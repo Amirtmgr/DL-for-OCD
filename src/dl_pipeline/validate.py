@@ -610,10 +610,10 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     print("Shape of Infer array:", infer_array.shape)
 
     # Visuals
-    pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
+    #pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
 
     lower = 20
-    upper = 22
+    upper = 30
     pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
 
 

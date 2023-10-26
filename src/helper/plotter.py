@@ -289,7 +289,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     flattened_data = input_data.reshape(-1, num_channels)
     print(f"Flattened data shape: {flattened_data.shape}")
 
-    if predictions:
+    if predictions is not None:
         expanded_predictions = np.repeat(predictions, window_size)
         print(f"Expanded predictions shape: {expanded_predictions.shape}")
         # Create a DataFrame to make it easier to work with the data
