@@ -99,7 +99,6 @@ def run(device, multi_gpu=False):
     filename = cl.config.train.checkpoint
 
     state_checkpoint = t.load_checkpoint(filename)
-    print("State: ", state_checkpoint.best_model.state_dict())
 
     if state_checkpoint is None:
         Logger.info("No checkpoint loaded")
