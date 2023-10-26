@@ -502,7 +502,7 @@ def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=No
 
     # Update layout and axis labels
     fig.update_layout(title=title,
-        font=dict(family='Arial, sans-serif', size=18)
+        font=dict(family='Arial, sans-serif', size=14)
         )
     # Y-axis line color)
 
