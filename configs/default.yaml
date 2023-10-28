@@ -39,8 +39,8 @@ architecture:
 
   # For CNN and Conv Layer of Transformer and TinyHAR
   input_channels: 1
-  hidden_channels: [64, 64, 64, 64]
-  kernel_sizes: [1, 1, 1, 1] 
+  hidden_channels: [64, 64]
+  kernel_sizes: [1, 3] 
   cnn_bias: False
   cnn_batch_norm: True
 
@@ -64,7 +64,7 @@ architecture:
   #tinyhar_filter_num: 1 #same as last hidden layer of conv layer
   #tinyhar_nb_conv_layers: 4 # same as number of hidden channels of conv layer
   #tinyhar_filter_size: 1 # same as kernel size of conv layer
-  tinyhar_dropout: 0.25
+  tinyhar_dropout: 0.5
   tinyhar_activation: "gelu" #'gelu'
   cross_channel_interaction_type: "attn"    # attn  transformer  identity
   cross_channel_aggregation_type: "FC"  # filter  naive  FC
@@ -137,7 +137,7 @@ dataset:
   split: 'subject_wise' # To:do future
   task_type: *task_type
   personalization: *personalization
-  personalized_subject: 15
+  personalized_subject: 3
   random_seed: *random_seed
   shuffle: False
   batch_shuffle: False
@@ -146,6 +146,7 @@ dataset:
   scaler_type: "MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.15 # Sampling ratio
+  filter_subjects: ['3', '30', '5', '18']
 
 # Filter parameters
 filter:

@@ -277,6 +277,8 @@ def get_scaler():
 
 
 def load_shelves(filename, subjects=None):
+    # Filterd subjects
+    remove_subjects = cl.config.dataset.filter_subjects
     # Create path
     path = dm.create_folder("datasets", dm.FolderType.data)
     x_path = os.path.join(path, filename+"_X")
@@ -292,15 +294,14 @@ def load_shelves(filename, subjects=None):
     
     if subjects is None:
         # Convert to dict
-        X = dict(X_db)
-        y = dict(y_db)
-    else:
-        if isinstance(subjects, str):
-            subjects = [subjects]
-
-        for subject in subjects:
-            X[subject] = X_db[subject]
-            y[subject] = y_db[subject]
+        subjects = list(X_db.keys())
+    
+    for subject in subjects:
+        if subject in remove_subjects:
+            print(f"Removing subject: {subject}")
+            continue
+        X[subject] = X_db[subject]
+        y[subject] = y_db[subject]
     # Close the db
     X_db.close()
     y_db.close()
