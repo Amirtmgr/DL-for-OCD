@@ -227,6 +227,7 @@ def make_datasets(filename):
     x_pth = os.path.join(path, filename+"_X")
     y_pth = os.path.join(path, filename+"_y")
     z_pth = os.path.join(path, filename+"_z")
+    sensors = 6
 
     x_shelf = shelve.open(x_pth, 'c')
     y_shelf = shelve.open(y_pth, 'c')
@@ -273,13 +274,13 @@ def make_datasets(filename):
         gc.collect()
         
         # Convert to numpy
-        np_windows_null = np.array(windows_null, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_windows_null = np.array(windows_null, dtype='float32').reshape(-1, cl.config.dataset.window_size * sensors)
         np_labels_null = np.array(labels_null, dtype = 'uint8')
         np_datetimes_null = np.array(datetimes_null, dtype = 'datetime64[ns]')
-        np_windows_rHW = np.array(windows_rHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_windows_rHW = np.array(windows_rHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * sensors)
         np_labels_rHW = np.array(labels_rHW, dtype = 'uint8')
         np_datetimes_rHW = np.array(datetimes_rHW, dtype = 'datetime64[ns]')
-        np_windows_cHW = np.array(windows_cHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_windows_cHW = np.array(windows_cHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * sensors)
         np_labels_cHW = np.array(labels_cHW, dtype = 'uint8')
         np_datetimes_cHW = np.array(datetimes_cHW, dtype = 'datetime64[ns]')
 
@@ -301,7 +302,7 @@ def make_datasets(filename):
         gc.collect()
 
         # Save 
-        x_shelf[str(sub_id)] = sorted_windows
+        x_shelf[str(sub_id)] = sorted_windows.reshape(-1, cl.config.dataset.window_size, sensors)
         y_shelf[str(sub_id)] = sorted_labels
         z_shelf[str(sub_id)] = sorted_datetimes
 
