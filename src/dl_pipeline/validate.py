@@ -614,8 +614,11 @@ def stratified_k_fold_cv(device, multi_gpu=False):
 
     lower = 20
     upper = 30
-    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
+    #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
+    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
 
+    
 
     # Inferece duration
     end_inference = datetime.datetime.now()

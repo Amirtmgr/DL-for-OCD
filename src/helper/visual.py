@@ -19,10 +19,12 @@ def show():
     # All subjects
     subjects = list(X_dict.keys())
     X = np.concatenate([X_dict[sub_id] for sub_id in subjects])
-    
-    scaler = StandardScaler()
-    X_norm = scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
 
+    # Normalize    
+    # scaler = StandardScaler()
+    # X_norm = scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
+    X_norm = X
+    
     #scaler = MinMaxScaler()
     #X_norm = scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
     prev_idx = 0

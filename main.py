@@ -61,8 +61,8 @@ def main():
     #cln.clean_all()
 
     # Prepare datset
-    # prc.prepare_datasets("Subset_proc_1900")
-    # X, y  = prc.load_dataset(15, "Subset_proc_1900")
+    # prc.prepare_datasets("OCDetect_raw_1950")
+    # X, y  = prc.load_dataset(15, "OCDetect_raw_1950")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))

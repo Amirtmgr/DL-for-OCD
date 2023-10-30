@@ -37,6 +37,7 @@ from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
 from src.dl_pipeline.architectures.Transformer import CNNTransformer
 from src.dl_pipeline.architectures.TinyHAR import TinyHAR, DimTinyHAR
 from src.dl_pipeline.architectures.TinyHAR_modified import TinyHAR as TinyHAR_modified
+from src.dl_pipeline.architectures.AttendAndDiscriminate import AttendAndDiscriminate
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
@@ -381,15 +382,32 @@ def load_network(multi_gpu=False):
         # model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
         # filter_size, dropout=dropout)    
         model = TinyHAR_modified(cl.config_dict['architecture'])
-        
+    elif network == "attend_descriminate":
+        sensors = 6 if cl.config.architecture.sensors == "both" else 3
+        num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
+        conv_kernels = cl.config.architecture.atd_conv_kernels
+        conv_kernel_size = cl.config.architecture.atd_conv_kernel_size
+        enc_layers = cl.config.architecture.atd_enc_layers
+        enc_is_bidirectional = cl.config.architecture.atd_enc_is_bidirectional
+        dropout = cl.config.architecture.atd_dropout
+        dropout_rnn = cl.config.architecture.atd_dropout_rnn
+        dropout_cls = cl.config.architecture.atd_dropout_cls
+        activation = cl.config.architecture.atd_activation
+        sa_div = cl.config.architecture.atd_sa_div
+        hidden_dim = cl.config.architecture.atd_hidden_dim
+
+        model = AttendAndDiscriminate(
+            sensors, num_classes, hidden_dim, conv_kernels, conv_kernel_size, enc_layers, enc_is_bidirectional, dropout, dropout_rnn, dropout_cls, activation, sa_div
+            )
     else:
         raise ValueError(f"Invalid network: {network}")
     
     Logger.info(f"Using Model: {model}")
+    Logger.info("Number of learnable parameters: {}".format(sum(p.numel() for p in model.parameters() if p.requires_grad)))
 
     # Initialize weights
     model = model.apply(init_weights)
-
+    
     if multi_gpu:
         #return DDP(model)
         return nn.DataParallel(model, device_ids=gpu_ids)
