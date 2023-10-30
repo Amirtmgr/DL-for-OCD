@@ -12,6 +12,7 @@ import numpy as np
 import gc
 import shelve
 import os
+from collections import Counter
 
 def prepare_datasets(filename):
     # Get all files
@@ -43,16 +44,23 @@ def prepare_datasets(filename):
     y_shelf.close()
 
 
-def load_dataset(sub_id, filename="OCDetect_datasets"):
+def load_dataset(sub_id, filename="OCDetect_datasets", with_date = False):
     X_pth = os.path.join(dm.create_folder("datasets", dm.FolderType.data), filename + "_X")
     y_pth = os.path.join(dm.create_folder("datasets", dm.FolderType.data), filename + "_y")
-    
+    z_pth = os.path.join(dm.create_folder("datasets", dm.FolderType.data), filename + "_z")
+
     X_shelf = shelve.open(X_pth, 'r')
     y_shelf = shelve.open(y_pth, 'r')
-    
+
     X, y  = X_shelf[str(sub_id)], y_shelf[str(sub_id)]
     X_shelf.close()
     y_shelf.close()
+    
+    if with_date:
+        z_shelf = shelve.open(z_pth, 'r')
+        z = z_shelf[str(sub_id)]
+        z_shelf.close()
+        return X, y, z
     return X, y
 
 
@@ -208,3 +216,100 @@ def extract_samples(df, step_size=1900):
     Logger.info(f"New df shape: {new_df.shape}")
 
     return new_df
+
+
+def make_datasets(filename):
+    # Get all files
+    csv_files = dm.get_files_names()
+    grouped_files = ds.group_by_subjects(csv_files)
+    subjects = list(grouped_files.keys())
+    path = dm.create_folder("datasets", dm.FolderType.data)
+    x_pth = os.path.join(path, filename+"_X")
+    y_pth = os.path.join(path, filename+"_y")
+    z_pth = os.path.join(path, filename+"_z")
+
+    x_shelf = shelve.open(x_pth, 'c')
+    y_shelf = shelve.open(y_pth, 'c')
+    z_shelf = shelve.open(z_pth, 'c')
+
+    # Loop through each subjects:
+    for sub_id in subjects:
+        files = grouped_files[sub_id]
+        temp_df = dfm.load_all_files(files).drop(['sub_id'], axis=1, errors='ignore')
+        # get datasets
+        #datasets = create_dataset(temp_df)
+
+        # Remove ignore rows
+        temp_df = dfm.del_ignored_rows(temp_df)
+        temp_df = temp_df.drop(columns=['ignore'])
+
+        # Remove rows with NaN
+        temp_df.dropna(inplace=True)
+
+        # Separate labels
+
+        df_null = temp_df[temp_df["relabeled"] == 0].copy()
+        df_rHW = temp_df[temp_df["relabeled"] == 1].copy()
+        df_cHW = temp_df[temp_df["relabeled"] == 2].copy()
+
+        print("Null labels: \n", {df_null.info()})
+        print("rHW labels: \n", {df_rHW.info()})
+        print("cHW labels: \n", {df_cHW.info()})
+        
+        del temp_df
+        gc.collect()
+
+        print("Windowing data...")
+        
+        windows_null, labels_null, datetimes_null = sw.get_windows(df_null, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+        windows_rHW, labels_rHW, datetimes_rHW = sw.get_windows(df_rHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+        windows_cHW, labels_cHW, datetimes_cHW = sw.get_windows(df_cHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+
+        print("Null labels: \n", {len(windows_null)})
+        print("rHW labels: \n", {len(windows_rHW)})
+        print("cHW labels: \n", {len(windows_cHW)})
+
+        del df_null, df_rHW, df_cHW
+        gc.collect()
+        
+        # Convert to numpy
+        np_windows_null = np.array(windows_null, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_labels_null = np.array(labels_null, dtype = 'uint8')
+        np_datetimes_null = np.array(datetimes_null, dtype = 'datetime64[ns]')
+        np_windows_rHW = np.array(windows_rHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_labels_rHW = np.array(labels_rHW, dtype = 'uint8')
+        np_datetimes_rHW = np.array(datetimes_rHW, dtype = 'datetime64[ns]')
+        np_windows_cHW = np.array(windows_cHW, dtype='float32').reshape(-1, cl.config.dataset.window_size * 6)
+        np_labels_cHW = np.array(labels_cHW, dtype = 'uint8')
+        np_datetimes_cHW = np.array(datetimes_cHW, dtype = 'datetime64[ns]')
+
+        del windows_null, labels_null, datetimes_null, windows_rHW, labels_rHW, datetimes_rHW, windows_cHW, labels_cHW, datetimes_cHW
+        gc.collect()
+
+        # Create single dataset
+        windows = np.concatenate((np_windows_null, np_windows_rHW, np_windows_cHW), axis=0)
+        labels = np.concatenate((np_labels_null, np_labels_rHW, np_labels_cHW), axis=0)
+        datetimes = np.concatenate((np_datetimes_null, np_datetimes_rHW, np_datetimes_cHW), axis=0)
+
+        # Sort by datetime
+        sorted_order = np.argsort(datetimes)
+        sorted_windows = windows[sorted_order]
+        sorted_labels = labels[sorted_order]
+        sorted_datetimes = datetimes[sorted_order]
+
+        del windows, labels, datetimes
+        gc.collect()
+
+        # Save 
+        x_shelf[str(sub_id)] = sorted_windows
+        y_shelf[str(sub_id)] = sorted_labels
+        z_shelf[str(sub_id)] = sorted_datetimes
+
+        print(f"{sub_id}: {len(sorted_windows)}")
+        print(f"Label distribution: {Counter(sorted_labels)}")
+        print(f"Saved {sub_id}")
+
+    # Close the db
+    x_shelf.close()
+    y_shelf.close()
+    z_shelf.close()

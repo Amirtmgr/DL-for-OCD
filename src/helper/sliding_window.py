@@ -148,7 +148,7 @@ def append_window(df, window_size:int):
     
     return append, index
 
-def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, keep_id=False):
+def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, keep_id=False, keep_date=False):
     """
     Returns a list of windows with window_size and overlap_ratio.
     
@@ -166,6 +166,7 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, 
     overlapping = int(window_size * overlapping_ratio)
     windows = []
     labels = []
+    datetimes = []
     start = 0
     end = window_size
     window_id = 0
@@ -190,6 +191,10 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, 
             if keep_id:
                 temp_df['window_id'] = window_id
             
+            if keep_date:
+                # Append start datetime
+                datetimes.append(temp_df['datetime'].iloc[0])
+            
             # Drop unnecessary columns
             temp_df = temp_df.drop(['ignore', 'datetime', 'sub_id'], axis=1, errors='ignore')
             
@@ -205,6 +210,8 @@ def get_windows(df, window_size:int, overlapping_ratio:float, check_time=False, 
             
         end = start + window_size
 
+    if keep_date:
+        return windows, labels, datetimes
     return windows, labels
     
 # Function to process a list of DataFrames and return input and target data

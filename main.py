@@ -67,6 +67,13 @@ def main():
     # print(y.shape)
     # print(Counter(y))
     
+    # Prepare dataset
+    # prc.make_dataset("OCDetect_sep_250")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_250")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
     # Prepare sub-datasets
     #prc.prepare_subset()
     
