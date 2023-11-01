@@ -164,7 +164,10 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
 
         with torch.set_grad_enabled(is_train):
             # Pass data to forward pass of the network.
-            output = network(inputs)  
+            if cl.config.architecture.name == "attend_discriminate":
+                _, output = network(inputs)
+            else:
+                output = network(inputs)  
             
             if is_binary:
                 output = output.squeeze(1)
@@ -382,7 +385,7 @@ def load_network(multi_gpu=False):
         # model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
         # filter_size, dropout=dropout)    
         model = TinyHAR_modified(cl.config_dict['architecture'])
-    elif network == "attend_descriminate":
+    elif network == "attend_discriminate":
         sensors = 6 if cl.config.architecture.sensors == "both" else 3
         num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
         conv_kernels = cl.config.architecture.atd_conv_kernels

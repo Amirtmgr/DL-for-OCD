@@ -590,15 +590,15 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
 
     # Inference
-    inferece_metrics = t.run_epoch(0,"inference", inference_loader,
+    inference_metrics = t.run_epoch(0,"inference", inference_loader,
                                     best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,
                                     device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
 
-    inferece_metrics.info()
+    inference_metrics.info()
 
     # Save inference metrics
-    msg = om.save_object(inferece_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
+    msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
     Logger.info(msg)
     
     infer_data = [X.numpy() for X, y in inference_loader]
@@ -615,8 +615,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     lower = 20
     upper = 30
     #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
-    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
-    pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
+    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
 
     
 

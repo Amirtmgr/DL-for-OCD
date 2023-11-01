@@ -68,8 +68,15 @@ def main():
     # print(Counter(y))
     
     # Prepare dataset
-    # prc.make_dataset("OCDetect_sep_250")
+    # prc.make_datasets("OCDetect_sep_250")
     # X, y  = prc.load_dataset(30, "OCDetect_sep_250")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # cl.config.dataset.window_size = 500
+    # prc.make_datasets("OCDetect_sep_500")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_500")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))

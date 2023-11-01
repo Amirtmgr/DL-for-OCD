@@ -366,7 +366,10 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         fig.add_trace(go.Scatter(x=df['Time'], y=flattened_data[:, i], mode='lines', name=channel_name,
                                  line=dict( width=1), showlegend=True))
 
-    if predictions:
+    title = 'Sensor Data and Ground Truth (Null:0, rHW:1, cHW:2)'
+
+    if predictions is not None:
+        title = "Sensor Data, Predictions, and Ground Truth"
         fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
                              line=dict(color='red', width=2.5, dash='dot')))
     fig.add_trace(go.Scatter(x=df['Time'], y=df['Ground Truth'], mode='lines', name='Ground Truth',
@@ -379,7 +382,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     fig.update_layout(
         xaxis_title='Time (s)',
         yaxis_title='Value',
-        title='Sensor Data, Predictions, and Ground Truth' if predictions else 'Sensor Data and Ground Truth (Null:0, rHW:1, cHW:2)',
+        title=title,
         font=dict(family='Arial, sans-serif', size=24, color='black'),
     )
 

@@ -235,6 +235,8 @@ def make_datasets(filename):
 
     # Loop through each subjects:
     for sub_id in subjects:
+        print(f"Processing subject: {sub_id}")
+
         files = grouped_files[sub_id]
         temp_df = dfm.load_all_files(files).drop(['sub_id'], axis=1, errors='ignore')
         # get datasets
@@ -252,7 +254,11 @@ def make_datasets(filename):
         df_null = temp_df[temp_df["relabeled"] == 0].copy()
         df_rHW = temp_df[temp_df["relabeled"] == 1].copy()
         df_cHW = temp_df[temp_df["relabeled"] == 2].copy()
-
+        
+        df_null.reset_index(drop=True, inplace=True)
+        df_rHW.reset_index(drop=True, inplace=True)
+        df_cHW.reset_index(drop=True, inplace=True)
+        
         print("Null labels: \n", {df_null.info()})
         print("rHW labels: \n", {df_rHW.info()})
         print("cHW labels: \n", {df_cHW.info()})

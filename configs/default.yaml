@@ -15,8 +15,8 @@ world_size: 1 #Number of GPUs
 
 # Global variables
 global:
-  - &window_size 1950
-  - &num_epochs 150
+  - &window_size 250
+  - &num_epochs 1
   - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
@@ -31,7 +31,7 @@ global:
   
 # Model architecture parameters
 architecture:
-  name: 'attend_descriminate' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
+  name: 'attend_discriminate' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
   sensors: *sensors
   window_size: *window_size
   device: *device
@@ -73,10 +73,10 @@ architecture:
 
 
   # For Attend And Discriminate
-  atd_hidden_dim: 128
+  atd_hidden_dim: 256
   atd_conv_kernels: 64
-  atd_conv_kernel_size: 5
-  atd_enc_num_layers: 2
+  atd_conv_kernel_size: 1
+  atd_enc_layers: 6
   atd_enc_is_bidirectional: False
   atd_dropout: 0.5
   atd_dropout_rnn: 0.5
@@ -129,18 +129,18 @@ lr_scheduler:
 train:
   device: *device
   num_epochs: *num_epochs
-  batch_size: 8
+  batch_size: 32
   binary_threshold: *binary_threshold
   task_type: *task_type
   random_seed: *random_seed
   checkpoint: *checkpoint
   cross_validation:
     name: 'stratified' #'stratified' #'kfold' #'losocv'
-    k_folds: 4
+    k_folds: 2
     
 # Dataset parameters
 dataset:
-  name: 'OCDetect_Export' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'OCDetect_raw_250' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size
