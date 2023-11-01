@@ -57,6 +57,7 @@ def main():
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
     Logger.info(f"Task type: {task_type}")
+    
     # Perform data cleaning and preprocessing
     #cln.clean_all()
 
@@ -67,16 +68,19 @@ def main():
     # print(y.shape)
     # print(Counter(y))
     
+    # cl.config.dataset.name = "OCDetect_Export"
+    # cl.config.dataset.window_size = 1900
+    
     # Prepare dataset
-    # prc.make_datasets("OCDetect_sep_250")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_250")
+    # prc.make_datasets("OCDetect_sep_1900")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_1900")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))
 
-    # cl.config.dataset.window_size = 500
-    # prc.make_datasets("OCDetect_sep_500")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_500")
+    # cl.config.dataset.window_size = 1900
+    # prc.prepare_datasets("OCDetect_raw_1900")
+    # X, y  = prc.load_dataset(30, "OCDetect_raw_1900")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))

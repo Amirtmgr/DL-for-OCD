@@ -25,13 +25,13 @@ global:
   - &use_warn_metrics True
   - &task_type -1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
   - &binary_threshold 0.5
-  - &personalization False
+  - &personalization True
   - &sampling False
   - &checkpoint '2023_10_10-03_39_29/cnn_transformer_cv-1_stratified_fold_2023-10-10_22-19-38.pth'
   
 # Model architecture parameters
 architecture:
-  name: 'attend_discriminate' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
+  name: 'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
   sensors: *sensors
   window_size: *window_size
   device: *device
@@ -146,7 +146,9 @@ dataset:
   window_size: *window_size
   num_classes: *num_classes
   labels: ['NUll', 'rHW', 'cHW']
-  train_ratio: 0.85  # Highest 0.9
+  train_ratio: 0.35  # Highest 0.9
+  test_ratio: 0.15
+  inference_ratio: 0.5
   split: 'subject_wise' # To:do future
   task_type: *task_type
   personalization: *personalization

@@ -336,7 +336,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
                 state.best_criterion_weight = criterion.weight
             state.best_train_metrics = train_metrics
             state.best_val_metrics = val_metrics
-            
+            val_metrics.save_cm(info=f"Epoch: {epoch+1}/{epochs}")
             if lr_scheduler is not None:
                 state.best_lr_scheduler = lr_scheduler
             

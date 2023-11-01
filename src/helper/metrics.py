@@ -11,6 +11,7 @@ from tabulate import tabulate
 
 from src.utils.config_loader import config_loader as cl
 
+from src.helper.cf_matrix import make_confusion_matrix
 from src.helper.logger import Logger
 from sklearn.metrics import (
     accuracy_score,
@@ -178,6 +179,24 @@ class Metrics:
         Logger.info(f"Epoch: {self.epoch+1} Confusion Matrix:")
         Logger.info("\n"+tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
 
+
+    def save_cm(self, info=""):
+        categories = cl.config.dataset.labels
+
+        if self.is_binary:
+            labels = ["True Neg","False Pos","False Neg","True Pos"]
+            
+            make_confusion_matrix(self.confusion_matrix, 
+                        group_names=labels,
+                        categories=categories,
+                        title="Binary Confusion Matrix" + info,
+                        save=True)
+        else:
+            make_confusion_matrix(self.confusion_matrix, 
+                        categories=categories,
+                        title="Multiclass Confusion Matrix" + info,
+                        save=True)
+            
 
     # Compute optimal threshold
     def compute_optim_threshold(self, metric='f1', num_thresholds=100):

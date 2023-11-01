@@ -125,6 +125,8 @@ def run(device, multi_gpu=False):
                             is_binary=is_binary,
                             threshold= binary_threshold)[0]
     infer_metrics_0.info()
+    infer_metrics_0.save_cm("Before Personalization")
+
     # Save inference metrics
     msg_0 = om.save_object(infer_metrics_0, cl.config.folder, dm.FolderType.results, "inference_metrics_before.pkl" )
     Logger.info(msg_0)
@@ -153,6 +155,7 @@ def run(device, multi_gpu=False):
                             is_binary=is_binary,
                             threshold= binary_threshold)[0]
     infer_metrics_1.info()
+    infer_metrics_1.save_cm(info=" After Personalization")
 
     # Visuals
     state.plot_losses(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
