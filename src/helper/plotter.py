@@ -403,7 +403,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
             gridcolor='white',  # Color of major grid lines
             dtick=1,  # Spacing of grid lines based on y-axis values
         ),
-        yaxis_range=[-5,5],
+        #yaxis_range=[-1,1],
     )
     
     fig.update_yaxes(tickfont=dict(size=10))

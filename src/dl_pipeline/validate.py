@@ -195,7 +195,8 @@ def subwise_k_fold_cv(device, multi_gpu=False):
 
 
         state.info()
-        state.scalar = scaler
+        state.scaler = scaler
+        state.best_fold = best_fold + 1
 
         # Visuals
         state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
@@ -252,8 +253,8 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     
     Logger.info(f"Inference data shape: {X_inference.shape} | Inference labels shape: {y_inference.shape}")
     # Scale
-    if best_state.scalar:
-        X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    if best_state.scaler:
+        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
     
     inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
 
@@ -526,7 +527,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
 
 
         state.info()
-        state.scalar = scaler
+        state.scaler = scaler
 
         # Visuals
         state.plot_losses(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
@@ -571,8 +572,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     best_state = results[best_fold]
 
     # Scale
-    if best_state.scalar:
-        X_inference = best_state.scalar.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    if best_state.scaler:
+        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
     
     inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
 

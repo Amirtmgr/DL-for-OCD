@@ -55,4 +55,58 @@ def create_folder(name, folder_type:FolderType ):
     return full_path
 
 
+def get_all_files(path):
+    """
+    Get all files recursively from a directory.
 
+    Args:
+        path (str): Path of the directory.
+
+    Returns:
+        list: List of all files.
+    """
+    
+    for root, d, files in os.walk(path):
+        print(f"r: {root}, d: {d}, f: {files}")
+    return root, sorted(files)
+
+
+def get_all_models(path):
+    """
+    Get all best models from a directory.
+
+    Args:
+        path (str): Path of the directory.
+
+    Returns:
+        list: List of all best models.
+    """
+    root, files = get_all_files(path)
+    
+    models = {}
+
+    for file in files:
+        fold = file.split("-")[1].split("_")[0]
+        if fold not in models.keys():
+            models[fold] = []
+        models[fold].append(os.path.join(root, file))
+    
+    return models
+
+def get_best_models(path):
+    """
+    Get all  models from a directory.
+
+    Args:
+        path (str): Path of the directory.
+
+    Returns:
+        list: List of all best models.
+    """
+    models = get_all_models(path)
+    best_models = {}
+
+    for fold, files in models.items():
+        best_models[fold] = sorted(files)[-1]
+    
+    return best_models

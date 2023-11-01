@@ -25,7 +25,8 @@ class State:
         self.best_lr_scheduler = None
         self.train_metrics_arr = None
         self.val_metrics_arr   = None
-        self.scalar = None
+        self.scaler = None
+        self.best_fold = None
 
     def set_file_name(self, file_name):
         self.file_name = file_name

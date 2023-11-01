@@ -87,6 +87,25 @@ def run(device, multi_gpu=False):
     del X_temp, y_temp
     gc.collect()
 
+    # Scale data
+    if cl.config.dataset.scaler_type:
+        samples, window_size, num_features = X_train.shape
+
+        Logger.info(f"DL Personalization ===> Scaling dataframes...")
+        scaler = dp.get_scaler()
+
+        Logger.info(f"DL Personalization ===> Before Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+        
+        X_train = scaler.fit_transform(X_train.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        X_val = scaler.transform(X_val.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        
+        # Fit transform with new scaler
+        X_infer = scaler.transform(X_infer.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        Logger.info(f"DL Personalization ===> After Scaling: | X_train mean: {np.mean(X_train.reshape(-1, num_features), axis=1)} | X_train std: {np.std(X_train.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(X_val.reshape(-1, num_features), axis=1)} | X_val std: {np.std(X_val.reshape(-1, num_features), axis=1)}")
+    else:
+        scaler = None
+
+
     # Create datasets
     train_dataset = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train).float())
     val_dataset = TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val).float())
@@ -125,7 +144,7 @@ def run(device, multi_gpu=False):
                             is_binary=is_binary,
                             threshold= binary_threshold)[0]
     infer_metrics_0.info()
-    infer_metrics_0.save_cm("Before Personalization")
+    infer_metrics_0.save_cm(" [Before Personalization]")
 
     # Save inference metrics
     msg_0 = om.save_object(infer_metrics_0, cl.config.folder, dm.FolderType.results, "inference_metrics_before.pkl" )
@@ -141,7 +160,7 @@ def run(device, multi_gpu=False):
                         is_binary=is_binary,
                         threshold= cl.config.train.binary_threshold)
     state.info()
-    #state.scalar = scaler
+    state.scaler = scaler
 
     # Inference after training
     Logger.info("Inference after training:")
@@ -155,7 +174,7 @@ def run(device, multi_gpu=False):
                             is_binary=is_binary,
                             threshold= binary_threshold)[0]
     infer_metrics_1.info()
-    infer_metrics_1.save_cm(info=" After Personalization")
+    infer_metrics_1.save_cm(info=" [After Personalization]")
 
     # Visuals
     state.plot_losses(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
@@ -182,8 +201,8 @@ def run(device, multi_gpu=False):
     #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_0.y_pred, save=False, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="accx")
     #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_1.y_pred, save=False, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="accx")
 
-    lower = 50
-    upper = 60
+    lower = 55
+    upper = 65
 
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")
