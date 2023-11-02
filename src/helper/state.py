@@ -131,7 +131,7 @@ class State:
         val_f1_scores = self.get_list_of(item='f1_score', phase='val')
         data_lists = [train_f1_scores, val_f1_scores]
         #plot.arrays(data_lists, title, x_label, y_label, legend_labels)
-        pl.plotly_arrays(data_lists, title, x_label, y_label, legend_labels)
+        pl.plotly_arrays(data_lists, title, x_label, y_label, legend_labels, dtick=0.1)
         
 
     def get_mean(self, item='loss', phase='train'):

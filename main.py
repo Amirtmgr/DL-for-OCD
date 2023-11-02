@@ -68,8 +68,8 @@ def main():
     # print(y.shape)
     # print(Counter(y))
     
-    # cl.config.dataset.name = "OCDetect_Export"
-    # cl.config.dataset.window_size = 1900
+    #cl.config.dataset.name = "OCDetect_Export"
+    #cl.config.dataset.window_size = 380
     
     # Prepare dataset
     # prc.make_datasets("OCDetect_sep_1900")
@@ -79,8 +79,8 @@ def main():
     # print(Counter(y))
 
     # cl.config.dataset.window_size = 1900
-    # prc.prepare_datasets("OCDetect_raw_1900")
-    # X, y  = prc.load_dataset(30, "OCDetect_raw_1900")
+    # prc.prepare_datasets("OCDetect_raw_380")
+    # X, y  = prc.load_dataset(30, "OCDetect_raw_380")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))

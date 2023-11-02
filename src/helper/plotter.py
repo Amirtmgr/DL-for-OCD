@@ -366,10 +366,12 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         fig.add_trace(go.Scatter(x=df['Time'], y=flattened_data[:, i], mode='lines', name=channel_name,
                                  line=dict( width=1), showlegend=True))
 
-    title = 'Sensor Data and Ground Truth (Null:0, rHW:1, cHW:2)'
+    xtitle = title
+
+    title = 'Sensor Data and Ground Truth (Null:0, rHW:1, cHW:2) ' + xtitle
 
     if predictions is not None:
-        title = "Sensor Data, Predictions, and Ground Truth"
+        title = "Sensor Data, Predictions, and Ground Truth " + xtitle
         fig.add_trace(go.Scatter(x=df['Time'], y=df['Predictions'], mode='lines', name='Predictions',
                              line=dict(color='red', width=2.5, dash='dot')))
     fig.add_trace(go.Scatter(x=df['Time'], y=df['Ground Truth'], mode='lines', name='Ground Truth',
@@ -531,7 +533,8 @@ def plotly_arrays(data_lists, title="", x_label="", y_label="", legend_labels=No
                 gridwidth=1,  # Width of major grid lines
                 gridcolor='white',  # Color of major grid lines
                 dtick=dtick,  # Spacing of grid lines based on y-axis values
-            )
+            ),
+            yaxis_range=[0,1]
         )
 
     if save_fig:

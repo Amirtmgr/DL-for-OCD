@@ -201,7 +201,7 @@ def load_dataset(dataFrames):
 
 
 # Function to prepare dataloaders
-def load_dataloader(dataset, multi_gpu=False):
+def load_dataloader(dataset, multi_gpu=False, shuffle=None):
     """Method to load train and val dataloaders
     Args:
         dataset (torch.utils.data.Dataset): Dataset
@@ -211,7 +211,8 @@ def load_dataloader(dataset, multi_gpu=False):
 
     # Parse config
     batch_size = cl.config.train.batch_size
-    shuffle = cl.config.dataset.batch_shuffle
+    if shuffle is None:
+        shuffle = cl.config.dataset.batch_shuffle
     num_workers = cl.config.dataset.num_workers
     pin_memory = cl.config.dataset.pin_memory
 

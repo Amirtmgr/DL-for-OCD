@@ -112,7 +112,7 @@ def run(device, multi_gpu=False):
     infer_dataset = TensorDataset(torch.from_numpy(X_infer), torch.from_numpy(y_infer).float())
     train_loader = dp.load_dataloader(train_dataset, multi_gpu)
     val_loader = dp.load_dataloader(val_dataset, multi_gpu)
-    infer_loader = dp.load_dataloader(infer_dataset, multi_gpu)
+    infer_loader = dp.load_dataloader(infer_dataset, multi_gpu, False)
     
     # Load Checkpoint
     filename = cl.config.train.checkpoint
@@ -201,8 +201,8 @@ def run(device, multi_gpu=False):
     #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_0.y_pred, save=False, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="accx")
     #pl.plot_sensor_data(infer_array, ground_truth_array, infer_metrics_1.y_pred, save=False, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="accx")
 
-    lower = 55
-    upper = 65
+    lower = 35
+    upper = 45
 
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
     pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")
