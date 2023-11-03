@@ -89,7 +89,7 @@ def get_all_models(path):
         fold = file.split("-")[1].split("_")[0]
         if fold not in models.keys():
             models[fold] = []
-        models[fold].append(os.path.join(root, file))
+        models[fold].append(os.path.join(root.split('/')[-1], file))
     
     return models
 

@@ -97,7 +97,10 @@ def train():
     cl.print_config_dict()
 
     if cl.config.dataset.personalization:
-        p.run(device, multi_gpu)
+        if cl.config.train.ensemble:
+            p.ensemble(device, multi_gpu)
+        else:
+            p.run(device, multi_gpu)
     else: 
         if cv == "loso"  or cv == "kfold":
             v.subwise_k_fold_cv(device, multi_gpu)

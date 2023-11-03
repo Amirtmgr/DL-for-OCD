@@ -281,6 +281,13 @@ def load_shelves(filename, subjects=None):
     # Filterd subjects
     remove_subjects = cl.config.dataset.filter_subjects
     personalization = cl.config.dataset.personalization
+    
+    if cl.config.dataset.trustworthy_only:
+        print("Using Trustworthy subjects only.")
+        subjects = cl.config.dataset.trustworthy_subjects
+        print("Trustworthy subjects: subjects")
+        Logger.info(f"Using trustworthy subjects only: {subjects}")
+
     # Create path
     path = dm.create_folder("datasets", dm.FolderType.data)
     x_path = os.path.join(path, filename+"_X")
