@@ -21,8 +21,11 @@ from src.helper import data_structures as ds
 from src.helper import plotter as pl
 from src.helper.metrics import Metrics
 
+from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from imblearn.pipeline import Pipeline
+
 
 def run(device, multi_gpu=False):
     print("Device:", device)
@@ -43,6 +46,7 @@ def run(device, multi_gpu=False):
     test_ratio = cl.config.dataset.test_ratio
     inference_ratio = cl.config.dataset.inference_ratio
     remaining_ratio = 1 - (train_ratio + test_ratio + inference_ratio)
+    n_jobs = -1
 
     if inference_ratio + test_ratio + train_ratio > 1:
         raise ValueError("Total ratio is greater than 1. Adjust the ratios in config file.")
@@ -89,6 +93,44 @@ def run(device, multi_gpu=False):
     del X_temp, y_temp
     gc.collect()
 
+   # Sampling
+    if cl.config.dataset.sampling:
+        samples, window_size, num_features = X_train.shape
+        Logger.info(f"===> Before Undersampling {Counter(y_train)}")
+        X_reshape = X_train.reshape(samples, -1)       
+        # counts = Counter(y_train.astype(int))
+        # max_key, max_count = max(counts.items(), key=lambda x:x[1])
+        # min_key, min_count = min(counts.items(), key=lambda x:x[1])
+        
+        # strategy = "majority"
+        # resampling_pipeline = Pipeline([
+        # ('undersampler', NearMiss(version=3,sampling_strategy=0.5,n_jobs=n_jobs)),
+        # ('oversampler', SMOTE(sampling_strategy='auto', random_state=random_seed, n_jobs=n_jobs))
+        # ])
+
+        resampling_pipeline = Pipeline([
+        ('oversampler', SMOTE(sampling_strategy='auto', random_state=random_seed)),
+        ('undersampler', RandomUnderSampler(sampling_strategy='auto', random_state=random_seed))
+        ])
+
+        #resampling_pipeline = SMOTE(sampling_strategy='minority', random_state=random_seed, n_jobs=n_jobs)
+        
+        #resampling_pipeline = NearMiss(version=3,sampling_strategy='majority',n_jobs=n_jobs)
+        
+        #resampling_pipeline = OneSidedSelection(sampling_strategy='majority',n_jobs=n_jobs, random_state=random_seed)
+
+        X_sample, y_sample = resampling_pipeline.fit_resample(X_reshape, y_train)
+
+        # undersample = RandomUnderSampler(sampling_strategy=strategy, random_state=random_seed)
+        # X_sample, y_sample = undersample.fit_resample(X_reshape, y_train)
+        X_train = X_sample.reshape(-1, window_size, num_features)
+        y_train = y_sample
+        Logger.info(f"===> After Undersampling {Counter(y_train)}")
+
+        del X_reshape, X_sample, y_sample
+        gc.collect()
+
+
     # Scale data
     if cl.config.dataset.scaler_type:
         samples, window_size, num_features = X_train.shape
@@ -128,6 +170,8 @@ def run(device, multi_gpu=False):
     # Compute weights
     #class_weights = torch.from_numpy(np.array([1.0433, 0.9601])).float()
     class_weights = dp.compute_weights(y_train)
+    Logger.info(f"Class weights: {class_weights}")
+    print(f"Class weights: {class_weights}")
     class_weights = class_weights.to(device)
     optimizer = t.load_optim(state_checkpoint.best_model, multi_gpu)
     #criterion = t.load_criterion().to(device)
