@@ -68,12 +68,68 @@ def main():
     # print(y.shape)
     # print(Counter(y))
     
-    #cl.config.dataset.name = "OCDetect_Export"
-    #cl.config.dataset.window_size = 380
+    # cl.config.dataset.name = "OCDetect_Export"
+    # cl.config.dataset.window_size = 380
     
-    # Prepare dataset
-    # prc.make_datasets("OCDetect_sep_1900")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_1900")
+    # # Prepare dataset
+    # prc.make_datasets("OCDetect_sep_380")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_380")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # print("--------------------------------------------------")
+
+    # cl.config.dataset.window_size = 285
+    # prc.make_datasets("OCDetect_sep_285")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_285")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # print("--------------------------------------------------")
+
+    # cl.config.dataset.window_size = 190
+    # prc.make_datasets("OCDetect_sep_190")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_190")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+    
+    # print("--------------------------------------------------")
+
+    # cl.config.dataset.window_size = 95
+    # prc.make_datasets("OCDetect_sep_95")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_95")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # print("--------------------------------------------------")
+    # cl.config.dataset.window_size = 475
+    # prc.make_datasets("OCDetect_sep_475")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_475")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # cl.config.dataset.window_size = 950
+    # prc.make_datasets("OCDetect_sep_950")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_950")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # cl.config.dataset.window_size = 1425
+    # prc.make_datasets("OCDetect_sep_1425")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_1425")
+    # print(X.shape)
+    # print(y.shape)
+    # print(Counter(y))
+
+    # cl.config.dataset.window_size = 1140
+    # prc.make_datasets("OCDetect_sep_1140")
+    # X, y  = prc.load_dataset(30, "OCDetect_sep_1140")
     # print(X.shape)
     # print(y.shape)
     # print(Counter(y))

@@ -268,17 +268,19 @@ def make_datasets(filename):
 
         print("Windowing data...")
         
-        windows_null, labels_null, datetimes_null = sw.get_windows(df_null, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
-        #windows_rHW, labels_rHW, datetimes_rHW = sw.get_windows(df_rHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
-        #windows_cHW, labels_cHW, datetimes_cHW = sw.get_windows(df_cHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+        windows_rHW, labels_rHW, datetimes_rHW = sw.get_windows(df_rHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+        windows_cHW, labels_cHW, datetimes_cHW = sw.get_windows(df_cHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
 
         # Evenly windwing rHW and cHW
-        windows_rHW, labels_rHW, datetimes_rHW = window_events(df_rHW)
-        windows_cHW, labels_cHW, datetimes_cHW = window_events(df_cHW)
+        # windows_rHW, labels_rHW, datetimes_rHW = window_events(df_rHW)
+        # windows_cHW, labels_cHW, datetimes_cHW = window_events(df_cHW)
 
-        print("Null labels: \n", {len(windows_null)})
         print("rHW labels: \n", {len(windows_rHW)})
         print("cHW labels: \n", {len(windows_cHW)})
+
+        windows_null, labels_null, datetimes_null = sw.get_windows(df_null, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
+        print("Null labels: \n", {len(windows_null)})
+
 
         del df_null, df_rHW, df_cHW
         gc.collect()
@@ -327,34 +329,36 @@ def make_datasets(filename):
 
 
 # Window events with event length of 1901
-    def window_events(df, event_length=1901):
+def window_events(df, event_length=1901):
 
-        all_windows = []
-        all_labels = []
-        all_datetimes = []
+    all_windows = []
+    all_labels = []
+    all_datetimes = []
 
-        start = 0
-        end = event_length
+    start = 0
+    end = event_length
 
-        while end <= len(df):
-            # Get event instances removing last row to window evenly
-            temp_df = df.iloc[start:end, :].copy()
-            temp_df.reset_index(drop=True, inplace=True)
-            windows, labels, datetimes = sw.get_windows(temp_df, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=False, keep_date=True)
-            all_windows.append(windows)
-            all_labels.append(labels)
-            all_datetimes.append(datetimes)
-            start += event_length
-            end += event_length
-        
-        # Flatten
+    df.reset_index(drop=True, inplace=True)
+
+    while end <= len(df):
+        # Get event instances removing last row to window evenly
+        temp_df = df.iloc[start:end-1, :].copy()
+        temp_df.reset_index(drop=True, inplace=True)
+        windows, labels, datetimes = sw.get_windows(temp_df, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=False, keep_date=True)
+        all_windows.append(windows)
+        all_labels.append(labels)
+        all_datetimes.append(datetimes)
+        start += event_length
+        end += event_length
+    
+    # Flatten
     np_windows = np.concatenate(all_windows, axis=0)
     np_labels = np.concatenate(all_labels, axis=0)
     np_datetimes = np.concatenate(all_datetimes, axis=0)
 
     del all_windows, all_labels, all_datetimes
     gc.collect()
-    
+
     print(f"Windowed: {len(np_windows)}")
     print(f"Label distribution: {Counter(np_labels)}")
 
