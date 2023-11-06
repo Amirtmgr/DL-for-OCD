@@ -42,7 +42,7 @@ from src.dl_pipeline.architectures.AttendAndDiscriminate import AttendAndDiscrim
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
     #todo: check
-    filename = cl.config.architecture.name + optional_name + "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.pth'
+    filename = cl.config.architecture.name + optional_name + "_Epoch-" + str(state.best_epoch) + "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.pth'
     
     model_path = cl.config.models_path + "/" + filename
 
@@ -326,22 +326,24 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             Logger.info(f"Saving best model with Train Loss: {train_metrics.loss:.2f} | Val Loss: {val_metrics.loss} | F1 score: {val_metrics.f1_score:.2f} | Epoch: {epoch+1}/{epochs}")
             
             best_val_loss = val_metrics.loss
-    
-            state.best_epoch = epoch + 1
-            state.best_model = network
-            state.best_optimizer = optimizer
-            if is_binary:
-                state.best_criterion_weight = criterion.pos_weight
-            else:
-                state.best_criterion_weight = criterion.weight
-            state.best_train_metrics = train_metrics
-            state.best_val_metrics = val_metrics
             val_metrics.save_cm(info=f" {optional_name} | Epoch: {epoch+1}")
-            if lr_scheduler is not None:
-                state.best_lr_scheduler = lr_scheduler
-            
-            # Save state
-            save_state(state, optional_name)
+
+        # Save all checkpoints for now : TO DO: Save only best model
+        state.best_epoch = epoch + 1
+        state.best_model = network
+        state.best_optimizer = optimizer
+        if is_binary:
+            state.best_criterion_weight = criterion.pos_weight
+        else:
+            state.best_criterion_weight = criterion.weight
+        state.best_train_metrics = train_metrics
+        state.best_val_metrics = val_metrics
+        
+        if lr_scheduler is not None:
+            state.best_lr_scheduler = lr_scheduler
+        
+        # Save state
+        save_state(state, optional_name)
 
     state.train_metrics_arr = train_metrics_arr
     state.val_metrics_arr = val_metrics_arr

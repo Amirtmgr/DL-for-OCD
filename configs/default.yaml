@@ -16,7 +16,7 @@ world_size: 1 #Number of GPUs
 # Global variables
 global:
   - &window_size 250
-  - &num_epochs 5
+  - &num_epochs 2
   - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
@@ -139,7 +139,7 @@ train:
   checkpoint: *checkpoint
   cross_validation:
     name: 'stratified' #'stratified' #'kfold' #'losocv'
-    k_folds: 3
+    k_folds: 2
   ensemble: *ensemble
   
 # Dataset parameters
