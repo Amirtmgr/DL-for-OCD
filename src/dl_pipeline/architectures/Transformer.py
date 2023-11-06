@@ -60,6 +60,7 @@ class CNNTransformer(nn.Module):
         self.num_decoders = config.get('num_decoder_layers', 2)
         self.encode_position = config.get('encode_position', True)
         self.transformer_dim = self.hidden_channels[-1]
+        self.transformer_bias = config.get('transformer_bias', False)
 
         # Encoder Layer
         transformer_encoder_layer = TransformerEncoderLayer(
@@ -67,7 +68,8 @@ class CNNTransformer(nn.Module):
             nhead = self.nhead,
             dim_feedforward = self.dim_feedforward,
             dropout = self.transformer_dropout,
-            activation = self.transformer_act_fn
+            activation = self.transformer_act_fn,
+            bias=self.transformer_bias
         )
 
         # Transformer encoders
@@ -88,7 +90,8 @@ class CNNTransformer(nn.Module):
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
         self.output_neurons = self.num_classes if self.task_type >= 2 else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
-        
+        self.fc_bias = config.get('fc_bias', False)
+
         # Dropout
         self.drop_probability = config.get('dropout', 0.25)
         self.dropout = nn.Dropout(self.drop_probability)
@@ -96,12 +99,12 @@ class CNNTransformer(nn.Module):
         # Layers
         self.fc_layers = nn.ModuleList()
         self.fc_layers.append(nn.LayerNorm(self.transformer_dim))
-        self.fc_layers.append(nn.Linear(self.transformer_dim, self.fc_hidden_size))
+        self.fc_layers.append(nn.Linear(self.transformer_dim, self.fc_hidden_size, bias=self.fc_bias))
         if self.fc_batch_norm:
             self.fc_layers.append(nn.BatchNorm1d(self.fc_hidden_size))
         self.fc_layers.append(self.activation)
         self.fc_layers.append(self.dropout)
-        self.fc_layers.append(nn.Linear(self.fc_hidden_size, self.output_neurons))
+        self.fc_layers.append(nn.Linear(self.fc_hidden_size, self.output_neurons, bias=self.fc_bias))
 
 
         # Init

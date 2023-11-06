@@ -108,12 +108,12 @@ def run(device, multi_gpu=False):
         # ('oversampler', SMOTE(sampling_strategy='auto', random_state=random_seed, n_jobs=n_jobs))
         # ])
 
-        resampling_pipeline = Pipeline([
-        ('oversampler', SMOTE(sampling_strategy='auto', random_state=random_seed)),
-        ('undersampler', RandomUnderSampler(sampling_strategy='auto', random_state=random_seed))
-        ])
+        # resampling_pipeline = Pipeline([
+        # ('oversampler', SMOTE(sampling_strategy='auto', random_state=random_seed)),
+        # ('undersampler', RandomUnderSampler(sampling_strategy='auto', random_state=random_seed))
+        # ])
 
-        #resampling_pipeline = SMOTE(sampling_strategy='minority', random_state=random_seed, n_jobs=n_jobs)
+        resampling_pipeline = SMOTE(sampling_strategy='minority', random_state=random_seed, n_jobs=n_jobs)
         
         #resampling_pipeline = NearMiss(version=3,sampling_strategy='majority',n_jobs=n_jobs)
         
@@ -198,6 +198,25 @@ def run(device, multi_gpu=False):
 
     del X_train, X_val, X_infer, y_train, y_val, y_infer, X_personalized, y_personalized, train_dataset, val_dataset, infer_dataset
     gc.collect()
+
+    # Set the flag to freeze all layers except fc_layers
+    freeze_layers = True
+
+    # Modules to keep trainable
+    trainable_module_names = ["fc_layers", "transformer_encoder", "cls_token", "positional_embedding"]
+
+    # Loop through the model's parameters and set requires_grad based on module names
+    for name, param in state_checkpoint.best_model.named_parameters():
+        module_name = name.split(".")[0]
+        if module_name in trainable_module_names:
+            param.requires_grad = True
+        else:
+            param.requires_grad = not freeze_layers
+
+    # Verify which layers are frozen and which are not
+    for name, param in state_checkpoint.best_model.named_parameters():
+        print(f"Parameter: {name}, Requires Grad: {param.requires_grad}")
+        Logger.info(f"Parameter: {name}, Requires Grad: {param.requires_grad}")
 
     # Train Model
     state = t.train_model(state_checkpoint.best_model, criterion, 
