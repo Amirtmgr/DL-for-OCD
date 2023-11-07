@@ -198,7 +198,13 @@ def load_dataset(dataFrames):
     
     return dataset
     
-
+def seed_worker(worker_id):
+    worker_seed = cl.config.dataset.random_seed
+    np.random.seed(worker_seed)
+    torch.manual_seed(worker_seed)
+    torch.cuda.manual_seed_all(worker_seed)
+    torch.cuda.manual_seed(worker_seed)
+    random.seed(worker_seed)
 
 # Function to prepare dataloaders
 def load_dataloader(dataset, multi_gpu=False, shuffle=None):
@@ -219,7 +225,7 @@ def load_dataloader(dataset, multi_gpu=False, shuffle=None):
     gen = torch.Generator()
     gen.manual_seed(cl.config.dataset.random_seed)
 
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,generator=gen, num_workers=num_workers, pin_memory=pin_memory)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle,generator=gen, num_workers=num_workers, worker_init_fn=seed_worker, persistent_workers=True, pin_memory=pin_memory)
     
     # if multi_gpu:
     #     return DataLoader(dataset, batch_size=batch_size, shuffle=False,
@@ -312,8 +318,8 @@ def load_shelves(filename, subjects=None):
         if subject in remove_subjects and not personalization:
             print(f"Removing subject: {subject}")
             continue
-        X[subject] = X_db[subject]
-        y[subject] = y_db[subject]
+        X[subject] = X_db[subject][:1000] if cl.config.debug else X_db[subject]
+        y[subject] = y_db[subject][:1000] if cl.config.debug else y_db[subject]
     # Close the db
     X_db.close()
     y_db.close()

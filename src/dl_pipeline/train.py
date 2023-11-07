@@ -41,74 +41,55 @@ from src.dl_pipeline.architectures.AttendAndDiscriminate import AttendAndDiscrim
 
 # Function to save state of the model
 def save_state(state:State, optional_name:str = ""):
-    #todo: check
-    filename = cl.config.architecture.name + optional_name + "_Epoch-" + str(state.best_epoch) + "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.pth'
+    #Todo: check
+    filename = cl.config.architecture.name + optional_name + "_Epoch-" + str(state.best_epoch)
     
     model_path = cl.config.models_path + "/" + filename
 
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
     
-    # state_dict = {
-    #     'path':model_path,
-    #     'filename':filename,
-    #     'epoch': state.best_epoch, 
-    #     'state_dict': state.best_model.state_dict(),
-    #     'optimizer': state.best_optimizer.state_dict(),
-    #     'train_metrics': state.best_train_metrics, 
-    #     'val_metrics': state.best_val_metrics,
-    #     'criterion': state.best_criterion_weight
-    #     }
+    # Dict version
+    state_dict = {
+        'path':model_path,
+        'filename':filename,
+        'epoch': state.best_epoch, 
+        'state_dict': state.best_model.state_dict(),
+        'optimizer': state.best_optimizer.state_dict(),
+        'train_metrics': state.best_train_metrics, 
+        'val_metrics': state.best_val_metrics,
+        'criterion': state.best_criterion_weight
+        }
 
-    # if state.best_lr_scheduler:
-    #     state_dict['lr_scheduler'] = state.best_lr_scheduler.state_dict()
+    if state.best_lr_scheduler:
+        state_dict['lr_scheduler'] = state.best_lr_scheduler.state_dict()
             
-    #Save model    
+    #Save state object and dictionary    
     try:
-        torch.save(state, model_path)
+        torch.save(state, model_path+".pth")
+        torch.save(state_dict, model_path+".pt")
+
     except Exception as e:  
         print(f"An error occurred: {str(e)}")
-        return
-    
+        raise Exception("Model not saved.")
+
     print(f"Model saved at {model_path}")
     
 # Function to load state of the model
 # todo: check
 def load_checkpoint(filename):
-    full_path = os.path.join(cl.config.models_folder,filename)
-    state = State()
-
-    if os.path.isfile(full_path):
+    name = filename.split(".")[0]
+    # State Object path
+    full_path = os.path.join(cl.config.models_folder,name+".pth")
+    # Dict path
+    dict_path = os.path.join(cl.config.models_folder,name+".pt")
+    
+    if os.path.isfile(full_path) and os.path.isfile(dict_path):
         print("Loading checkpoint '{}'".format(filename))
         checkpoint = torch.load(full_path)
-        
-        return checkpoint
-        # Set state object
-    #     state.set_file_name(filename)
-    #     state.set_path(full_path)
-    #     state.best_epoch = checkpoint['epoch']
-    #     state.best_model = model.load_state_dict(checkpoint['state_dict'])
-    #     state.best_train_metrics = checkpoint['train_metrics']
-    #     state.best_val_metrics = checkpoint['val_metrics']
-    #     state.best_criterion_weight = checkpoint['criterion']
+        dict_checkpoint = torch.load(dict_path)
 
-    #     if optimizer != None:
-    #         state.best_optimizer= optimizer.load_state_dict(checkpoint['optimizer'])
-        
-    #     if lr_scheduler != None:
-    #         try:
-    #             state.best_lr_scheduler = lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-    #         except Exception as e:
-    #             print(f"An error occurred: {str(e)}")
-    #             print("No lr_scheduler found in checkpoint")
-    #             state.best_lr_scheduler = None
-
-    #     print("Loaded checkpoint '{}' (Epoch {})"
-    #               .format(filename, checkpoint['epoch']))
-    # else:
-    #     print("No checkpoint found at '{}'".format(filename))
-        
-    return state
+    return checkpoint, dict_checkpoint 
 
 
 # Function to run one epoch of training and validataion
@@ -394,18 +375,7 @@ def load_network(multi_gpu=False):
         model = DeepConvLSTM(cl.config_dict['architecture'])
     elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
-    elif network == "tinyhar":
-        # sensors = 6 if cl.config.architecture.sensors == "both" else 3
-        # batch_size = 1 #cl.config.train.batch_size
-        # window_size = cl.config.architecture.window_size
-        # num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
-        # filter_num = cl.config.architecture.tinyhar_filter_num
-        # nb_conv_layers = cl.config.architecture.tinyhar_nb_conv_layers
-        # filter_size = cl.config.architecture.tinyhar_filter_size
-        # input_shape = (batch_size, filter_num, window_size, sensors)
-        # dropout = cl.config.architecture.tinyhar_dropout
-        # model = TinyHAR(input_shape, num_classes, 1, nb_conv_layers,
-        # filter_size, dropout=dropout)    
+    elif network == "tinyhar": 
         model = TinyHAR_modified(cl.config_dict['architecture'])
     elif network == "attend_discriminate":
         sensors = 6 if cl.config.architecture.sensors == "both" else 3

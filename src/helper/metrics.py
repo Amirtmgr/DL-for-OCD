@@ -44,6 +44,7 @@ class Metrics:
         self.classification_report = None
         self.outputs = None
         self.best_threshold = 0.5
+        self.ap_score = 0.0
 
         try:
             
@@ -79,7 +80,7 @@ class Metrics:
 
                 # Precision
                 self.precision_score = precision_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
-
+                
                 # Confusion Matrix
                 self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
@@ -93,6 +94,7 @@ class Metrics:
                 print(f"F1 Score: {self.f1_score:.2f}")
                 print(f"Recall: {self.recall_score:.2f}")
                 print(f"Precision: {self.precision_score:.2f}")
+                print(f"Average Precision: {self.ap_score:.2f}")
                 print(f"Jaccard Score: {self.jaccard_score:.2f}")
                 
                 self.print_cm()

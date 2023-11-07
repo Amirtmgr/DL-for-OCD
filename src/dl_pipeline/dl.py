@@ -30,6 +30,15 @@ from src.helper import data_preprocessing as dp
 from src.dl_pipeline import validate as v
 from src.dl_pipeline import personalize as p
 
+# Function to setup random seed
+def setup_random_seed():
+    seed = cl.config.train.random_seed
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+# Function to setup CUDA
 def setup_cuda():
     # Check CUDA
     if not torch.cuda.is_available():
@@ -56,6 +65,9 @@ def train():
     device = setup_cuda()
     print("Device:", device)
 
+    # Setup random seed
+    setup_random_seed()
+
     # Check if Multi-GPUs
     #multi_gpu = t.ddp_setup()
     
@@ -66,9 +78,11 @@ def train():
     Logger.info(f"Using {torch.cuda.device_count()} GPUs!")
 
     cv = cl.config.train.cross_validation.name
-    num_classes = cl.config.dataset.num_classes
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
+    num_classes = 2 if task_type.value < 2 else 3
+    cl.config.dataset.num_classes = num_classes
+    cl.config.architecture.num_classes = num_classes
 
     if task_type == TaskType.rHW_cHW_binary:
         msg = "==============Binary classification============="

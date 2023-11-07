@@ -22,8 +22,359 @@ from src.helper import plotter as pl
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
+def get_mean_scores(states:[State], phase:str):
+    """Method to get mean scores from list of states.
+
+    Args:
+        states ([State]): List of states.
+
+    Returns:
+        [type]: [description]
+    """
+    f1_scores = []
+    recall_scores = []
+    precision_scores = []
+    specificity_scores = []
+    jaccard_scores = []
+    accuracy_scores = []
+
+    if phase == "train":
+
+        for state in states:
+            f1_scores.append(state.best_train_metrics.f1_score)
+            recall_scores.append(state.best_train_metrics.recall_score)
+            precision_scores.append(state.best_train_metrics.precision_score)
+            specificity_scores.append(state.best_train_metrics.specificity_score)
+            jaccard_scores.append(state.best_train_metrics.jaccard_score)
+            accuracy_scores.append(state.best_train_metrics.accuracy)
+    else:
+        for state in states:
+            f1_scores.append(state.best_val_metrics.f1_score)
+            recall_scores.append(state.best_val_metrics.recall_score)
+            precision_scores.append(state.best_val_metrics.precision_score)
+            specificity_scores.append(state.best_val_metrics.specificity_score)
+            jaccard_scores.append(state.best_val_metrics.jaccard_score)
+            accuracy_scores.append(state.best_val_metrics.accuracy)
+    
+    mean_scores = { "f1_score": np.mean(f1_scores),
+                    "recall_score": np.mean(recall_scores), 
+                    "precision_score": np.mean(precision_scores),
+                    "specificity_score": np.mean(specificity_scores),
+                    "jaccard_score": np.mean(jaccard_scores),
+                    "accuracy": np.mean(accuracy_scores)
+                    }
+
+    return mean_scores
 
 
+def stratified_k_fold_cv(device, multi_gpu=False):
+    print("======"*5)
+    # start
+    start = datetime.datetime.now()
+    Logger.info(f"Stratified Cross-Validation Start time: {start}")
+    print(f"Stratified Cross-Validation Start time: {start}")
+
+    # Empty dict to store results
+    results = {}
+    best_val_loss = np.inf
+    best_f1_score = 0.0
+    best_fold = None
+    #is_binary = cl.config.dataset.num_classes < 3
+    is_binary = cl.config.train.task_type.value < 2
+
+    shelf_name = cl.config.dataset.name
+    random_seed = cl.config.dataset.random_seed
+    n_splits = cl.config.train.cross_validation.k_folds
+    shuffle = cl.config.dataset.shuffle
+    new_seed = random_seed if shuffle else None
+    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
+    train_ratio = cl.config.dataset.train_ratio
+
+    # Load python dataset
+    X_dict, y_dict = dp.load_shelves(shelf_name)
+
+    # All subjects
+    subjects = list(X_dict.keys())
+    
+    # Remove personalized subject
+    personalized_subject = str(cl.config.dataset.personalized_subject)
+    
+    if personalized_subject in subjects:
+        Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
+        print("Removing personalized subject:")
+        subjects.remove(personalized_subject)
+    print("Subjects applied:", subjects)
+
+    X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
+    y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
+    X_personalize = X_dict[personalized_subject]
+    y_personalize = y_dict[personalized_subject]
+
+    if cl.config.dataset.sensor == "acc":
+       X_all = X_all[:, :, :3]
+       Logger.info("Using accelerometer data only.")
+    elif cl.config.dataset.sensor == "gyro":
+       X_all = X_all[:, :, 3:]
+       Logger.info("Using gyroscope data only.")
+    
+    Logger.info(f"Total data shape: {X_all.shape} | Total labels shape: {y_all.shape}")
+
+    # Reshape
+    num, window_size, num_features = X_all.shape
+    X_all = X_all.reshape(num, -1)
+
+    # Split data
+    if shuffle:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
+    else:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio)
+
+    X_inference = X_inference.reshape(-1, window_size, num_features)
+
+    Logger.info(f"Total Train size: {len(X_train)} | Counts: {Counter(y_train)}")
+    Logger.info(f"Inference size: {len(X_inference)} | Counts: {Counter(y_inference)}")
+
+    del X_dict, y_dict
+    gc.collect()
+
+    # Loop through splits
+    for i, (train_index, val_index) in enumerate(stratified_kf.split(X_train, y_train)):
+        # Split data
+        train_data = X_train[train_index].reshape(-1, window_size, num_features)
+        train_labels = y_train[train_index]
+        val_data = X_train[val_index].reshape(-1, window_size, num_features)
+        val_labels = y_train[val_index]
+
+        # start of k-fold
+        k_start = datetime.datetime.now()
+        Logger.info(f"-------------------")
+        Logger.info(f"\nStarting Stratified_k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
+        
+        # Info
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
+
+
+        # Sampling
+        if cl.config.dataset.sampling:
+            samples, window_size, num_features = train_data.shape
+            Logger.info(f"Stratified_k-Fold:{i+1} ===> Before Undersampling {Counter(train_labels)}")
+            X_reshape = train_data.reshape(samples, -1)       
+            #null_samples = int(np.sqrt(samples))
+            #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
+            k = 7
+            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
+            counts = Counter(train_labels.astype(int))
+            max_count = max(counts.values())
+            print(f"Before sampling: {Counter(train_labels.astype(int))}")
+            under_sampling_strategy = {
+                0: int(max_count*cl.config.dataset.alpha)
+            }
+            print("Sampling strategy:", under_sampling_strategy)
+
+            undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
+            X_sample, y_sample = undersample.fit_resample(X_reshape, train_labels)
+            train_data = X_sample.reshape(-1, window_size, num_features)
+            train_labels = y_sample
+            Logger.info(f"Stratified_k-Fold:{i+1} ===> After Undersampling {Counter(train_labels)}")
+            
+            del X_reshape, X_sample, y_sample, undersample
+            gc.collect()
+
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> X_train shape: {train_data.shape} | y_train shape: {train_labels.shape}")
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> X_val shape: {val_data.shape} | y_val shape: {val_labels.shape}")
+
+        # Scale dataframes
+        if cl.config.dataset.scaler_type:
+            samples, window_size, num_features = train_data.shape
+
+            Logger.info(f"Stratified_k-Fold:{i+1} ===> Scaling dataframes...")
+            scaler = dp.get_scaler()
+
+            Logger.info(f"Stratified_k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(train_data.reshape(-1, num_features), axis=1)} | X_train std: {np.std(train_data.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(val_data.reshape(-1, num_features), axis=1)} | X_val std: {np.std(val_data.reshape(-1, num_features), axis=1)}")
+            
+            train_data = scaler.fit_transform(train_data.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+            val_data = scaler.transform(val_data.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+            
+            Logger.info(f"Stratified_k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(train_data.reshape(-1, num_features), axis=1)} | X_train std: {np.std(train_data.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(val_data.reshape(-1, num_features), axis=1)} | X_val std: {np.std(val_data.reshape(-1, num_features), axis=1)}")
+        else:
+            scaler = None
+
+        # Create datasets
+        train_dataset = TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels).float())
+        val_dataset = TensorDataset(torch.from_numpy(val_data), torch.from_numpy(val_labels).float())
+    
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train dataset size: {len(train_dataset)} | Val dataset size: {len(val_dataset)} | Sample shape: {train_dataset[0][0].shape}")
+
+        
+        
+        # Create data loaders
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Creating dataloaders...")
+        train_loader = dp.load_dataloader(train_dataset, multi_gpu)
+        val_loader = dp.load_dataloader(val_dataset, multi_gpu)
+        
+
+        # Compute weights
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Computing class weights...")   
+        class_weights = dp.compute_weights(train_labels)
+        class_weights = class_weights.to(device)
+
+        # Del 
+        del train_data, val_data, train_labels, val_labels
+        gc.collect()
+
+        # Train model
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Loading model...")
+        # Load Traning parameters
+        model = t.load_network(multi_gpu)
+        model = model.to(device)
+        print("Model loadded on device: ", device)
+        print("Multiple GPUs: ", multi_gpu)
+
+        optimizer = t.load_optim(model, multi_gpu)
+        criterion = t.load_criterion(class_weights)
+        lr_scheduler = t.load_lr_scheduler(optimizer)
+
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Training model...")
+
+        # Train Model
+        state = t.train_model(model, criterion, 
+                            optimizer, lr_scheduler,
+                            train_loader, val_loader, device, optional_name=f"_cv-{i+1}_stratified_fold",
+                            is_binary=is_binary,
+                            threshold= cl.config.train.binary_threshold)
+
+        if state.best_val_metrics.f1_score > best_f1_score:
+            best_f1_score = state.best_val_metrics.f1_score
+            best_fold = i
+            Logger.info(f"Check F1 Score: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {state.best_val_metrics.loss} | F1-score:{best_f1_score} | Best Epoch: {state.best_epoch}")
+
+
+        if state.best_val_metrics.loss < best_val_loss:
+            best_val_loss = state.best_val_metrics.loss
+            # best_fold = i
+            Logger.info(f"Check Val Loss: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
+
+
+        state.info()
+        state.scaler = scaler
+
+        # Visuals
+        state.plot_losses(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_f1_scores(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+
+        # Save state to dict
+        results[i] = state
+
+        # End of k-fold
+        k_end = datetime.datetime.now()
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
+        print(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
+
+    #Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with Val F1-score: {best_f1_score}")
+
+    # Save metrics
+    Logger.info("Saving metrics...")
+    msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
+    Logger.info(msg)
+
+    # Info
+    Logger.info("Average Scores:")
+    
+    # TO DO: Add option to use warn metrics
+    #use_warn_score = cl.config.metrics.use_warn_metrics
+
+    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train' )}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
+
+    # End LOSOCV
+    end_train = datetime.datetime.now()
+    Logger.info(f"Stratified Cross-Validation End time: {end_train}")
+    Logger.info(f"Stratified Cross-Validation Duration: {end_train - start}")
+
+    ###############################################
+    ################ Inference ####################
+    ###############################################
+    Logger.info("Inference started...")
+    print("======"*10)
+    print("Inference started...")
+
+    best_state = results[best_fold]
+
+    # Scale
+    if best_state.scaler:
+        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        X_personalize = best_state.scaler.transform(X_personalize.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    
+    inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
+    personalize_dataset = TensorDataset(torch.from_numpy(X_personalize).float(), torch.from_numpy(y_personalize).float())
+
+    Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
+    Logger.info(f"Personalize dataset size: {len(personalize_dataset)} | Sample shape: {personalize_dataset[0][0].shape}")
+
+    del X_inference, y_inference, X_personalize, y_personalize
+    gc.collect()
+
+    Logger.info("Creating Inference Dataloader...")
+    
+    # Inference dataloader
+    inference_loader = dp.load_dataloader(inference_dataset)
+    personalize_loader = dp.load_dataloader(personalize_dataset)
+
+    # Load best criterion
+    loss_fn = t.load_criterion(best_state.best_criterion_weight)
+
+    # Inference
+    inference_metrics = t.run_epoch(0,"inference", inference_loader,
+                                    best_state.best_model,loss_fn,
+                                    best_state.best_optimizer, best_state.best_lr_scheduler,
+                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
+
+    inference_metrics.info()
+
+    # Save inference metrics
+    msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
+    Logger.info(msg)
+    
+
+    inference_metrics_personalize = t.run_epoch(0,"inference", personalize_loader, best_state.best_model,loss_fn,
+                                    best_state.best_optimizer, best_state.best_lr_scheduler,    
+                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
+    inference_metrics_personalize.info()
+    
+    # Save inference metrics
+    msg = om.save_object(inference_metrics_personalize, cl.config.folder, dm.FolderType.results, "inference_metrics_personalize.pkl" )
+    Logger.info(msg)
+
+    
+    infer_data = [X.numpy() for X, y in inference_loader]
+
+    # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
+    infer_array = np.concatenate(infer_data, axis=0)
+
+    # Check the shape of the resulting NumPy array
+    print("Shape of Infer array:", infer_array.shape)
+
+    # Visuals
+    #pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
+
+    lower = 20
+    upper = 30
+    #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
+    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
+
+    # Inferece duration
+    end_inference = datetime.datetime.now()
+    Logger.info(f"Inference End time: {end_inference}")
+    Logger.info(f"Inference Duration: {end_inference - end_train}")
+    print(f"Inference End time: {end_inference}")
+    print(f"Inference Duration: {end_inference - end_train}")
+
+
+
+# Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
     print("Device:", device)
 
@@ -296,350 +647,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     print(f"Inference End time: {end_inference}")
     print(f"Inference Duration: {end_inference - end_train}")
 
-def get_mean_scores(states:[State], phase:str):
-    """Method to get mean scores from list of states.
-
-    Args:
-        states ([State]): List of states.
-
-    Returns:
-        [type]: [description]
-    """
-    f1_scores = []
-    recall_scores = []
-    precision_scores = []
-    specificity_scores = []
-    jaccard_scores = []
-    accuracy_scores = []
-
-    if phase == "train":
-
-        for state in states:
-            f1_scores.append(state.best_train_metrics.f1_score)
-            recall_scores.append(state.best_train_metrics.recall_score)
-            precision_scores.append(state.best_train_metrics.precision_score)
-            specificity_scores.append(state.best_train_metrics.specificity_score)
-            jaccard_scores.append(state.best_train_metrics.jaccard_score)
-            accuracy_scores.append(state.best_train_metrics.accuracy)
-    else:
-        for state in states:
-            f1_scores.append(state.best_val_metrics.f1_score)
-            recall_scores.append(state.best_val_metrics.recall_score)
-            precision_scores.append(state.best_val_metrics.precision_score)
-            specificity_scores.append(state.best_val_metrics.specificity_score)
-            jaccard_scores.append(state.best_val_metrics.jaccard_score)
-            accuracy_scores.append(state.best_val_metrics.accuracy)
-    
-    mean_scores = { "f1_score": np.mean(f1_scores),
-                    "recall_score": np.mean(recall_scores), 
-                    "precision_score": np.mean(precision_scores),
-                    "specificity_score": np.mean(specificity_scores),
-                    "jaccard_score": np.mean(jaccard_scores),
-                    "accuracy": np.mean(accuracy_scores)
-                    }
-
-    return mean_scores
-
-
-def stratified_k_fold_cv(device, multi_gpu=False):
-    print("======"*5)
-    # start
-    start = datetime.datetime.now()
-    Logger.info(f"Stratified Cross-Validation Start time: {start}")
-    print(f"Stratified Cross-Validation Start time: {start}")
-
-    # Empty dict to store results
-    results = {}
-    best_val_loss = np.inf
-    best_f1_score = 0.0
-    best_fold = None
-    #is_binary = cl.config.dataset.num_classes < 3
-    is_binary = cl.config.train.task_type.value < 2
-
-    shelf_name = cl.config.dataset.name
-    random_seed = cl.config.dataset.random_seed
-    n_splits = cl.config.train.cross_validation.k_folds
-    shuffle = cl.config.dataset.shuffle
-    new_seed = random_seed if shuffle else None
-    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
-    train_ratio = cl.config.dataset.train_ratio
-
-    # Load python dataset
-    X_dict, y_dict = dp.load_shelves(shelf_name)
-
-    # All subjects
-    subjects = list(X_dict.keys())
-    
-    # Remove personalized subject
-    personalized_subject = str(cl.config.dataset.personalized_subject)
-    if personalized_subject in subjects:
-        Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
-        print("Removing personalized subject:")
-        subjects.remove(personalized_subject)
-    print("Subjects applied:", subjects)
-
-    X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
-    y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
-
-    if cl.config.dataset.sensor == "acc":
-       X_all = X_all[:, :, :3]
-       Logger.info("Using accelerometer data only.")
-    elif cl.config.dataset.sensor == "gyro":
-       X_all = X_all[:, :, 3:]
-       Logger.info("Using gyroscope data only.")
-    
-    Logger.info(f"Total data shape: {X_all.shape} | Total labels shape: {y_all.shape}")
-
-    # Reshape
-    num, window_size, num_features = X_all.shape
-    X_all = X_all.reshape(num, -1)
-
-    # Split data
-    if shuffle:
-        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
-    else:
-        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio)
-
-    X_inference = X_inference.reshape(-1, window_size, num_features)
-
-    Logger.info(f"Total Train size: {len(X_train)} | Counts: {Counter(y_train)}")
-    Logger.info(f"Inference size: {len(X_inference)} | Counts: {Counter(y_inference)}")
-
-    del X_dict, y_dict
-    gc.collect()
-
-    # Loop through splits
-    for i, (train_index, val_index) in enumerate(stratified_kf.split(X_train, y_train)):
-        # Split data
-        train_data = X_train[train_index].reshape(-1, window_size, num_features)
-        train_labels = y_train[train_index]
-        val_data = X_train[val_index].reshape(-1, window_size, num_features)
-        val_labels = y_train[val_index]
-
-        # start of k-fold
-        k_start = datetime.datetime.now()
-        Logger.info(f"-------------------")
-        Logger.info(f"\nStarting Stratified_k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
-        
-        # Info
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
-
-        # Check sensor type 
-        # if cl.config.dataset.sensor == "acc":
-        #     train_data = train_data[:, :, :3]
-        #     val_data = val_data[:, :, :3]
-        #     train_labels = train_labels[:, :, :3]
-        #     val_labels = val_labels[:, :, :3]
-        # elif cl.config.dataset.sensor == "gyro":
-        #     train_data = train_data[:, :, 3:]
-        #     val_data = X_val[:, :, 3:]
-        #     train_labels = train_labels[:, :, 3:]
-        #     val_labels = val_labels[:, :, 3:]
-        
-        # Sampling
-        if cl.config.dataset.sampling:
-            samples, window_size, num_features = train_data.shape
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> Before Undersampling {Counter(train_labels)}")
-            X_reshape = train_data.reshape(samples, -1)       
-            #null_samples = int(np.sqrt(samples))
-            #k = null_samples if (null_samples%2 == 1) else (null_samples-1)
-            k = 7
-            #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
-            counts = Counter(train_labels.astype(int))
-            max_count = max(counts.values())
-            print(f"Before sampling: {Counter(train_labels.astype(int))}")
-            under_sampling_strategy = {
-                0: int(max_count*cl.config.dataset.alpha)
-            }
-            print("Sampling strategy:", under_sampling_strategy)
-
-            undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
-            X_sample, y_sample = undersample.fit_resample(X_reshape, train_labels)
-            train_data = X_sample.reshape(-1, window_size, num_features)
-            train_labels = y_sample
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> After Undersampling {Counter(train_labels)}")
-            
-            del X_reshape, X_sample, y_sample, undersample
-            gc.collect()
-
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> X_train shape: {train_data.shape} | y_train shape: {train_labels.shape}")
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> X_val shape: {val_data.shape} | y_val shape: {val_labels.shape}")
-
-        # Scale dataframes
-        if cl.config.dataset.scaler_type:
-            samples, window_size, num_features = train_data.shape
-
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> Scaling dataframes...")
-            scaler = dp.get_scaler()
-
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> Before Scaling: | X_train mean: {np.mean(train_data.reshape(-1, num_features), axis=1)} | X_train std: {np.std(train_data.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(val_data.reshape(-1, num_features), axis=1)} | X_val std: {np.std(val_data.reshape(-1, num_features), axis=1)}")
-            
-            train_data = scaler.fit_transform(train_data.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-            val_data = scaler.transform(val_data.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-            
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> After Scaling: | X_train mean: {np.mean(train_data.reshape(-1, num_features), axis=1)} | X_train std: {np.std(train_data.reshape(-1, num_features), axis=1)} | X_val mean: {np.mean(val_data.reshape(-1, num_features), axis=1)} | X_val std: {np.std(val_data.reshape(-1, num_features), axis=1)}")
-        else:
-            scaler = None
-
-        # Create datasets
-        train_dataset = TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_labels).float())
-        val_dataset = TensorDataset(torch.from_numpy(val_data), torch.from_numpy(val_labels).float())
-    
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train dataset size: {len(train_dataset)} | Val dataset size: {len(val_dataset)} | Sample shape: {train_dataset[0][0].shape}")
-
-        
-        
-        # Create data loaders
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Creating dataloaders...")
-        train_loader = dp.load_dataloader(train_dataset, multi_gpu)
-        val_loader = dp.load_dataloader(val_dataset, multi_gpu)
-        
-
-        # Compute weights
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Computing class weights...")   
-        class_weights = dp.compute_weights(train_labels)
-        class_weights = class_weights.to(device)
-
-        # Del 
-        del train_data, val_data, train_labels, val_labels
-        gc.collect()
-
-        # Train model
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Loading model...")
-        # Load Traning parameters
-        model = t.load_network(multi_gpu)
-        model = model.to(device)
-        print("Model loadded on device: ", device)
-        print("Multiple GPUs: ", multi_gpu)
-
-        optimizer = t.load_optim(model, multi_gpu)
-        criterion = t.load_criterion(class_weights)
-        lr_scheduler = t.load_lr_scheduler(optimizer)
-
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Training model...")
-
-        # Train Model
-        state = t.train_model(model, criterion, 
-                            optimizer, lr_scheduler,
-                            train_loader, val_loader, device, optional_name=f"_cv-{i+1}_stratified_fold",
-                            is_binary=is_binary,
-                            threshold= cl.config.train.binary_threshold)
-
-        if state.best_val_metrics.f1_score > best_f1_score:
-            best_f1_score = state.best_val_metrics.f1_score
-            best_fold = i
-            Logger.info(f"Check F1 Score: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {state.best_val_metrics.loss} | F1-score:{best_f1_score} | Best Epoch: {state.best_epoch}")
-
-
-        if state.best_val_metrics.loss < best_val_loss:
-            best_val_loss = state.best_val_metrics.loss
-            # best_fold = i
-            Logger.info(f"Check Val Loss: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
-
-
-        state.info()
-        state.scaler = scaler
-
-        # Visuals
-        state.plot_losses(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
-        state.plot_f1_scores(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
-
-        # Save state to dict
-        results[i] = state
-
-        # End of k-fold
-        k_end = datetime.datetime.now()
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
-        print(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
-
-    #Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with Val F1-score: {best_f1_score}")
-
-    # Save metrics
-    Logger.info("Saving metrics...")
-    msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
-    Logger.info(msg)
-
-    # Info
-    Logger.info("Average Scores:")
-    
-    # TO DO: Add option to use warn metrics
-    #use_warn_score = cl.config.metrics.use_warn_metrics
-
-    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train' )}")
-    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
-
-    # End LOSOCV
-    end_train = datetime.datetime.now()
-    Logger.info(f"Stratified Cross-Validation End time: {end_train}")
-    Logger.info(f"Stratified Cross-Validation Duration: {end_train - start}")
-
-    ###############################################
-    ################ Inference ####################
-    ###############################################
-    Logger.info("Inference started...")
-    print("======"*10)
-    print("Inference started...")
-
-    best_state = results[best_fold]
-
-    # Scale
-    if best_state.scaler:
-        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-    
-    inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
-
-    Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
-    
-    del X_inference, y_inference
-    gc.collect()
-
-    Logger.info("Creating Inference Dataloader...")
-    
-    # Inference dataloader
-    inference_loader = dp.load_dataloader(inference_dataset)
-
-    # Load best criterion
-    loss_fn = t.load_criterion(best_state.best_criterion_weight)
-
-    # Inference
-    inference_metrics = t.run_epoch(0,"inference", inference_loader,
-                                    best_state.best_model,loss_fn,
-                                    best_state.best_optimizer, best_state.best_lr_scheduler,
-                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
-
-    inference_metrics.info()
-
-    # Save inference metrics
-    msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
-    Logger.info(msg)
-    
-    infer_data = [X.numpy() for X, y in inference_loader]
-
-    # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
-    infer_array = np.concatenate(infer_data, axis=0)
-
-    # Check the shape of the resulting NumPy array
-    print("Shape of Infer array:", infer_array.shape)
-
-    # Visuals
-    #pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
-
-    lower = 20
-    upper = 30
-    #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
-    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
-    pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
-
-    
-
-    # Inferece duration
-    end_inference = datetime.datetime.now()
-    Logger.info(f"Inference End time: {end_inference}")
-    Logger.info(f"Inference Duration: {end_inference - end_train}")
-    print(f"Inference End time: {end_inference}")
-    print(f"Inference Duration: {end_inference - end_train}")
 
 '''
 def loso_cv(device):
