@@ -187,11 +187,16 @@ def subwise_k_fold_cv(device, multi_gpu=False):
                             train_loader, val_loader, device, optional_name=f"_cv-{i+1}_fold",
                             is_binary=is_binary,
                             threshold= cl.config.train.binary_threshold)
+        
+        if state.best_val_metrics.f1_score > best_f1_score:
+            best_f1_score = state.best_val_metrics.f1_score
+            best_fold = i
+            Logger.info(f"Check F1 Score: k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {state.best_val_metrics.loss} | F1-score:{best_f1_score} | Best Epoch: {state.best_epoch}")
 
         if state.best_val_metrics.loss < best_val_loss:
             best_val_loss = state.best_val_metrics.loss
-            best_fold = i
-            Logger.info(f"k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score}")
+            #best_fold = i
+            Logger.info(f"Check Val Loss: k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
 
 
         state.info()
@@ -210,7 +215,8 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         Logger.info(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
         print(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
-    Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    #Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    Logger.info(f"Best k-Fold: {best_fold+1} with F1-score: {best_f1_score}")
 
     # Save metrics
     Logger.info("Saving metrics...")
@@ -520,10 +526,16 @@ def stratified_k_fold_cv(device, multi_gpu=False):
                             is_binary=is_binary,
                             threshold= cl.config.train.binary_threshold)
 
+        if state.best_val_metrics.f1_score > best_f1_score:
+            best_f1_score = state.best_val_metrics.f1_score
+            best_fold = i
+            Logger.info(f"Check F1 Score: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {state.best_val_metrics.loss} | F1-score:{best_f1_score} | Best Epoch: {state.best_epoch}")
+
+
         if state.best_val_metrics.loss < best_val_loss:
             best_val_loss = state.best_val_metrics.loss
-            best_fold = i
-            Logger.info(f"Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score}")
+            # best_fold = i
+            Logger.info(f"Check Val Loss: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
 
 
         state.info()
@@ -541,7 +553,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         Logger.info(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
         print(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
-    Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    #Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
+    Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with Val F1-score: {best_f1_score}")
 
     # Save metrics
     Logger.info("Saving metrics...")
