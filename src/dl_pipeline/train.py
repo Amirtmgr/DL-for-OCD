@@ -84,12 +84,16 @@ def load_checkpoint(filename):
     # Dict path
     dict_path = os.path.join(cl.config.models_folder,name+".pt")
     
+
     if os.path.isfile(full_path) and os.path.isfile(dict_path):
         print("Loading checkpoint '{}'".format(filename))
         checkpoint = torch.load(full_path)
         dict_checkpoint = torch.load(dict_path)
-
-    return checkpoint, dict_checkpoint 
+        return checkpoint, dict_checkpoint
+    else:
+        print("Loading dict checkpoint '{}'".format(filename))
+        checkpoint = torch.load(full_path)
+        return checkpoint 
 
 
 # Function to run one epoch of training and validataion

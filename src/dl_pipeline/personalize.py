@@ -161,7 +161,9 @@ def run(device, multi_gpu=False):
     # Load Checkpoint
     filename = cl.config.train.checkpoint
 
-    state_checkpoint = t.load_checkpoint(filename)
+    checkpoint = t.load_checkpoint(filename)
+    state_checkpoint = checkpoint[0] if isinstance(checkpoint, tuple) else checkpoint
+
 
     if state_checkpoint is None:
         Logger.info("No checkpoint loaded")
@@ -200,19 +202,17 @@ def run(device, multi_gpu=False):
     gc.collect()
 
     # Set the flag to freeze all layers except fc_layers
-    freeze_layers = True
+    freeze_layers = False #False #True
 
     # Modules to keep trainable
-    trainable_module_names = ["fc_layers", "transformer_encoder", "cls_token", "positional_embedding"]
+    trainable_module_names = [] #["fc_layers", "transformer_encoder", "cls_token", "positional_embedding"]
 
     # Loop through the model's parameters and set requires_grad based on module names
     for name, param in state_checkpoint.best_model.named_parameters():
         module_name = name.split(".")[0]
         if module_name in trainable_module_names:
-            param.requires_grad = True
-        else:
             param.requires_grad = not freeze_layers
-
+        
     # Verify which layers are frozen and which are not
     for name, param in state_checkpoint.best_model.named_parameters():
         print(f"Parameter: {name}, Requires Grad: {param.requires_grad}")

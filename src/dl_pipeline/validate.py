@@ -275,7 +275,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with Val F1-score: {best_f1_score}")
 
     # Save metrics
-    Logger.info("Saving metrics...")
+    Logger.info("Saving results...")
+    results['best_fold'] = best_fold + 1
     msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
     Logger.info(msg)
 
