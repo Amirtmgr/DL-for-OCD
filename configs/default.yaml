@@ -34,7 +34,7 @@ global:
   
 # Model architecture parameters
 architecture:
-  name: 'multi_cnn_transformer' #'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
+  name: 'cnn_transformer' #'multi_cnn_transformer' #'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
   sensors: *sensors
   window_size: *window_size
   device: *device

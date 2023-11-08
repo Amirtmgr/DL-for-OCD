@@ -69,7 +69,7 @@ class CNNTransformer(nn.Module):
             dim_feedforward = self.dim_feedforward,
             dropout = self.transformer_dropout,
             activation = self.transformer_act_fn,
-            #bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
+            bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
         )
 
         # Transformer encoders
@@ -231,7 +231,7 @@ class MultiCNNTransformer(nn.Module):
             dim_feedforward = self.dim_feedforward,
             dropout = self.transformer_dropout,
             activation = self.transformer_act_fn,
-            #bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
+            bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
         )
 
         transformer_encoder_layer_2 = TransformerEncoderLayer(
@@ -240,7 +240,7 @@ class MultiCNNTransformer(nn.Module):
             dim_feedforward = self.dim_feedforward,
             dropout = self.transformer_dropout,
             activation = self.transformer_act_fn,
-            #bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
+            bias=self.transformer_bias # TODO: Only available in PyTorch >= 2.1.0
         )
 
         # Transformer encoders
