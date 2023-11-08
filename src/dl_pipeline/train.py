@@ -34,7 +34,7 @@ from src.helper.state import State
 from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
-from src.dl_pipeline.architectures.Transformer import CNNTransformer
+from src.dl_pipeline.architectures.Transformer import CNNTransformer, MultiCNNTransformer
 from src.dl_pipeline.architectures.TinyHAR import TinyHAR, DimTinyHAR
 from src.dl_pipeline.architectures.TinyHAR_modified import TinyHAR as TinyHAR_modified
 from src.dl_pipeline.architectures.AttendAndDiscriminate import AttendAndDiscriminate
@@ -379,6 +379,8 @@ def load_network(multi_gpu=False):
         model = DeepConvLSTM(cl.config_dict['architecture'])
     elif network == "cnn_transformer":
         model = CNNTransformer(cl.config_dict['architecture'])
+    elif network == "multi_cnn_transformer":
+        model = MultiCNNTransformer(cl.config_dict['architecture'])
     elif network == "tinyhar": 
         model = TinyHAR_modified(cl.config_dict['architecture'])
     elif network == "attend_discriminate":

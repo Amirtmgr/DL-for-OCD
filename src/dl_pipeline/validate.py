@@ -41,6 +41,8 @@ def get_mean_scores(states:[State], phase:str):
     if phase == "train":
 
         for state in states:
+            if isinstance(state, int):
+                continue
             f1_scores.append(state.best_train_metrics.f1_score)
             recall_scores.append(state.best_train_metrics.recall_score)
             precision_scores.append(state.best_train_metrics.precision_score)
@@ -49,6 +51,10 @@ def get_mean_scores(states:[State], phase:str):
             accuracy_scores.append(state.best_train_metrics.accuracy)
     else:
         for state in states:
+            
+            if isinstance(state, int):
+                continue
+          
             f1_scores.append(state.best_val_metrics.f1_score)
             recall_scores.append(state.best_val_metrics.recall_score)
             precision_scores.append(state.best_val_metrics.precision_score)
