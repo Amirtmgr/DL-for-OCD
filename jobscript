@@ -27,7 +27,7 @@ module purge
 eval "$(conda shell.bash hook)"
 
 # Activate a conda environment:
-conda activate dl24
+conda activate ml23
 
 
 echo "JobID is $SLURM_JOBID"
