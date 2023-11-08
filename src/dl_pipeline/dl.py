@@ -8,7 +8,6 @@ import torch.backends.cudnn as cudnn
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset, TensorDataset
-from torchvision import transforms
 
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, jaccard_score
 from sklearn.model_selection import train_test_split

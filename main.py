@@ -6,6 +6,8 @@
 # Ignore warnings
 import warnings
 warnings.filterwarnings('always')
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Import the necessary packages
 import os
