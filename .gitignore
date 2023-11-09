@@ -20,6 +20,9 @@ configs/*
 # Cluster output
 cluster/*
 
+#saved
+saved/*
+
 # saved logs
 saved/logs/*
 

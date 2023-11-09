@@ -112,7 +112,7 @@ class State:
         return arr
     
     def plot_losses(self, title=""):
-        title = "Train Losses vs Validataion Losses" + title
+        title = "Train vs Validation Losses" + title
         x_label = "Epochs"
         y_label = "Losses"
         legend_labels = ["Train Losses", "Validation Losses"]
@@ -123,7 +123,7 @@ class State:
         pl.plotly_arrays(data_lists, title, x_label, y_label, legend_labels)
     
     def plot_f1_scores(self, title=""):
-        title = "Train F1 Scores vs Validataion F1 Scores"+ title
+        title = "Train vs Validation F1 Scores"+ title
         x_label = "Epochs"
         y_label = "F1 Scores"
         legend_labels = ["Train F1 Scores", "Validation F1 Scores"]

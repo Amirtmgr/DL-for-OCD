@@ -107,10 +107,14 @@ def make_confusion_matrix(cf,
         #Do not show categories if xyticks is False
         categories=False
 
+    # set the color scheme
+    cmap = sns.color_palette("rocket_r", as_cmap=True)
 
     # MAKE THE HEATMAP VISUALIZATION
     plt.figure(figsize=figsize)
     sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories)
+    
+    font_dict = {'weight':'normal','size':12}
 
     if xyplotlabels:
         plt.ylabel('True label')
@@ -119,7 +123,7 @@ def make_confusion_matrix(cf,
         plt.xlabel(stats_text)
     
     if title:
-        plt.title(title)
+        plt.title(title, fontdict=font_dict)
 
     if save:
         pl.save_plot(plt, title)

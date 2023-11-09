@@ -90,6 +90,11 @@ def arrays(data_lists, title="", x_label="", y_label="", legend_labels=None, sav
 
 def plot_cm(cm, classes, save_fig=True, title='Confusion Matrix', cmap=plt.cm.Blues):
     
+
+    box_labels = [f"{v1}{v2}{v3}".strip() for v1, v2, v3 in zip(group_labels,group_counts,group_percentages)]
+    box_labels = np.asarray(box_labels).reshape(cf.shape[0],cf.shape[1])
+
+
     disp = ConfusionMatrixDisplay(confusion_matrix=cm,
                                   display_labels= classes)
     
@@ -579,3 +584,49 @@ def save_ploty(plt, title):
         Logger.info(f"Plot saved as {file_name} inside path {path}")
     except Exception as e:
         Logger.error(f"{e} while saving plot as {file_name}")
+
+
+
+def plot_cm(cf, categories, info="", stats=None, save_fig=True):
+        
+    blanks = ['' for i in range(cf.size)]
+    
+    if len(categories)==2:
+        group_names = ["True Neg","False Pos","False Neg","True Pos"]
+        title = f"{categories[0]} vs {categories[1]} " + info
+    else:
+        group_names = None
+        title = "Multi-classification CM" + info
+
+    if group_names and len(group_names)==cf.size:
+        group_labels = ["{}\n".format(value) for value in group_names]
+    else:
+        group_labels = blanks
+
+    group_counts = ["{0:0.0f}\n".format(value) for value in cf.flatten()]
+    
+    group_percentages = ["{0:.2%}".format(value) for value in cf.flatten()/np.sum(cf)]
+    
+    labels = []
+
+    for v1, v2, v3 in zip(group_labels,group_counts,group_percentages):
+        box_label = f"{v1}{v2}{v3}"
+        labels.append(box_label)        
+    
+    box_labels = np.array(labels).reshape(cf.shape[0],cf.shape[1])
+
+
+    sns.heatmap(cf,annot=box_labels,fmt="",cbar=True,xticklabels=categories,yticklabels=categories)
+
+    plt.ylabel('True label')
+    xlabel = 'Predicted label' + stats if stats else 'Predicted label'
+    plt.xlabel(xlabel)
+
+    plt.title(title)
+
+    # Save the plot as a file
+    if save_fig:
+        save_plot(plt,title)
+        plt.close()
+    else:
+        plt.show()

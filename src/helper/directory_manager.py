@@ -6,10 +6,10 @@ from src.utils.config_loader import config_loader as cl
 
 # Types of folders
 class FolderType(Enum):
-    charts = "saved/charts"
-    logs = "saved/logs"
-    models = "saved/models"
-    results = "saved/results"
+    charts = "charts"
+    logs = "logs"
+    models = "models"
+    results = "results"
     data = "data"
     
 # Function to generate name based on date_time or root_date_time
@@ -45,8 +45,10 @@ def create_folder(name, folder_type:FolderType ):
     Args:
         name (str): Name of the folder to create.
     """
-    full_path = os.path.join(cl.config.main_path, folder_type.value, name)  
-        
+    if folder_type.value == FolderType.data.value:
+        full_path = os.path.join(cl.config.main_path, folder_type.value, name)  
+    else:
+        full_path = os.path.join(cl.config.saved_folder, folder_type.value, name)
     # Create path if doesn't exists
     if not os.path.exists(full_path):
         os.makedirs(full_path)

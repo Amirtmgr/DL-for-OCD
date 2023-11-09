@@ -26,10 +26,11 @@ class Logger:
         filename = cl.config.folder + ".txt"
         print("Log file: ", filename)
         # Create folder
-        path = dm.create_folder(cl.config.folder, dm.FolderType.logs)
         
-        full_path = os.path.join(path, filename)  
-
+        path = dm.create_folder(cl.config.folder, dm.FolderType.logs)
+        full_path = os.path.join(path, filename)
+        print("Log file path: ", full_path)
+        
         # Create a logger
         cls.logger = logging.getLogger('MyLogger')
         cls.logger.setLevel(logging.DEBUG)
@@ -39,7 +40,8 @@ class Logger:
         file_handler.setLevel(logging.DEBUG)
 
         # Create a formatter and set the formatter for the file handler
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        #formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(message)s")
         file_handler.setFormatter(formatter)
 
         # Add the file handler to the logger

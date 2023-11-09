@@ -1,5 +1,5 @@
 import plotly.graph_objects as go; import numpy as np
-from plotly_resampler import FigureResampler, FigureWidgetResampler
+#from plotly_resampler import FigureResampler, FigureWidgetResampler
 from src.helper import df_manager as dfm
 from src.helper import data_preprocessing as dp
 from src.helper import plotter as pl

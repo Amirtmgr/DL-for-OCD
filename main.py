@@ -42,19 +42,19 @@ def main():
 
     if cl.config:
         print('Config file loaded successfully.')
-        for key, value in cl.config.items():
-            print(key, ':', value)
     else:
         print('Config file is empty.')
     
-    print(cl.config.train.device)
-    print(cl.config.models_path)
+    print("Device:", cl.config.train.device)
+    print("Models path:", cl.config.models_path)
     #cl.export_to_environment(["main_path"])
     #print(os.environ['main_path'])
 
     # Create Logger
     Logger.info("Logger created.")
 
+    # Log config
+    log_config(cl.config_dict)
     # Task Type
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
@@ -158,6 +158,21 @@ def main():
     # Visualize all plots
     #vis.show()
 
-    
+
+def log_config(config_dict):
+    """Print config dictionary
+    """
+    Logger.info("---------------------" * 5)
+    Logger.info("Config Dictionary:")
+    for k, v in config_dict.items():
+        if isinstance(v, dict):
+            Logger.info(f"{k}:")
+            for k1, v1 in v.items():
+                Logger.info(f"\t{k1}: {v1}")
+        else:
+            Logger.info(f"{k}: {v}")
+
+    print("---------------------" * 5)
+
 if __name__ == '__main__':
     main()

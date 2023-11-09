@@ -8,7 +8,7 @@ import numpy as np
 import warnings
 from collections import Counter
 from tabulate import tabulate
-
+from src.helper import plotter as pl
 from src.utils.config_loader import config_loader as cl
 
 from src.helper.cf_matrix import make_confusion_matrix
@@ -44,7 +44,6 @@ class Metrics:
         self.classification_report = None
         self.outputs = None
         self.best_threshold = 0.5
-        self.ap_score = 0.0
 
         try:
             
@@ -94,7 +93,6 @@ class Metrics:
                 print(f"F1 Score: {self.f1_score:.2f}")
                 print(f"Recall: {self.recall_score:.2f}")
                 print(f"Precision: {self.precision_score:.2f}")
-                print(f"Average Precision: {self.ap_score:.2f}")
                 print(f"Jaccard Score: {self.jaccard_score:.2f}")
                 
                 self.print_cm()
@@ -183,21 +181,29 @@ class Metrics:
 
 
     def save_cm(self, info=""):
-        categories = cl.config.dataset.labels
+        # cf = self.confusion_matrix
+        # categories = cl.config.dataset.labels
+        # stats = f"\n\nF1-Score: {self.f1_score:.2f}\nRecall: {self.recall_score:.2f}\nPrecision: {self.precision_score:.2f}\nJaccard: {self.jaccard_score:.2f}"
+        # pl.plot_cm(cf, categories, info, stats=None, save_fig=True)
 
+        categories = cl.config.dataset.labels
+        cm = self.confusion_matrix
         if self.is_binary:
             labels = ["True Neg","False Pos","False Neg","True Pos"]
+            title=f"{categories[0]} vs {categories[1]}"
             
-            make_confusion_matrix(self.confusion_matrix, 
+            make_confusion_matrix(cm, 
                         group_names=labels,
                         categories=categories,
-                        title="Binary Confusion Matrix" + info,
-                        save=True)
+                        title=title + info,
+                        save=True,
+                        )
         else:
-            make_confusion_matrix(self.confusion_matrix, 
+            make_confusion_matrix(cm, 
                         categories=categories,
-                        title="Multiclass Confusion Matrix" + info,
-                        save=True)
+                        title="Multi-class Confusion Matrix" + info,
+                        save=True,
+                        )
             
 
     # Compute optimal threshold
@@ -226,4 +232,39 @@ class Metrics:
                 
         return best_threshold
 
+    
+    def plot_cm(self, info=""):
         
+        cf = self.confusion_matrix
+        blanks = ['' for i in range(cf.size)]
+        categories = cl.config.dataset.labels
+
+        if self.is_binary:
+            group_names = ["True Neg","False Pos","False Neg","True Pos"]
+            title = f"{categories[0]} vs {categories[1]} " + info
+        else:
+            group_names = None
+            title = "Multiclass Confusion Matrix" + info
+
+        if group_names and len(group_names)==cf.size:
+            group_labels = ["{}\n".format(value) for value in group_names]
+        else:
+            group_labels = blanks
+
+        group_counts = ["{0:0.0f}\n".format(value) for value in cf.flatten()]
+        
+        group_percentages = ["{0:.2%}".format(value) for value in cf.flatten()/np.sum(cf)]
+        
+        box_labels = [f"{v1}{v2}{v3}".strip() for v1, v2, v3 in zip(group_labels,group_counts,group_percentages)]
+        box_labels = np.asarray(box_labels).reshape(cf.shape[0],cf.shape[1])
+
+
+        sns.heatmap(cf,annot=box_labels,fmt="g",cbar=True,xticklabels=True,yticklabels=True)
+
+        stats_text = "\n\nPrecision={:0.3f}\nRecall={:0.3f}\nF1 Score={:0.3f}".format(
+                self.precision_score, self.recall_score, self.f1_score)
+
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label' + stats_text)
+        plt.title(title)
+        pl.save_plot(plt, title)

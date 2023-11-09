@@ -3,6 +3,7 @@ import gc
 import numpy as np
 import random
 from collections import Counter
+import copy
 
 import torch
 from torch.utils.data import ConcatDataset, TensorDataset
@@ -38,29 +39,18 @@ def get_mean_scores(states:[State], phase:str):
     jaccard_scores = []
     accuracy_scores = []
 
-    if phase == "train":
 
-        for state in states:
-            if isinstance(state, int):
-                continue
-            f1_scores.append(state.best_train_metrics.f1_score)
-            recall_scores.append(state.best_train_metrics.recall_score)
-            precision_scores.append(state.best_train_metrics.precision_score)
-            specificity_scores.append(state.best_train_metrics.specificity_score)
-            jaccard_scores.append(state.best_train_metrics.jaccard_score)
-            accuracy_scores.append(state.best_train_metrics.accuracy)
-    else:
-        for state in states:
-            
-            if isinstance(state, int):
-                continue
-          
-            f1_scores.append(state.best_val_metrics.f1_score)
-            recall_scores.append(state.best_val_metrics.recall_score)
-            precision_scores.append(state.best_val_metrics.precision_score)
-            specificity_scores.append(state.best_val_metrics.specificity_score)
-            jaccard_scores.append(state.best_val_metrics.jaccard_score)
-            accuracy_scores.append(state.best_val_metrics.accuracy)
+    for state in states:
+        if isinstance(state, int):
+            continue
+        metric = state.best_train_metrics if phase == "train" else state.best_val_metrics
+
+        f1_scores.append(metric.f1_score)
+        recall_scores.append(metric.recall_score)
+        precision_scores.append(metric.precision_score)
+        specificity_scores.append(metric.specificity_score)
+        jaccard_scores.append(metric.jaccard_score)
+        accuracy_scores.append(metric.accuracy)
     
     mean_scores = { "f1_score": np.mean(f1_scores),
                     "recall_score": np.mean(recall_scores), 
@@ -85,6 +75,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     best_val_loss = np.inf
     best_f1_score = 0.0
     best_fold = None
+    best_fold_l = None
     #is_binary = cl.config.dataset.num_classes < 3
     is_binary = cl.config.train.task_type.value < 2
 
@@ -244,7 +235,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Training model...")
 
         # Train Model
-        state = t.train_model(model, criterion, 
+        state, state_l = t.train_model(model, criterion, 
                             optimizer, lr_scheduler,
                             train_loader, val_loader, device, optional_name=f"_cv-{i+1}_stratified_fold",
                             is_binary=is_binary,
@@ -258,19 +249,26 @@ def stratified_k_fold_cv(device, multi_gpu=False):
 
         if state.best_val_metrics.loss < best_val_loss:
             best_val_loss = state.best_val_metrics.loss
-            # best_fold = i
-            Logger.info(f"Check Val Loss: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
+            best_fold_l = i
+            Logger.info(f"Check Val Loss: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold_l +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
 
 
         state.info()
         state.scaler = scaler
 
+        state_l.scaler = scaler
+
         # Visuals
-        state.plot_losses(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
-        state.plot_f1_scores(title=f" Stratified Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_losses(title=f" Stratified CV | k-Fold: {i+1} | {cl.config.file_name}")
+        state.plot_f1_scores(title=f" Stratified CV | k-Fold: {i+1} | {cl.config.file_name}")
 
         # Save state to dict
-        results[i] = state
+        results[i] = {}
+        results[i]['f1'] = copy.deepcopy(state)
+        results[i]['loss'] = copy.deepcopy(state_l)
+
+        del state, state_l
+        gc.collect()
 
         # End of k-fold
         k_end = datetime.datetime.now()
@@ -283,6 +281,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     # Save metrics
     Logger.info("Saving results...")
     results['best_fold'] = best_fold + 1
+    results['best_fold_l'] = best_fold_l + 1
+
     msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
     Logger.info(msg)
 
@@ -292,8 +292,10 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     # TO DO: Add option to use warn metrics
     #use_warn_score = cl.config.metrics.use_warn_metrics
 
-    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train' )}")
-    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
+    states = [v['f1'] for k, v in results.items() if not isinstance(v, int)]
+
+    Logger.info(f"Training Average-Scores: {get_mean_scores(states, 'train' )}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores(states, 'val')}")
 
     # End LOSOCV
     end_train = datetime.datetime.now()
@@ -307,22 +309,21 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     print("======"*10)
     print("Inference started...")
 
-    best_state = results[best_fold]
+    best_state = results[best_fold]['f1']
+    best_state_l = results[best_fold_l]['loss']
 
     # Scale
     if best_state.scaler:
-        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-        X_personalize = best_state.scaler.transform(X_personalize.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        X_in = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+        X_p = best_state.scaler.transform(X_personalize.reshape(-1, num_features)).reshape(-1, window_size, num_features)
     
-    inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
-    personalize_dataset = TensorDataset(torch.from_numpy(X_personalize).float(), torch.from_numpy(y_personalize).float())
+    inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_inference).float())
+    personalize_dataset = TensorDataset(torch.from_numpy(X_p).float(), torch.from_numpy(y_personalize).float())
 
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
     Logger.info(f"Personalize dataset size: {len(personalize_dataset)} | Sample shape: {personalize_dataset[0][0].shape}")
 
-    del X_inference, y_inference, X_personalize, y_personalize
-    gc.collect()
-
+    
     Logger.info("Creating Inference Dataloader...")
     
     # Inference dataloader
@@ -339,6 +340,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
                                     device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
 
     inference_metrics.info()
+
 
     # Save inference metrics
     msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
@@ -379,7 +381,42 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     print(f"Inference End time: {end_inference}")
     print(f"Inference Duration: {end_inference - end_train}")
 
+     ###############################################
+    # Comparing best fold with best val loss
+    
+    if best_state_l.scaler:
+        X_in = best_state_l.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    
+    inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_inference).float())
+    inference_loader =  dp.load_dataloader(inference_dataset)
+    loss_fn = t.load_criterion(best_state_l.best_criterion_weight)
+    inference_metrics_l = t.run_epoch(0,"inference [Loss]", inference_loader,
+                                    best_state_l.best_model,loss_fn,   
+                                    best_state_l.best_optimizer, best_state_l.best_lr_scheduler,
+                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
 
+    Logger.info("Based on Val Loss:")
+    inference_metrics_l.info()
+    # Save inference metrics
+    msg = om.save_object(inference_metrics_l, cl.config.folder, dm.FolderType.results, "inference_metrics_loss.pkl" )
+    Logger.info(msg)
+    del X_in, X_inference, y_inference, inference_dataset, inference_loader, loss_fn
+    gc.collect()
+    
+    # Results
+    Logger.info("Results:")
+    Logger.info(f"Folder: {cl.config.folder}")
+    Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
+    Logger.info("++++++++"*10)
+    Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
+
+    print("======"*10)
+    print("Results:")
+    print(f"Folder: {cl.config.folder}")
+    print(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
+    
+    print("++++++++"*10)
+    print(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
 
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
@@ -540,7 +577,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         Logger.info(f"k-Fold:{i+1} ===> Training model...")
 
         # Train Model
-        state = t.train_model(model, criterion, 
+        state, state_l = t.train_model(model, criterion, 
                             optimizer, lr_scheduler,
                             train_loader, val_loader, device, optional_name=f"_cv-{i+1}_fold",
                             is_binary=is_binary,
@@ -556,25 +593,32 @@ def subwise_k_fold_cv(device, multi_gpu=False):
             #best_fold = i
             Logger.info(f"Check Val Loss: k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {best_val_loss} | F1-score:{state.best_val_metrics.f1_score} | Best Epoch: {state.best_epoch}")
 
-
+        
         state.info()
         state.scaler = scaler
         state.best_fold = best_fold + 1
 
+        state_l.scaler = scaler
+        state_l.best_fold = best_fold + 1
+
         # Visuals
-        state.plot_losses(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
-        state.plot_f1_scores(title=f" Cross-Validation on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_losses(title=f" CV on k-Fold: {i+1} {cl.config.file_name}")
+        state.plot_f1_scores(title=f" CV on k-Fold: {i+1} {cl.config.file_name}")
 
         # Save state to dict
-        results[i] = state
-
+        results[i]['f1'] = copy.deepcopy(state)
+        results[i]['loss'] = copy.deepcopy(state_l)
+        
+        del state, state_l
+        gc.collect()
+        
         # End of k-fold
         k_end = datetime.datetime.now()
         Logger.info(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
         print(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     #Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
-    Logger.info(f"Best k-Fold: {best_fold+1} with F1-score: {best_f1_score}")
+    Logger.info(f"Best k-Fold: {best_fold+1} | F1-score: {best_f1_score} | Validation Loss: {best_val_loss} | Best Epoch: {results[best_fold-1]['f1'].best_epoch}")
 
     # Save metrics
     Logger.info("Saving metrics...")
@@ -587,8 +631,8 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     # TO DO: Add option to use warn metrics
     #use_warn_score = cl.config.metrics.use_warn_metrics
 
-    Logger.info(f"Training Average-Scores: {get_mean_scores(results.values(), 'train' )}")
-    Logger.info(f"Validation Average-Scores: {get_mean_scores(results.values(), 'val')}")
+    Logger.info(f"Training Average-Scores: {get_mean_scores([v['f1'] for k, v in results.items()], 'train' )}")
+    Logger.info(f"Validation Average-Scores: {get_mean_scores([v['f1'] for k, v in results.items()], 'val')}")
 
     # End LOSOCV
     end_train = datetime.datetime.now()
@@ -602,33 +646,36 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     print("======"*10)
     print("Inference started...")
 
-    best_state = results[best_fold]
+    best_state = results[best_fold]['f1']
+    best_state_l = results[best_fold]['loss']
+
     Logger.info("Creating Inference Dataset...")
     # Inference dataset
     X_inference = np.concatenate([X_dict[subject] for subject in inference_subjects], axis=0)
-    y_inference = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
+    y_in = np.concatenate([y_dict[subject] for subject in inference_subjects], axis=0)
+
+    del X_dict, y_dict
+    gc.collect()
 
     if cl.config.dataset.sensor == "acc":
-        X_inference = X_inference[:, :, :3]
+        X_in = X_inference[:, :, :3]
         Logger.info("Using accelerometer data only.")
     elif cl.config.dataset.sensor == "gyro":
-        X_inference = X_inference[:, :, 3:]
+        X_in = X_inference[:, :, 3:]
         Logger.info("Using gyroscope data only.")
+    else:
+        X_in = X_inference
     
-    Logger.info(f"Inference data shape: {X_inference.shape} | Inference labels shape: {y_inference.shape}")
+    Logger.info(f"Inference data shape: {X_in.shape} | Inference labels shape: {y_in.shape}")
     # Scale
     if best_state.scaler:
-        X_inference = best_state.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
-    
-    inference_dataset = TensorDataset(torch.from_numpy(X_inference).float(), torch.from_numpy(y_inference).float())
+        X_in = best_state.scaler.transform(X_in.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+
+    inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_in).float())
 
     Logger.info(f"Inference dataset size: {len(inference_dataset)} | Sample shape: {inference_dataset[0][0].shape}")
     
-    del X_inference, y_inference, X_dict, y_dict
-    gc.collect()
-
-    Logger.info("Creating Inference Dataloader...")
-    
+   
     # Inference dataloader
     inference_loader = dp.load_dataloader(inference_dataset)
 
@@ -636,7 +683,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
 
     # Inference
-    inferece_metrics = t.run_epoch(0,"inference", inference_loader,
+    inferece_metrics = t.run_epoch(0,"inference [F1-Score]", inference_loader,
                                     best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,
                                     device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
@@ -654,6 +701,37 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     print(f"Inference End time: {end_inference}")
     print(f"Inference Duration: {end_inference - end_train}")
 
+    ###############################################
+    # Comparing best fold with best val loss
+    
+    if best_state_l.scaler:
+        X_in = best_state_l.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
+    
+    inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_in).float())
+    inference_loader =  dp.load_dataloader(inference_dataset)
+    loss_fn = t.load_criterion(best_state_l.best_criterion_weight)
+    inferece_metrics_l = t.run_epoch(0,"inference [Loss]", inference_loader,
+                                    best_state_l.best_model,loss_fn,   
+                                    best_state_l.best_optimizer, best_state_l.best_lr_scheduler,
+                                    device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
+
+    Logger.info("Based on Val Loss:")
+    inferece_metrics_l.info()
+
+    del X_in, y_in, X_dict, y_dict, X_inference, inference_dataset, inference_loader, loss_fn
+    gc.collect()
+    
+    # Results
+    Logger.info("Results:")
+    Logger.info("Folder: {cl.config.folder}")
+    Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1}\nTrain F1-Score: {best_state.val_metrics.f1_score} | Val F1-Score: {best_state.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics.f1_score}\nTrain Loss: {best_state.train_metrics.loss} | Val Loss: {best_state.val_metrics.loss} | Best Epoch: {best_state.best_epoch}")
+    Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1}\nTrain F1-Score: {best_state_l.val_metrics.f1_score} | Val F1-Score: {best_state_l.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics_l.f1_score}\nTrain Loss: {best_state_l.train_metrics.loss} | Val Loss: {best_state_l.val_metrics.loss} | Best Epoch: {best_state_l.best_epoch}")
+
+    print("======"*10)
+    print("Results:")
+    print("Folder: {cl.config.folder}")
+    print(f"[Based on F1-Score] Best k-Fold: {best_fold+1}\nTrain F1-Score: {best_state.val_metrics.f1_score} | Val F1-Score: {best_state.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics.f1_score}\nTrain Loss: {best_state.train_metrics.loss} | Val Loss: {best_state.val_metrics.loss} | Best Epoch: {best_state.best_epoch}")
+    print(f"[Based on Loss] Best k-Fold: {best_fold_l+1}\nTrain F1-Score: {best_state_l.val_metrics.f1_score} | Val F1-Score: {best_state_l.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics_l.f1_score}\nTrain Loss: {best_state_l.train_metrics.loss} | Val Loss: {best_state_l.val_metrics.loss} | Best Epoch: {best_state_l.best_epoch}")
 
 '''
 def loso_cv(device):

@@ -8,6 +8,7 @@ import os
 import yaml
 import easydict
 import datetime as dt
+import uuid
 
 # TODO(atm):Review Class
 
@@ -61,20 +62,31 @@ class __ConfigLoader:
         """Method to set other paths
         """
         temp["main_path"] = self.main_path
-        folder = dt.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+        folder = dt.datetime.now().strftime("%Y_%m_%d-%H_%M_%S") + "_" + str(uuid.uuid4().hex)
         print("Folder: ", folder)
         temp["folder"] = folder
-        temp["models_folder"] = os.path.join(self.main_path,"saved", "models")
-        temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
-        temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")
-        temp["charts_folder"] = os.path.join(self.main_path,"saved", "charts")
-        
-        temp["models_path"] = os.path.join(self.main_path,"saved", "models",folder)
-        temp["results_path"] = os.path.join(self.main_path,"saved", "results", folder)
-        temp["logs_path"] = os.path.join(self.main_path,"saved", "logs", folder)
-        temp["charts_path"] = os.path.join(self.main_path,"saved", "charts", folder)
+        temp["saved_folder"] = os.path.join(self.main_path,"saved", folder)
+        temp["models_folder"] = os.path.join(self.main_path,"saved", folder, "models")
+        temp["results_folder"] = os.path.join(self.main_path,"saved", folder, "results")
+        temp["logs_folder"] = os.path.join(self.main_path,"saved", folder, "logs")
+        temp["charts_folder"] = os.path.join(self.main_path,"saved", folder, "charts")
+
+        temp["models_path"] = os.path.join(self.main_path,"saved", folder, "models")
+        temp["results_path"] = os.path.join(self.main_path,"saved", folder, "results")
+        temp["logs_path"] = os.path.join(self.main_path,"saved", folder, "logs")
+        temp["charts_path"] = os.path.join(self.main_path,"saved", folder, "charts")
         temp["data_path"] = os.path.join(self.main_path,"data")
-        #TODO: Add other paths like dataset paths,etc.
+
+        # temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
+        # temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")
+        # temp["charts_folder"] = os.path.join(self.main_path,"saved", "charts")
+        
+        # temp["models_path"] = os.path.join(self.main_path,"saved", "models",folder)
+        # temp["results_path"] = os.path.join(self.main_path,"saved", "results", folder)
+        # temp["logs_path"] = os.path.join(self.main_path,"saved", "logs", folder)
+        # temp["charts_path"] = os.path.join(self.main_path,"saved", "charts", folder)
+        # temp["data_path"] = os.path.join(self.main_path,"data")
+        # #TODO: Add other paths like dataset paths,etc.
         return temp
 
     def get_variable(self, variable_name):
@@ -100,6 +112,7 @@ class __ConfigLoader:
         """Print config dictionary
         """
         print("---------------------" * 5)
+        print("Config Dictionary:")
         for k, v in self.config_dict.items():
             if isinstance(v, dict):
                 print(f"{k}:")
