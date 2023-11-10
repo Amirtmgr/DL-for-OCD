@@ -158,10 +158,8 @@ def run(device, multi_gpu=False):
     val_loader = dp.load_dataloader(val_dataset, multi_gpu)
     infer_loader = dp.load_dataloader(infer_dataset, multi_gpu, False)
     
-    # Load Checkpoint
-    filename = cl.config.train.checkpoint
-
-    checkpoint = t.load_checkpoint(filename)
+    # Load Checkpoint    
+    checkpoint = t.load_checkpoint()
     state_checkpoint = checkpoint[0] if isinstance(checkpoint, tuple) else checkpoint
 
 
@@ -202,10 +200,10 @@ def run(device, multi_gpu=False):
     gc.collect()
 
     # Set the flag to freeze all layers except fc_layers
-    freeze_layers = False #False #True
+    freeze_layers = cl.config.checkpoint.freeze_layers
 
     # Modules to keep trainable
-    trainable_module_names = [] #["fc_layers", "transformer_encoder", "cls_token", "positional_embedding"]
+    trainable_module_names = cl.config.checkpoint.trainable_layers #[] #["fc_layers", "transformer_encoder", "cls_token", "positional_embedding"]
 
     # Loop through the model's parameters and set requires_grad based on module names
     for name, param in state_checkpoint.best_model.named_parameters():
@@ -219,13 +217,14 @@ def run(device, multi_gpu=False):
         Logger.info(f"Parameter: {name}, Requires Grad: {param.requires_grad}")
 
     # Train Model
-    state = t.train_model(state_checkpoint.best_model, criterion, 
+    state, state_l = t.train_model(state_checkpoint.best_model, criterion, 
                         optimizer, lr_scheduler,
                         train_loader, val_loader, device, optional_name=f"_personalized",
                         is_binary=is_binary,
                         threshold= cl.config.train.binary_threshold)
     state.info()
     state.scaler = scaler
+    state_l.scaler = scaler
 
     # Inference after training
     Logger.info("Inference after training:")
@@ -240,6 +239,26 @@ def run(device, multi_gpu=False):
                             threshold= binary_threshold)[0]
     infer_metrics_1.info()
     infer_metrics_1.save_cm(info=" [After Personalization]")
+
+    Logger.info("======"*20)
+    Logger.info("Inference after training with best loss model:")
+    infer_metrics_2 = t.run_epoch(0, "inference", infer_loader, 
+                            state_l.best_model, 
+                            criterion,
+                            optimizer,
+                            lr_scheduler,
+                            device, 
+                            is_binary=is_binary,
+                            threshold= binary_threshold)[0]
+    infer_metrics_2.info()
+    infer_metrics_2.save_cm(info=" [BestLoss][After Personalization]")
+    
+    msg = om.save_object(infer_metrics_1, cl.config.folder, dm.FolderType.results, "inference.pkl" )
+    Logger.info(msg)
+
+    msg = om.save_object(infer_metrics_2, cl.config.folder, dm.FolderType.results, "inference_loss.pkl" )
+    Logger.info(msg)
+
 
     # Visuals
     state.plot_losses(title=f" Personalized on {personalized_subject} | {cl.config.file_name}")
@@ -269,12 +288,12 @@ def run(device, multi_gpu=False):
     lower = 35
     upper = 45
 
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")
-
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="gyro")
-    pl.plot_sensor_data(infer_array[lower:upper], ground_truth_array[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="gyro")
-
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_0.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_1.y_true[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_2.y_true[lower:upper], infer_metrics_2.y_pred[lower:upper], save=True, title=f" Best Loss | After Personalization | Sub ID:{personalized_subject}", sensor="acc")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_0.y_true[lower:upper], infer_metrics_0.y_pred[lower:upper], save=True, title=f" Before Personalization | Sub ID:{personalized_subject}", sensor="gyro")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_1.y_true[lower:upper], infer_metrics_1.y_pred[lower:upper], save=True, title=f" After Personalization | Sub ID:{personalized_subject}", sensor="gyro")
+    pl.plot_sensor_data(infer_array[lower:upper], infer_metrics_2.y_true[lower:upper], infer_metrics_2.y_pred[lower:upper], save=True, title=f" Best Loss | After Personalization | Sub ID:{personalized_subject}", sensor="gyro")
     
     # Trainable parameters
     trainable_params = sum(p.numel() for p in state.best_model.parameters() if p.requires_grad)
@@ -285,6 +304,32 @@ def run(device, multi_gpu=False):
 
     Logger.info(f"Trainable parameters: {trainable_params}")
     Logger.info(f"Total parameters: {total_params}")
+
+
+    print("======"*10)
+    print(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}]:")
+    print(f"Folder: {cl.config.folder}")
+    print(f'''[Based on F1-Score] | Best Epoch: {state.best_epoch}\nTrain F1-Score: {state.best_train_metrics.f1_score:.2f} | Val F1-Score: {state.best_val_metrics.f1_score:.2f}\n
+    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_1.f1_score:.2f}\n
+    Train Loss: {state.best_train_metrics.loss:.2f} | Val Loss: {state.best_val_metrics.loss:.2f}''')
+    Logger.info("======"*10)
+    Logger.info(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}]:")
+    Logger.info(f"Folder: {cl.config.folder}")
+    Logger.info(f'''[Based on F1-Score] | Best Epoch: {state.best_epoch}\nTrain F1-Score: {state.best_train_metrics.f1_score:.2f} | Val F1-Score: {state.best_val_metrics.f1_score:.2f}\n
+    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_1.f1_score:.2f}\n
+    Train Loss: {state.best_train_metrics.loss:.2f} | Val Loss: {state.best_val_metrics.loss:.2f}''')
+    
+    print("++++++++"*10)
+    print(f'''[Based on Val Loss] | Best Epoch: {state_l.best_epoch}\nTrain F1-Score: {state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {state_l.best_val_metrics.f1_score:.2f}\n
+    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_2.f1_score:.2f}\n
+    Train Loss: {state_l.best_train_metrics.loss:.2f} | Val Loss: {state_l.best_val_metrics.loss:.2f}''')
+    
+    Logger.info("++++++++"*10)
+    Logger.info(f'''[Based on Val Loss] | Best Epoch: {state_l.best_epoch}\nTrain F1-Score: {state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {state_l.best_val_metrics.f1_score:.2f}\n
+    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_2.f1_score:.2f}\n
+    Train Loss: {state_l.best_train_metrics.loss:.2f} | Val Loss: {state_l.best_val_metrics.loss:.2f}''')
+    
+    
 
 # Function to load data
 def load_data():

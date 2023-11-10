@@ -8,8 +8,9 @@ import os
 import sys
 import datetime
 from tqdm import tqdm
-
+import pickle as pk
 import numpy as np
+import copy 
 
 import torch
 import torch.nn as nn
@@ -28,6 +29,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 
+import src.helper.object_manager as om
 from src.helper.metrics import Metrics
 from src.helper.logger import Logger
 from src.helper.state import State
@@ -49,6 +51,9 @@ def save_state(state:State, optional_name:str = ""):
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
     
+    state.path = model_path
+    state.file_name = filename
+
     # Dict version
     state_dict = {
         'path':model_path,
@@ -77,21 +82,33 @@ def save_state(state:State, optional_name:str = ""):
     
 # Function to load state of the model
 # todo: check
-def load_checkpoint(filename):
-    name = filename.split(".")[0]
+def load_checkpoint():
     # State Object path
-    full_path = os.path.join(cl.config.models_folder,name+".pth")
-    # Dict path
-    dict_path = os.path.join(cl.config.models_folder,name+".pt")
-    
+    # rel_path = os.path.join(cl.config.main_path, "saved" ,folder)
+    # result_path = os.path.join(rel_path, "results", "results.pkl")
 
+    
+    # result = om.load(result_path)
+    # best_fold = result['best_fold']
+    # state = result[best_fold-1]['f1']
+    # best_epoch = state.best_epoch
+
+    folder = cl.config.checkpoint.folder
+    filename = cl.config.checkpoint.filename.split(".")[0]
+
+    folder_path = os.path.join(cl.config.main_path, "saved", folder, "models")
+    full_path = os.path.join(folder_path, filename+".pth")
+    
+    # Dict path
+    dict_path = os.path.join(folder_path, filename+".pt")
+    
     if os.path.isfile(full_path) and os.path.isfile(dict_path):
-        print("Loading checkpoint '{}'".format(filename))
+        print("Loading checkpoint '{}'".format(folder))
         checkpoint = torch.load(full_path)
         dict_checkpoint = torch.load(dict_path)
         return checkpoint, dict_checkpoint
     else:
-        print("Loading dict checkpoint '{}'".format(filename))
+        print("Loading dict checkpoint '{}'".format(folder))
         checkpoint = torch.load(full_path)
         return checkpoint 
 
@@ -277,7 +294,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             # Set epoch for DistributedSampler
             train_loader.sampler.set_epoch(epoch)
             val_loader.sampler.set_epoch(epoch)
-   
+        
         # Run training phase
         train_metrics, network, criterion, optimizer, lr_scheduler = run_epoch(epoch, 'train', train_loader, network, criterion, optimizer, lr_scheduler,device, is_binary, threshold)
         
@@ -317,8 +334,8 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             
             # Save all checkpoints for now : TO DO: Save only best model
             state.best_epoch = epoch + 1
-            state.best_model = network
-            state.best_optimizer = optimizer
+            state.best_model = copy.deepcopy(network)
+            state.best_optimizer =  copy.deepcopy(optimizer)
             if is_binary:
                 state.best_criterion_weight = criterion.pos_weight
             else:
@@ -327,7 +344,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             state.best_val_metrics = val_metrics
             
             if lr_scheduler is not None:
-                state.best_lr_scheduler = lr_scheduler
+                state.best_lr_scheduler =  copy.deepcopy(lr_scheduler)
             
             # Save state
             save_state(state, optional_name)
@@ -336,8 +353,8 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             Logger.info(f"Check loss: Best model with Train Loss: {train_metrics.loss:.2f} | Val Loss: {val_metrics.loss} | F1 score: {val_metrics.f1_score:.2f} | Train F1 score: {train_metrics.f1_score:.2f} | Epoch: {epoch+1}/{epochs}")
             best_val_loss = val_metrics.loss
             state_l.best_epoch = epoch + 1
-            state_l.best_model = network
-            state_l.best_optimizer = optimizer
+            state_l.best_model = copy.deepcopy(network)
+            state_l.best_optimizer = copy.deepcopy(optimizer)
             if is_binary:
                 state_l.best_criterion_weight = criterion.pos_weight
             else:
@@ -346,7 +363,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             state_l.best_val_metrics = val_metrics
 
             if lr_scheduler is not None:
-                state_l.best_lr_scheduler = lr_scheduler
+                state_l.best_lr_scheduler = copy.deepcopy(lr_scheduler)
             
             # Save state
             save_state(state_l, optional_name + "_with_loss")

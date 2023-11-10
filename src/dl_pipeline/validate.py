@@ -98,7 +98,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     
     if personalized_subject in subjects:
         Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
-        print("Removing personalized subject:")
+        print(f"Removing personalized subject:{personalized_subject}")
         subjects.remove(personalized_subject)
     print("Subjects applied:", subjects)
 
@@ -346,7 +346,9 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
     Logger.info(msg)
     
-
+    Logger.info("Inference on Personalized Subject : {personalized_subject}")
+    print("Inference on Personalized Subject : {personalized_subject}")
+    
     inference_metrics_personalize = t.run_epoch(0,"inference", personalize_loader, best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,    
                                     device=device, is_binary= is_binary, threshold=cl.config.train.binary_threshold)[0]
@@ -402,10 +404,16 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(msg)
     del X_in, X_inference, y_inference, inference_dataset, inference_loader, loss_fn
     gc.collect()
-    
+    Logger.info("======"*10)
+    print(f"Stratified CV Results [Subject: {cl.config.dataset.personalized_subject}]:")
+    Logger.info(f"Stratified CV Results [Subject: {cl.config.dataset.personalized_subject}]:")
     # Results
     Logger.info("Results:")
     Logger.info(f"Folder: {cl.config.folder}")
+    cl.config.checkpoint.folder = cl.config.folder
+    cl.config.checkpoint.name = best_state.file_name
+    Logger.info(f"Architecture: {best_state.best_model.__class__.__name__}")
+    print(f"Architecture: {best_state.best_model.__class__.__name__}")
     Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
     Logger.info("++++++++"*10)
     Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
@@ -413,11 +421,16 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     print("======"*10)
     print("Results:")
     print(f"Folder: {cl.config.folder}")
-    print(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
+    print(f'''[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\n
+    Train F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\n
+    Train Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}\n
+    Inference on Personalized Subject F1-Score: {inference_metrics_personalize.f1_score:.2f}
+    ''')
     
     print("++++++++"*10)
     print(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
 
+    
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
     print("Device:", device)

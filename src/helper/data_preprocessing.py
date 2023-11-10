@@ -287,6 +287,7 @@ def load_shelves(filename, subjects=None):
     # Filterd subjects
     remove_subjects = cl.config.dataset.filter_subjects
     personalization = cl.config.dataset.personalization
+    personalized_subject = str(cl.config.dataset.personalized_subject)
     
     if cl.config.dataset.trustworthy_only:
         print("Using Trustworthy subjects only.")
@@ -315,7 +316,7 @@ def load_shelves(filename, subjects=None):
     
 
     for subject in subjects:
-        if subject in remove_subjects and not personalization:
+        if subject != personalized_subject and subject in remove_subjects:
             print(f"Removing subject: {subject}")
             continue
         X[subject] = X_db[subject][:1000] if cl.config.debug else X_db[subject]

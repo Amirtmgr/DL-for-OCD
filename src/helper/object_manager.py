@@ -28,3 +28,22 @@ def load_object(folder, folder_type, file):
         return obj
     except Exception as e:
         return "Error encountered while loading the object: " + str(e)
+
+
+def load(path):
+    """
+    Load file from a path.
+
+    Args:
+        path (str): Path of the file.
+
+    Returns:
+        list: List of all lines in the file.
+    """
+    try:
+        with open(path, 'rb') as file:
+            obj = pk.load(file)
+        return obj
+    except Exception as e:
+        return "Error encountered while loading the object: " + str(e)
+

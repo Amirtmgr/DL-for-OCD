@@ -119,6 +119,7 @@ def train():
             v.subwise_k_fold_cv(device, multi_gpu)
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
+            
         elif cv == "personalized":
             p.run(device, multi_gpu)
         else:
