@@ -244,6 +244,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         if state.best_val_metrics.f1_score > best_f1_score:
             best_f1_score = state.best_val_metrics.f1_score
             best_fold = i
+            cl.config.checkpoint.filename = state.file_name
             Logger.info(f"Check F1 Score: Stratified_k-Fold:{i+1} ===> New best fold: {best_fold +1} with validation Loss: {state.best_val_metrics.loss} | F1-score:{best_f1_score} | Best Epoch: {state.best_epoch}")
 
 
