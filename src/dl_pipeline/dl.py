@@ -119,7 +119,10 @@ def train():
             v.subwise_k_fold_cv(device, multi_gpu)
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
-            
+            ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+            for r in ratios:
+                cl.config.dataset.train_ratio = r
+                p.run(device, multi_gpu)
         elif cv == "personalized":
             p.run(device, multi_gpu)
         else:

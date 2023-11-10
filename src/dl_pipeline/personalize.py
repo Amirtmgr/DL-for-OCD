@@ -307,7 +307,7 @@ def run(device, multi_gpu=False):
 
 
     print("======"*10)
-    print(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}]:")
+    print(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}] [Train Ratio: {cl.config.dataset.train_ratio} | Inference Ratio: {cl.config.dataset.inference_ratio}]:")
     print(f"Folder: {cl.config.folder}")
     print(f'''[Based on F1-Score] | Best Epoch: {state.best_epoch}\nTrain F1-Score: {state.best_train_metrics.f1_score:.2f} | Val F1-Score: {state.best_val_metrics.f1_score:.2f}\n
     Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_1.f1_score:.2f}\n
