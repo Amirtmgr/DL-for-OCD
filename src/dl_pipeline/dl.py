@@ -122,7 +122,7 @@ def train():
             # TODO: Remove this
             for optim in ['adam', 'sgd']:
                 cl.config.optim.name = optim
-                for wt in [0.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0003]
+                for wt in [0.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0003]:
                     cl.config.optim.weight_decay = wt
                     ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
                     for lr in [0.01, 0.001, 0.0001, 0.00005, 0.00001]:
