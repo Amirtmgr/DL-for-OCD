@@ -120,13 +120,16 @@ def train():
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
             # TODO: Remove this
-            cl.config.optim.name = 'sgd'
-            ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-            for lr in [0.01, 0.001, 0.0001, 0.00005, 0.00001]:
-                cl.config.optim.learning_rate = lr
-                for r in ratios:
-                    cl.config.dataset.train_ratio = r
-                    p.run(device, multi_gpu)
+            for optim in ['adam', 'sgd']:
+                cl.config.optim.name = optim
+                for wt in [0.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0003]
+                    cl.config.optim.weight_decay = wt
+                    ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+                    for lr in [0.01, 0.001, 0.0001, 0.00005, 0.00001]:
+                        cl.config.optim.learning_rate = lr
+                        for r in ratios:
+                            cl.config.dataset.train_ratio = r
+                            p.run(device, multi_gpu)
         elif cv == "personalized":
             p.run(device, multi_gpu)
         else:
