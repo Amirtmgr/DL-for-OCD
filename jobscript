@@ -1,14 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=train_02         # name for your job
+#SBATCH --job-name=run_00         # name for your job
 #SBATCH --partition=gpu           # partition to run in
-#SBATCH --nodes=1                   # node count
-#SBATCH --ntasks=64                  # total number of tasks across all nodes
-#SBATCH --ntasks-per-node=64        # total number of tasks across all nodes<
+#SBATCH --ntasks=1                  # total number of tasks across all nodes
+#SBATCH --ntasks-per-node=16        # total number of tasks across all nodes<
 #SBATCH --time=24:00:00             # total run time limit (HH:MM:SS)
 #SBATCH --output=cluster/omni_%x_%j.out  # where to save the output ( %j = JobID, %x = scriptname)
 #SBATCH --error=cluster/omni_%x_%j.err       # where to save error messages ( %j = JobID)
 #SBATCH --gres gpu:1              # Generic resource required (1/2/4)
-#SBATCH --mem=240000	                # 100 MB RAM per allocated CPU
+#SBATCH --mem=75G	                # 100 MB RAM per allocated CPU
 
 #Optional parameters
 
