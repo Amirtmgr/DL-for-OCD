@@ -14,6 +14,7 @@ import copy
 
 import torch
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm_
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader
@@ -33,6 +34,7 @@ import src.helper.object_manager as om
 from src.helper.metrics import Metrics
 from src.helper.logger import Logger
 from src.helper.state import State
+from src.helper.early_stopping import EarlyStopper
 from src.utils.config_loader import config_loader as cl
 from src.dl_pipeline.architectures.CNN import CNNModel
 from src.dl_pipeline.architectures.LSTMs import DeepConvLSTM
@@ -72,7 +74,7 @@ def save_state(state:State, optional_name:str = ""):
     #Save state object and dictionary    
     try:
         torch.save(state, model_path+".pth")
-        torch.save(state_dict, model_path+".pt")
+        #torch.save(state_dict, model_path+".pt")
 
     except Exception as e:  
         print(f"An error occurred: {str(e)}")
@@ -114,7 +116,7 @@ def load_checkpoint():
 
 
 # Function to run one epoch of training and validataion
-def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_scheduler, device, is_binary, threshold=0.5):
+def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_scheduler, device, is_binary, threshold=0.5, max_norm=.8):
     """Runs one epoch of training and validation and returns network, criterion, optimizer and lr_scheduler.
 
     Args:
@@ -178,6 +180,8 @@ def run_epoch(epoch, phase, data_loader, network, criterion, optimizer, lr_sched
             loss = criterion(output, targets)            
             
             if is_train:
+                ## Gradient clipping
+                #clip_grad_norm_(network.parameters(), max_norm=max_norm)  # Clipping gradients to a maximum norm of 1.0 
                 loss.backward() # backward pass of network (calculate sum of gradients for graph)
                 optimizer.step() # perform model parameter update (update weights)
             
@@ -287,6 +291,13 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
     if multi_gpu:
         dist.barrier()
 
+    # Early stopper
+    if hasattr(cl.config.train, 'early_stopping'):
+        if cl.config.train.early_stopping.patience > 0:
+            early_stopper = EarlyStopper(patience=cl.config.train.early_stopping.patience, min_delta=cl.config.train.early_stopping.min_delta)
+    else:
+        early_stopper = None
+
     # Start training loop
     for epoch in tqdm(range(epochs),desc="Training model:"):
         
@@ -368,6 +379,12 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             # Save state
             save_state(state_l, optional_name + "_with_loss")
             # val_metrics.save_cm(info=f" {optional_name} | Epoch: {epoch+1}")
+
+            # Early stopping
+            if early_stopper:
+                if early_stopper.early_stop(val_metrics.loss):
+                    Logger.info(f"Early stopping at Epoch: {epoch+1}")
+                    break
 
     state.train_metrics_arr = train_metrics_arr
     state.val_metrics_arr = val_metrics_arr

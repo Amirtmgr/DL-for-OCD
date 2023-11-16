@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime
 import gc
 import numpy as np
 import random
@@ -25,14 +25,15 @@ from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from imblearn.pipeline import Pipeline
-
+from sklearn.utils import resample
 
 def run(device, multi_gpu=False):
     print("Device:", device)
 
     print("======"*20)
+    Logger.info("======"*20)
     # start
-    start = datetime.datetime.now()
+    start =  datetime.now()
     Logger.info(f"Personalization Start time: {start}")
     print(f"Personalization Start time: {start}")
 
@@ -60,6 +61,8 @@ def run(device, multi_gpu=False):
     X_personalized = X_dict[personalized_subject]
     y_personalized = y_dict[personalized_subject]
 
+    Logger.info(f"Resampled with random_state: {random_seed}")
+    X_personalized, y_personalized = resample(X_personalized, y_personalized, random_state=random_seed)
     Logger.info(f"Total samples : | X_personalized shape: {X_personalized.shape} | y_personalized shape: {y_personalized.shape}")
 
     del X_dict, y_dict
@@ -193,7 +196,8 @@ def run(device, multi_gpu=False):
     infer_metrics_0.save_cm(" [Before Personalization]")
 
     # Save inference metrics
-    msg_0 = om.save_object(infer_metrics_0, cl.config.folder, dm.FolderType.results, "inference_metrics_before.pkl" )
+    name = "inference_metrics_before-" + datetime.now().strftime("%H_%M_%S") + ".pkl"
+    msg_0 = om.save_object(infer_metrics_0, cl.config.folder, dm.FolderType.results, name )
     Logger.info(msg_0)
 
     del X_train, X_val, X_infer, y_train, y_val, y_infer, X_personalized, y_personalized, train_dataset, val_dataset, infer_dataset
@@ -253,10 +257,12 @@ def run(device, multi_gpu=False):
     infer_metrics_2.info()
     infer_metrics_2.save_cm(info=" [BestLoss][After Personalization]")
     
-    msg = om.save_object(infer_metrics_1, cl.config.folder, dm.FolderType.results, "inference.pkl" )
+    name = "inference-" + datetime.now().strftime("%H_%M_%S") + ".pkl"
+    msg = om.save_object(infer_metrics_1, cl.config.folder, dm.FolderType.results, name)
     Logger.info(msg)
 
-    msg = om.save_object(infer_metrics_2, cl.config.folder, dm.FolderType.results, "inference_loss.pkl" )
+    name = "inference_loss" + datetime.now().strftime("%H_%M_%S") + ".pkl"
+    msg = om.save_object(infer_metrics_2, cl.config.folder, dm.FolderType.results, name )
     Logger.info(msg)
 
 
@@ -411,7 +417,7 @@ def ensemble(device, multi_gpu=False):
 
     print("======"*20)
     # start
-    start = datetime.datetime.now()
+    start = datetime.now()
     Logger.info(f"Ensemble Personalization Start time: {start}")
     print(f"Ensemble Personalization Start time: {start}")
 
@@ -528,7 +534,7 @@ def ensemble(device, multi_gpu=False):
     Logger.info(f"Trainable parameters: {trainable_params}")
     Logger.info(f"Total parameters: {total_params}")
 
-    end = datetime.datetime.now()
+    end = datetime.now()
     duration = end - start
     Logger.info(f"Personalization End time: {end} | Duration: {duration}")
 

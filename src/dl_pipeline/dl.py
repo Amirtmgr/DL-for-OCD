@@ -113,7 +113,23 @@ def train():
         if cl.config.train.ensemble:
             p.ensemble(device, multi_gpu)
         else:
-            p.run(device, multi_gpu)
+            # TODO: Remove this
+            idx = 1
+            for state in [46666223, 2531442, 831]:
+                cl.config.train.random_seed = state
+                for wt in [0.00115, 0.0012, 0.0013, 0.0001, 0.0002, 0.0003, 0.00005, 0.00025]:
+                    cl.config.optim.weight_decay = wt
+                    for lr in [0.00065, 0.000635, 0.00064, 0.000645, 0.0002, 0.00025, 0.0003, 0.0006, 0.0001]:
+                        Logger.info("***"*20)
+                        Logger.info("***** DL Personalization *****")
+                        Logger.info("***"*20)
+                        cl.config.optim.learning_rate = lr
+                        setup_random_seed()
+                        p.run(device, multi_gpu)
+                        Logger.info(f"{idx}. Weight decay: {wt} | Learning rate: {lr} | Ramdom seed: {state} | Train Ratio: {cl.config.dataset.train_ratio}")
+                        idx += 1
+                        Logger.info("End of DL Personalization")
+                        Logger.info("***"*20)
     else: 
         if cv == "loso"  or cv == "kfold":
             v.subwise_k_fold_cv(device, multi_gpu)
