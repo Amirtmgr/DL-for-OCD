@@ -6,6 +6,7 @@ from src.utils.config_loader import config_loader as cl
 from src.helper.filters import band_pass_filter
 from src.helper import sliding_window as sw 
 import src.data_processing.features as features
+from tsfresh.feature_extraction import MinimalFCParameters
 import pandas as pd
 import numpy as np
 import gc
@@ -14,7 +15,7 @@ def clean_all():
     # Get all files
     csv_files = dm.get_files_names()
     grouped_files = ds.group_by_subjects(csv_files)
-
+    
     # Loop through each subjects:
     for sub_id in grouped_files.keys():
         # if sub_id !=3 :
@@ -63,7 +64,7 @@ def clean_all():
         gc.collect()
 
         # Extract Features
-        df_features = features.extract(df_windows,n_jobs=-1)
+        df_features = features.extract(df_windows,settings=MinimalFCParameters(), n_jobs=12)
         df_features["relabeled"] = df_labels["relabeled"]
         df_features["datetime"] = df_datetimes["datetime"]
 
