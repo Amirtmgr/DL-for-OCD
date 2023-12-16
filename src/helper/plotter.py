@@ -630,3 +630,40 @@ def plot_cm(cf, categories, info="", stats=None, save_fig=True):
         plt.close()
     else:
         plt.show()
+
+
+def plot_subplots(rows, cols, df_list, subplot_titles=None, x_label=None, y_label=None, fig_title=None, fig_size= (15, 10), save_fig=True):
+    sns.color_palette("rocket")
+    sns.set(font_scale=1)
+    if len(df_list) != rows * cols:
+        raise ValueError("The number of subplots doesn't match the provided rows and columns.")
+
+    fig, axes = plt.subplots(rows, cols, figsize=(15,10))
+    axes = axes.ravel()
+
+
+    for i, df in enumerate(df_list):
+        ax = axes[i]
+        columns = df.columns.tolist()
+        sns.lineplot(df, x=columns[0], y=columns[1], ax=ax)
+
+        if subplot_titles and len(subplot_titles) == rows * cols:
+            ax.set_title(subplot_titles[i], fontsize=18)
+
+        ax.set_xlabel(x_label, fontsize=16)
+        ax.set_ylabel(y_label, fontsize=16)
+
+    if fig_title:
+        fig.suptitle(fig_title, fontsize=22)
+
+    plt.tight_layout()
+
+    if save_fig:
+        save_plot(plt,fig_title)
+        plt.close()
+    else:
+        plt.show()
+    
+    print("Complete plotting subplots.")
+
+

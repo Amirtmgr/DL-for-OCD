@@ -41,9 +41,12 @@ def read_params():
 
 
 # Read csv file
-def read_csv_file(filename, chunksize=None):
+def read_csv_file(filename, chunksize=None, root=False):
     # Path
-    path = os.path.join(dm.get_data_dir(), filename)
+    if root:
+        path = filename
+    else:
+        path = os.path.join(dm.get_data_dir(), filename)
     
     # Params
     usecols, dtype, parse_dates = read_params()
@@ -251,14 +254,14 @@ def load_file(file_name:str, folder:str,normalized=True, norm_method='standard',
 
 
 # Function to load all files from give list
-def load_all_files(files, ignore_index=True, add_sub_id=False):
+def load_all_files(files, ignore_index=True, add_sub_id=False, root=False):
     
     # Empty list
     df_list = []
     sub_id = int(files[0].rsplit( "_")[1])
 
     for i in tqdm(range(0,len(files)), desc="Loading CSV Files:"):
-        temp = read_csv_file(files[i])
+        temp = read_csv_file(files[i], root=root)
         df_list.append(temp)
                   
     df = pd.concat(df_list, ignore_index=ignore_index)
@@ -300,6 +303,8 @@ def normalize_data(X, method='standard', output_as_df=True):
     # Transform the DataFrame 
     normalized_data = scaler.fit_transform(X)
     
+    
+
     if output_as_df:
         # Convert the normalized data back to a DataFrame
         normalized_df = pd.DataFrame(normalized_data, columns=X.columns)

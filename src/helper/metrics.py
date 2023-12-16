@@ -44,6 +44,7 @@ class Metrics:
         self.classification_report = None
         self.outputs = None
         self.best_threshold = 0.5
+        #self.s1_score = 0.0
 
         try:
             
@@ -69,22 +70,22 @@ class Metrics:
 
             try:
                 # Accuracy
-                self.accuracy = accuracy_score(y_true, y_pred)
+                self.accuracy = round(accuracy_score(y_true, y_pred),2)
 
                 # F1 Score
-                self.f1_score = f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                self.f1_score = round(f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division),2)
 
                 # Recall
-                self.recall_score = recall_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                self.recall_score = round(recall_score(y_true, y_pred, labels=self.labels, zero_division=self.zero_division),2)
 
                 # Precision
-                self.precision_score = precision_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                self.precision_score = round(precision_score(y_true, y_pred, labels=self.labels, zero_division=self.zero_division),2)
                 
                 # Confusion Matrix
                 self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
                 # Jaccard Score
-                self.jaccard_score = jaccard_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                self.jaccard_score = round(jaccard_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division),2)
                 
                 # Classification Report
                 self.classification_report = classification_report(y_true, y_pred, labels=self.labels, zero_division=self.zero_division)
@@ -102,9 +103,12 @@ class Metrics:
                 # Specificity
                 if len(self.labels) == 2:
                     tn, fp, fn, tp = self.confusion_matrix.ravel()
-                    self.specificity_score = tn / (tn + fp) if (tn + fp) != 0 else 0.0
+                    self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
                     print(f"Specificity: {self.specificity_score:.2f}")
-                
+
+                    #self.s1_score = round(2 * ((self.specificity_score * self.recall_score) / (self.specificity_score + self.recall_score)), 2)
+                    #print(f"S1 Score: {self.s1_score:.2f}")
+
             except Warning as w:
                 self.zero_division_warn = True
                 Logger.warning(f"Phase: {self.phase} | An warning occurred: {str(w)}")

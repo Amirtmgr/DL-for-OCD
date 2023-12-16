@@ -313,8 +313,9 @@ def load_shelves(filename, subjects=None):
         subjects = list(X_db.keys())        
     elif isinstance(subjects, str):
         subjects = [subjects]
+    elif isinstance(subjects, int):
+        subjects = [str(subjects)]
     
-
     for subject in subjects:
         if subject != personalized_subject and subject in remove_subjects:
             print(f"Removing subject: {subject}")

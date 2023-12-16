@@ -22,6 +22,7 @@ from src.data_processing import process as prc
 from collections import Counter
 from src.helper import visual as vis
 from src.helper.data_model import TaskType
+from src.ml_pipeline import dummy as dmy
 
 def main():
     # Parse the arguments
@@ -33,6 +34,11 @@ def main():
         default='None',
         help='The Configuration file in yaml file format.')
     
+    # arg_parser.add_argument(
+    #     'method',
+    #     default='None',
+    #     help='Method to apply \'ml\' for Machine Learning or \'dl\' for DeepLearning.')
+
     args = arg_parser.parse_args()
 
     # Set current working directory
@@ -61,7 +67,7 @@ def main():
     Logger.info(f"Task type: {task_type}")
     
     # Perform data cleaning and preprocessing
-    #cln.clean_all()
+    cln.clean_all()
 
     # Prepare datset
     # prc.prepare_datasets("OCDetect_raw_1950")
@@ -153,8 +159,42 @@ def main():
     elif cl.config.world_size == 4:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
         
-    dl.train()
+    #dl.train()
+    task_type = TaskType(cl.config.dataset.task_type)
+    cl.config.train.task_type = task_type
+    num_classes = 2 if task_type.value < 2 else 3
+    cl.config.dataset.num_classes = num_classes
+    cl.config.architecture.num_classes = num_classes
 
+    if task_type == TaskType.rHW_cHW_binary:
+        msg = "==============Binary classification============="
+        msg += "\n=============== rHW vs cHW =============="
+        cl.config.dataset.labels = ["rHW", "cHW"]
+    elif task_type == TaskType.cHW_detection:
+        msg = "==============Binary classification============="
+        msg += "\n=============== Null vs cHW =============="
+        cl.config.dataset.labels = ["Null", "cHW"]
+    elif task_type == TaskType.HW_detection:
+        msg = "==============Binary classification============="
+        msg += "\n=============== Null vs HW =============="
+        cl.config.dataset.labels = ["Null", "HW"]
+    elif task_type == TaskType.HW_classification:
+        msg = "==============Multi-class classification============="
+        msg += "\n=============== rHW vs cHW =============="
+        cl.config.dataset.labels = ["rHW", "cHW"]
+    elif task_type == TaskType.Multiclass_classification:
+        msg = "==============Multi-class classification========="
+        cl.config.dataset.labels = ["Null", "rHW", "cHW"]
+    else: 
+        raise ValueError("Task type not found in config file.")
+    
+    Logger.info(msg)
+    print(msg)
+    cl.print_config_dict()
+
+    # Run dummy classifier
+    # for sub in [3, 15, 18, 30]:
+    #     dmy.run(str(sub))
     # Visualize all plots
     #vis.show()
 
