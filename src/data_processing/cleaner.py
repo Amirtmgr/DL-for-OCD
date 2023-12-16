@@ -64,7 +64,7 @@ def clean_all():
         gc.collect()
 
         # Extract Features
-        df_features = features.extract(df_windows,settings=MinimalFCParameters(), n_jobs=12)
+        df_features = features.extract(df_windows,default_fc_parameters=MinimalFCParameters(), n_jobs=12)
         df_features["relabeled"] = df_labels["relabeled"]
         df_features["datetime"] = df_datetimes["datetime"]
 
@@ -73,7 +73,7 @@ def clean_all():
         
         # save
         file_name = f"OCDetect_{sub_id:02}_features.csv"
-        dfm.save_to_csv(df_features, "processed", file_name)
+        dfm.save_to_csv(df_features, "min_features", file_name)
         
     print("Complete cleaning all files.")
 
