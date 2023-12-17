@@ -100,15 +100,16 @@ def run():
     stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
     print(stratified_kf.get_n_splits(X, y))
     
-    #Selectig 
-    ids = [5, 10, 15, 21, 24, 25]
+    if cl.config.train.task_type.value == 3:
+        #Selectig 
+        ids = [5, 10, 15, 21, 24]
+        lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
+        
+    Logger.info(f"Training On {len(lazypredict.Supervised.CLASSIFIERS)} Classifiers")
     for i, x in enumerate(lazypredict.Supervised.CLASSIFIERS):
         print(i, x)
-    lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
-    print("*********"*20)
-    Logger.info("*********"*20)
-    print(lazypredict.Supervised.CLASSIFIERS)
-    Logger.info(lazypredict.Supervised.CLASSIFIERS)
+        Logger.info(f"{i} {x}")
+    
     
     for i, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
         print("*********"*20)
