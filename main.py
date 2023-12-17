@@ -23,7 +23,7 @@ from collections import Counter
 from src.helper import visual as vis
 from src.helper.data_model import TaskType
 from src.ml_pipeline import dummy as dmy
-from src.ml_pipeline import ml
+from src.ml_pipeline import ml, ml_all
 
 def main():
     # Parse the arguments
@@ -193,7 +193,8 @@ def main():
     print(msg)
     cl.print_config_dict()
 
-    ml.run()
+    #ml.run()
+    ml_all.run()
     # Run dummy classifier
     # for sub in [3, 15, 18, 30]:
     #     dmy.run(str(sub))

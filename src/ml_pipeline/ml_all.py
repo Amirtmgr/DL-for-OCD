@@ -26,10 +26,18 @@ from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSamp
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import resample
 from sklearn.dummy import DummyClassifier
+import lazypredict
 from lazypredict.Supervised import LazyClassifier
 from sklearn.metrics import classification_report
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.svm import SVC
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression, SGDClassifier, PassiveAggressiveClassifier, Perceptron
+from sklearn.cluster import KMeans
+from sklearn.neural_network import MLPClassifier
 
-
+# Function to load data
 def load_features():
     csv_files = dm.get_files_names()
     grouped_files = ds.group_by_subjects(csv_files)
@@ -51,29 +59,78 @@ def load_features():
     if cl.config.train.task_type.value == -1:
         print("*********"*20)
         print("rHW vs cHW binary")
-        return df[df["relabeled"] != 0].replace(2, 1).reset_index(drop=True)   
+        temp_df = df[df["relabeled"] != 0].copy().reset_index(drop=True)
+        temp_df['relabeled'].replace(1, 0, inplace=True)
+        temp_df['relabeled'].replace(2, 1, inplace=True)
+        return temp_df
+       
     elif cl.config.train.task_type.value == 0:
         print("*********"*20)
         print("Null vs cHW binary")
-        return df["relabeled"].replace(1, 0).reset_index(drop=True)
+        df['relabeled'].replace(1, 0, inplace=True)
+        return df
     elif cl.config.train.task_type.value == 1:
         print("*********"*20)
         print("Null vs HW binary")
-        return df["relabeled"].replace(2, 1).reset_index(drop=True)
+        df['relabeled'].replace(2, 1, inplace=True)
+        return df
     else:
         print("*********"*20)
         print("Null vs cHW vs HW")
-        
         return df
 
 def select_features(df):
     selected_df =  ft.apply_variance_threshold(df.drop(columns=["sub_id", "relabeled", "datetime"], axis=1).copy(), threshold=0.9)
     return selected_df
 
+
+def get_model(name, class_weight, const, verbose=3, **kwargs):
+    if name == 'logistic_regression':
+        model = LogisticRegression(class_weight=class_weight,max_iter=2000, verbose=verbose, n_jobs=-1, **kwargs)
+    elif name == 'random_forest':
+        model = RandomForestClassifier(class_weight=class_weight,max_features="log2", max_depth=10, verbose=verbose, n_jobs=-1,**kwargs)
+    elif name == 'gradient_boosting':
+        model = GradientBoostingClassifier(verbose=verbose,**kwargs)
+    elif name == 'svm':
+        model = SVC(class_weight=class_weight,verbose=verbose, **kwargs)
+    elif name == 'kmeans':
+        model = KMeans(n_clusters=const+1,verbose=verbose, **kwargs)
+    elif name == 'neuralnetwork':
+        model = MLPClassifier(verbose=verbose,**kwargs)
+    elif name == 'SGDClassifier':
+        model = SGDClassifier(class_weight=class_weight,penalty='elasticnet', l1_ratio=0.5,verbose=verbose, n_jobs=-1, early_stopping=True, **kwargs)
+    elif name == 'MultinomialNB':
+        model = MultinomialNB()
+    elif name == 'PassiveAggressiveClassifier':
+        model = PassiveAggressiveClassifier(class_weight=class_weight,verbose=verbose, n_jobs=-1)
+    elif name ==  'Perceptron':
+        model = Perceptron(class_weight=class_weight,verbose=verbose, n_jobs=-1)
+    elif name == 'Dummy':
+        model = DummyClassifier(strategy='constant', constant=const)
+        
+    else:
+        error = "Invalid classifier choice.\
+        Supported classifiers: logistic_regression, random_forest, \
+        gradient_boosting, svm, kmeans, neuralnetwork, MultinomialNB, PassiveAggressiveClassifier."
+        Logger.critical(error)
+        raise ValueError(error)
+    
+    Logger.info(f"ML model {name} initialized.")
+    return model
+
 def run():
+    # List models
+    all_models = ['logistic_regression', 'random_forest', 'gradient_boosting', 'svm', 'kmeans', 'neuralnetwork', 'SGDClassifier', 'PassiveAggressiveClassifier', 'Perceptron', 'Dummy']
+    indices = [0,1,3,5,6,8,9]
+    models = all_models #[all_models[i] for i in indices]
+    for i, model in enumerate(models):
+        print(f"{i}.{model}")
+        
     # Results
     results = {}
     tables = {}
+    all_trained_models = {}
+    
     # Load data
     df = load_features()
     
@@ -86,7 +143,7 @@ def run():
     
     #is_binary = cl.config.dataset.num_classes < 3
     is_binary = cl.config.train.task_type.value < 2
-
+    const = 1 if is_binary else 2
     
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
@@ -96,11 +153,10 @@ def run():
     stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
     print(stratified_kf.get_n_splits(X, y))
     
-    for i, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
-        print("*********"*20)
-        #print(train_index)
-        #print(val_index)
-        
+    # Start
+    for kfold, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
+        Logger.info(f"-------------------")
+        Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Start")
         # Split data
         train_data = X.iloc[train_index]
         train_labels = y.iloc[train_index]
@@ -110,51 +166,63 @@ def run():
         # start of k-fold
         k_start = datetime.datetime.now()
         Logger.info(f"-------------------")
-        Logger.info(f"\nStarting Stratified_k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
+        Logger.info(f"\nStarting Stratified_k-fold cross-validation on fold no. {kfold+1} start time: {k_start}...")
         
         # Info
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
+        Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
+        Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
+        
+        #Selectig initial 10 classifiers
 
-        clf = LazyClassifier(verbose=10, predictions=True, ignore_warnings=True, custom_metric=None)
-        models, prediction = clf.fit(train_data, val_data, train_labels, val_labels)
-        print(models)
-        Logger.info(f"-------------------")
-        Logger.info(f"Stratified_k-Fold:{i+1} ===> Duration: {datetime.datetime.now() - k_start}")
-        Logger.info(f"-------------------")
-        Logger.info(models)
+        class_weights = compute_class_weight('balanced', classes=np.unique(train_labels), y=train_labels)
+        class_weight_dict = {num: weight for num, weight in enumerate(class_weights)}
+        print(f"Class weights: {class_weight_dict}")
+        Logger.info(f"Class weights: {class_weight_dict}")
         
         # New table
         table = []
-        cols = prediction.columns.to_list()
-        table.append(["ML Algorithm", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
-        for col in cols:
-            print(col)
-            y_pred = prediction[col]
-            print(prediction[col])
-            print("*********"*20)
-            print("*********"*20)
-            print(classification_report(val_labels, y_pred))
-            print("*********"*20)
-            print("*********"*20)
+        metrices = []
+        trained_models = []
+        table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
+        
+        # Loop over classifiers
+        for model in models:
+            Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Model: {model}")
+            # Get model
+            clf = get_model(model, class_weight_dict, const)
+            # Train model
+            clf.fit(train_data, train_labels)
+            # Predict
+            y_pred = clf.predict(val_data)
+            # Metrics
             metrics = Metrics(0, is_binary)
             metrics.y_true = val_labels
             metrics.y_pred = y_pred
             metrics.phase = "validation"
-            Logger.info(f"[{col}]. Results:")
-            print(f"[{col}]. Results:")
+            Logger.info(f"[{model}]. Results:")
+            print(f"[{model}]. Results:")
             metrics.calculate_metrics()
-            metrics.plot_cm()
-            table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
-            results[i] = metrics
-            tables[i] = table
-        print("*********"*20)
-        print("*********"*20)
-        print(f"Results: k-Fold: {i}")
-        Logger.info(f"Results: k-Fold: {i}")
+            metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
+            #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
+            #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
+            table.append([model, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
+            metrices.append(metrics)
+            # Save model
+            trained_models.append(clf)
+       
+        # End of k-fold
+        Logger.info(f"-------------------")
+        Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Duration: {datetime.datetime.now() - k_start}")
+        Logger.info(f"-------------------")
+        
+        print(f"Results: k-Fold: {kfold}")
+        Logger.info(f"Results: k-Fold: {kfold}")
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-
+        tables[kfold] = table
+        results[kfold] = metrices
+        all_trained_models[kfold] = trained_models
+        
     Logger.info(f"*********"*20)
     Logger.info(f"End of Stratified_k-fold cross-validation")
     
@@ -166,9 +234,9 @@ def run():
     Logger.info("******"*20)
     Logger.info(f"Results:")
     print(f"Results:")
-    for i, table in tables.items():
-        print(f"Results: k-Fold: {i}")
-        Logger.info(f"Results: k-Fold: {i}")
+    for kfold, table in tables.items():
+        print(f"Results: k-Fold: {kfold+1}")
+        Logger.info(f"Results: k-Fold: {kfold+1}")
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
     

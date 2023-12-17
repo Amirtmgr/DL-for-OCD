@@ -17,13 +17,13 @@ world_size: 1 #Number of GPUs
 global:
   - &window_size 380
   - &num_epochs 101
-  - &num_classes 3
+  - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
   - &random_seed 831 #2531442
   - &use_warn_metrics True
-  - &task_type 3 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
+  - &task_type -1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
   - &binary_threshold 0.5
   - &personalization True
   - &ensemble False
