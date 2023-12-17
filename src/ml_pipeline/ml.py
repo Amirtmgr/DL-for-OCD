@@ -31,7 +31,7 @@ from lazypredict.Supervised import LazyClassifier
 from sklearn.metrics import classification_report
 
 def load_features():
-    csv_files = dm.get_files_names()[:2]
+    csv_files = dm.get_files_names()
     grouped_files = ds.group_by_subjects(csv_files)
     subjects = list(grouped_files.keys())
     
@@ -101,7 +101,7 @@ def run():
     print(stratified_kf.get_n_splits(X, y))
     
     #Selectig 
-    ids = [5, 10, 15, 21, 24]
+    ids = [5, 10, 15, 21, 24, 25]
     for i, x in enumerate(lazypredict.Supervised.CLASSIFIERS):
         print(i, x)
     lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
