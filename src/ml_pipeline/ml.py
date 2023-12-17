@@ -127,7 +127,7 @@ def run():
         # New table
         table = []
         cols = prediction.columns.to_list()
-        table.append(cols)
+        table.append(["ML Algorithm", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
         for col in cols:
             print(col)
             y_pred = prediction[col]
@@ -144,6 +144,7 @@ def run():
             Logger.info(f"[{col}]. Results:")
             print(f"[{col}]. Results:")
             metrics.calculate_metrics()
+            metrics.plot_cm()
             table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
             results[i] = metrics
             tables[i] = table
