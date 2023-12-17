@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from tsfresh.feature_extraction import extract_features
+from sklearn.feature_selection import SelectKBest, f_classif, VarianceThreshold
 import numpy as np
 #import cupy as cp
 import gc
@@ -145,3 +146,39 @@ def plot_fft_results(fft_results):
 
     plt.tight_layout()
     plt.show()
+
+
+# Function to do feature selection with f_classif
+def apply_fclassif(data, labels, k=10):
+    """
+    Perform feature selection using SelectKBest with f_classif scoring function.
+
+    Parameters:
+        data (pd.DataFrame): Input DataFrame containing the features.
+        labels (pd.Series): Target variable (labels) corresponding to each sample in 'data'.
+        k (int): Number of top k features to select. Default is 10.
+
+    Returns:
+        pd.DataFrame: A new DataFrame containing only the selected features.
+    """
+    selector = SelectKBest(score_func=f_classif, k=k)
+    selected_features = selector.fit_transform(data, labels)
+    selected_columns = data.columns[selector.get_support()]
+    return pd.DataFrame(selected_features, columns=selected_columns)
+
+
+def apply_variance_threshold(data, threshold=0.0):
+    """
+    Perform feature selection using VarianceThreshold.
+
+    Parameters:
+        data (pd.DataFrame): Input DataFrame containing the features.
+        threshold (float): Features with a variance lower than this threshold will be removed. Default is 0.0.
+
+    Returns:
+        pd.DataFrame: A new DataFrame containing only the selected features.
+    """
+    selector = VarianceThreshold(threshold=threshold)
+    selected_features = selector.fit_transform(data)
+    selected_columns = data.columns[selector.get_support()]
+    return pd.DataFrame(selected_features, columns=selected_columns)

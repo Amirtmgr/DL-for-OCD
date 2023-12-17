@@ -263,11 +263,11 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     Plot sensor data with expanded predictions and ground truth using Plotly.
 
     Parameters:
-        input_data (numpy.ndarray): Input data of shape (10, 250, 6).
+        input_data (numpy.ndarray): Input data of shape (10, 380, 6).
         predictions (numpy.ndarray): Predicted values for each window (shape: (10,)).
         ground_truth (numpy.ndarray): Ground truth values for each window (shape: (10,)).
         sampling_rate (int): Sampling rate in Hz (default is 50).
-        window_size (int): Size of each window (default is 250).
+        window_size (int): Size of each window (default is 380).
         save_path (str): File path for saving the figure (e.g., 'plot.png').
 
     Returns:
@@ -277,7 +277,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     num_windows = input_data.shape[0]
     window_size = input_data.shape[1]
     num_channels = input_data.shape[2]
-    dtick = 5 #num_windows // sampling_rate
+    dtick = num_windows / sampling_rate
 
     # if batch_idx:
     #     batch_size = cl.config.train.batch_size
@@ -396,6 +396,10 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
     fig.update_yaxes(showline=True, linewidth=1, linecolor='black')
 
+    if "F1" in title.lower():
+        yrange = [0, 1]
+        fig.update_layout(yaxis_range=yrange)
+        
     # Customize the grid settings
     fig.update_layout(
         xaxis=dict(
@@ -409,8 +413,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
             gridwidth=1,  # Width of major grid lines
             gridcolor='white',  # Color of major grid lines
             dtick=1,  # Spacing of grid lines based on y-axis values
-        ),
-        #yaxis_range=[-1,1],
+        )
     )
     
     fig.update_yaxes(tickfont=dict(size=10))

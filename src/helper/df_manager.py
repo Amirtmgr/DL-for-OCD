@@ -15,7 +15,7 @@ from sklearn.preprocessing import RobustScaler, StandardScaler, MinMaxScaler
 
 # Function to get params:
 def read_params():
-    if cl.config.dataset.name == "features":
+    if cl.config.dataset.name == "features" or cl.config.dataset.name == "processed":
         dtype={'relabeled': 'uint8'}
         return None, dtype, None
     else:

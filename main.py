@@ -23,6 +23,7 @@ from collections import Counter
 from src.helper import visual as vis
 from src.helper.data_model import TaskType
 from src.ml_pipeline import dummy as dmy
+from src.ml_pipeline import ml
 
 def main():
     # Parse the arguments
@@ -67,7 +68,7 @@ def main():
     Logger.info(f"Task type: {task_type}")
     
     # Perform data cleaning and preprocessing
-    cln.clean_all()
+    #cln.clean_all()
 
     # Prepare datset
     # prc.prepare_datasets("OCDetect_raw_1950")
@@ -192,6 +193,7 @@ def main():
     print(msg)
     cl.print_config_dict()
 
+    ml.run()
     # Run dummy classifier
     # for sub in [3, 15, 18, 30]:
     #     dmy.run(str(sub))

@@ -4,11 +4,11 @@ import numpy as np
 import random
 from collections import Counter
 import copy
-
+import pandas as pd
 import torch
 from torch.utils.data import ConcatDataset, TensorDataset
 from tabulate import tabulate
-
+import datetime
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
 from src.helper import df_manager as dfm
@@ -21,58 +21,158 @@ from src.helper.state import State
 from src.helper import data_structures as ds
 from src.helper import plotter as pl
 from src.helper.metrics import Metrics
+from src.data_processing import features as ft
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import resample
 from sklearn.dummy import DummyClassifier
+from lazypredict.Supervised import LazyClassifier
+from sklearn.metrics import classification_report
 
-def prepare_data(shelf_name, personalized_subject, inference_ratio, random_seed, shuffle):
-    X_dict, y_dict = dp.load_shelves(shelf_name, personalized_subject)
 
-    X_personalized = X_dict[personalized_subject]
-    y_personalized = y_dict[personalized_subject]
+def load_features():
+    csv_files = dm.get_files_names()
+    grouped_files = ds.group_by_subjects(csv_files)
+    subjects = list(grouped_files.keys())
+    
+    # List of dataframes
+    df_list = []
+    
+    # Loop through each subjects:
+    for sub_id in subjects:
+        # Skip subject 5
+        if sub_id == 5:
+            continue
+        files = grouped_files[sub_id]
+        temp_df = dfm.load_all_files(files, add_sub_id=True)
+        df_list.append(temp_df)
+    df = pd.concat(df_list, ignore_index=True)
+    
+    if cl.config.train.task_type.value == -1:
+        print("*********"*20)
+        print("rHW vs cHW binary")
+        return df[df["relabeled"] != 0].replace(2, 1).reset_index(drop=True)   
+    elif cl.config.train.task_type.value == 0:
+        print("*********"*20)
+        print("Null vs cHW binary")
+        return df["relabeled"].replace(1, 0).reset_index(drop=True)
+    elif cl.config.train.task_type.value == 1:
+        print("*********"*20)
+        print("Null vs HW binary")
+        return df["relabeled"].replace(2, 1).reset_index(drop=True)
+    else:
+        print("*********"*20)
+        print("Null vs cHW vs HW")
+        
+        return df
 
-    Logger.info(f"Resampled with random_state: {random_seed}")
-    X_personalized, y_personalized = resample(X_personalized, y_personalized, random_state=random_seed)
-    Logger.info(f"Total samples : | X_personalized shape: {X_personalized.shape} | y_personalized shape: {y_personalized.shape}")
+def select_features(df):
+    selected_df =  ft.apply_variance_threshold(df.drop(columns=["sub_id", "relabeled", "datetime"], axis=1).copy(), threshold=0.9)
+    return selected_df
 
-    del X_dict, y_dict
-    gc.collect()
-
+def run():
+    # Results
+    results = {}
+    tables = {}
+    # Load data
+    df = load_features()
+    
+    selected_df = select_features(df)
     # Split data
-    if shuffle:
-        X_infer, X_train, y_infer, y_train = train_test_split(X_personalized, y_personalized, train_size= inference_ratio,stratify=y_personalized, shuffle=True, random_state=random_seed)
-    else:
-        X_infer, X_train, y_infer, y_train = train_test_split(X_personalized, y_personalized, train_size= inference_ratio, shuffle=False)
-       
-    Logger.info(f"X_train shape: {X_train.shape} | y_train shape: {y_train.shape}")
-    Logger.info(f"X_infer shape: {X_infer.shape} | y_infer shape: {y_infer.shape}")
-    # Shape
-    samples, time_steps, channels = X_train.shape
-    Logger.info(f"Samples: {samples} | Time steps: {time_steps} | Channels: {channels}")
+    X = selected_df.copy()
+    y = df["relabeled"]
+    X.reset_index(drop=True, inplace=True)
+    y.reset_index(drop=True, inplace=True)
+    
+    #is_binary = cl.config.dataset.num_classes < 3
+    is_binary = cl.config.train.task_type.value < 2
 
-    # Convert 3D to 2D
-    Logger.info(f"Dummy Classifier Personalization ===> Reshaping inputs...")
-    X_train = X_train.reshape(-1, X_train.shape[2])
-    X_infer = X_infer.reshape(-1, X_infer.shape[2])
-    y_train = np.repeat(y_train, time_steps )
-    y_infer = np.repeat(y_infer, time_steps )
+    
+    random_seed = cl.config.dataset.random_seed
+    n_splits = cl.config.train.cross_validation.k_folds
+    shuffle = cl.config.dataset.shuffle
+    new_seed = random_seed if shuffle else None
+    
+    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
+    print(stratified_kf.get_n_splits(X, y))
+    
+    for i, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
+        print("*********"*20)
+        #print(train_index)
+        #print(val_index)
+        
+        # Split data
+        train_data = X.iloc[train_index]
+        train_labels = y.iloc[train_index]
+        val_data = X.iloc[val_index]
+        val_labels = y.iloc[val_index]
 
-    Logger.info(f"X_train shape: {X_train.shape} | y_train shape: {y_train.shape}")
-    Logger.info(f"X_infer shape: {X_infer.shape} | y_infer shape: {y_infer.shape}")
+        # start of k-fold
+        k_start = datetime.datetime.now()
+        Logger.info(f"-------------------")
+        Logger.info(f"\nStarting Stratified_k-fold cross-validation on fold no. {i+1} start time: {k_start}...")
+        
+        # Info
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
 
-    # Scale data
-    if cl.config.dataset.scaler_type:
-        Logger.info(f"Dummy Classifier Personalization ===> Scaling dataframes...")
-        scaler = dp.get_scaler()
-        X_train = scaler.fit_transform(X_train)
-        # Fit transform with new scaler
-        X_infer = scaler.transform(X_infer)
-    else:
-        scaler = None
+        clf = LazyClassifier(verbose=10, predictions=True, ignore_warnings=True, custom_metric=None)
+        models, prediction = clf.fit(train_data, val_data, train_labels, val_labels)
+        print(models)
+        Logger.info(f"-------------------")
+        Logger.info(f"Stratified_k-Fold:{i+1} ===> Duration: {datetime.datetime.now() - k_start}")
+        Logger.info(f"-------------------")
+        Logger.info(models)
+        
+        # New table
+        table = []
+        cols = prediction.columns.to_list()
+        table.append(cols)
+        for col in cols:
+            print(col)
+            y_pred = prediction[col]
+            print(prediction[col])
+            print("*********"*20)
+            print("*********"*20)
+            print(classification_report(val_labels, y_pred))
+            print("*********"*20)
+            print("*********"*20)
+            metrics = Metrics(0, is_binary)
+            metrics.y_true = val_labels
+            metrics.y_pred = y_pred
+            metrics.phase = "validation"
+            Logger.info(f"[{col}]. Results:")
+            print(f"[{col}]. Results:")
+            metrics.calculate_metrics()
+            table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
+            results[i] = metrics
+            tables[i] = table
+        print("*********"*20)
+        print("*********"*20)
+        print(f"Results: k-Fold: {i}")
+        Logger.info(f"Results: k-Fold: {i}")
+        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+        Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
 
-    return X_train, X_infer, y_train, y_infer, scaler
-
+    Logger.info(f"*********"*20)
+    Logger.info(f"End of Stratified_k-fold cross-validation")
+    
+    # Save results
+    msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
+    Logger.info(msg)
+    msg = om.save_object(tables, cl.config.folder, dm.FolderType.results, "tables.pkl" )
+    Logger.info(msg)
+    Logger.info("******"*20)
+    Logger.info(f"Results:")
+    print(f"Results:")
+    for i, table in tables.items():
+        print(f"Results: k-Fold: {i}")
+        Logger.info(f"Results: k-Fold: {i}")
+        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+        Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
+    
+    
+'''
 def run(personalized_subject = 3):
 
     print("======"*20)
@@ -146,3 +246,4 @@ def classify(X_train, X_infer, y_train, y_infer, strategy, is_binary):
     metrics.calculate_metrics()
     return metrics
 
+'''

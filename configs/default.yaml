@@ -151,7 +151,7 @@ train:
     min_delta: 0.0
 # Dataset parameters
 dataset:
-  name: 'OCDetect_Export' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'processed' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size
@@ -176,7 +176,8 @@ dataset:
   filter_subjects: ['5'] #['5', '18', '3','30', '15']
   trustworthy_only: *trustworthy_only
   trustworthy_subjects: *trustworthy_subjects
-
+  other_subjects: [5, 18, 3, 30, 15]
+  
 # Filter parameters
 filter:
   fc_low: 0.3
