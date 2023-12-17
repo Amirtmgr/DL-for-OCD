@@ -101,7 +101,7 @@ def run():
     print(stratified_kf.get_n_splits(X, y))
     
     #Selectig 
-    ids = [5, 10, 15, 21, 24, 25]
+    ids = [5, 10, 15, 21, 24]
     for i, x in enumerate(lazypredict.Supervised.CLASSIFIERS):
         print(i, x)
     lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
