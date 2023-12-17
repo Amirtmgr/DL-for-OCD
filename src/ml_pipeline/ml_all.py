@@ -23,7 +23,7 @@ from src.helper import plotter as pl
 from src.helper.metrics import Metrics
 from src.data_processing import features as ft
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split, KFold, LeaveOneGroupOut
 from sklearn.utils import resample
 from sklearn.dummy import DummyClassifier
 import lazypredict
@@ -84,7 +84,7 @@ def select_features(df):
     return selected_df
 
 
-def get_model(name, class_weight, const, verbose=3, **kwargs):
+def get_model(name, class_weight, const, verbose=0, **kwargs):
     if name == 'logistic_regression':
         model = LogisticRegression(class_weight=class_weight,max_iter=2000, verbose=verbose, n_jobs=-1, **kwargs)
     elif name == 'random_forest':
@@ -118,6 +118,7 @@ def get_model(name, class_weight, const, verbose=3, **kwargs):
     Logger.info(f"ML model {name} initialized.")
     return model
 
+
 def run():
     # List models
     all_models = ['logistic_regression', 'random_forest', 'gradient_boosting', 'svm', 'kmeans', 'neuralnetwork', 'SGDClassifier', 'PassiveAggressiveClassifier', 'Perceptron', 'Dummy']
@@ -135,11 +136,31 @@ def run():
     df = load_features()
     
     selected_df = select_features(df)
-    # Split data
-    X = selected_df.copy()
-    y = df["relabeled"]
-    X.reset_index(drop=True, inplace=True)
-    y.reset_index(drop=True, inplace=True)
+    selected_df["relabeled"] = df["relabeled"]
+    selected_df["sub_id"] = df["sub_id"]
+    
+    # Personalized data
+    personalized_subs = cl.config.dataset.personalized_subjects
+    personalized_df = selected_df[selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
+
+    # Train data
+    trained_df = selected_df[~selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
+
+    del df, selected_df 
+    gc.collect()
+     
+    # Training data
+    X = trained_df.drop(columns=["sub_id", "relabeled"], axis=1).copy()
+    y = trained_df["relabeled"].copy()
+    subs = trained_df["sub_id"].copy()
+    
+    # # Personalized data
+    X_p = personalized_df.drop(columns=["sub_id", "relabeled"], axis=1).copy()
+    y_p = personalized_df["relabeled"].copy()
+    subs_p = personalized_df["sub_id"].copy()
+    
+    del personalized_df
+    gc.collect()
     
     #is_binary = cl.config.dataset.num_classes < 3
     is_binary = cl.config.train.task_type.value < 2
@@ -150,11 +171,26 @@ def run():
     shuffle = cl.config.dataset.shuffle
     new_seed = random_seed if shuffle else None
     
-    stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
-    print(stratified_kf.get_n_splits(X, y))
+    # Cross validation
+    cv_name = cl.config.train.cross_validation.name
+    
+    if cv_name== "losocv":
+        cv = LeaveOneGroupOut()
+        folds = cv.split(X, y, subs)
+    elif cv_name== "kfold":
+        cv = KFold(n_splits=n_splits, shuffle=shuffle, random_state=new_seed if shuffle else None)
+        folds = cv.split(X, y)
+    elif cv_name== "stratified":
+        cv = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=new_seed if shuffle else None)
+        folds = cv.split(X, y)
+    else:
+        error = "Invalid cross validation choice.\
+        Supported cross validations: losocv, kfold, stratified."
+        Logger.critical(error)
+        raise ValueError(error)
     
     # Start
-    for kfold, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
+    for kfold, (train_index, val_index) in enumerate(folds):
         Logger.info(f"-------------------")
         Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Start")
         # Split data
@@ -180,10 +216,14 @@ def run():
         Logger.info(f"Class weights: {class_weight_dict}")
         
         # New table
-        table = []
-        metrices = []
+        val_table = []
+        val_metrices = []
+        inference_table = []
+        inference_metrices = []
         trained_models = []
-        table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
+        
+        val_table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
+        inference_table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
         
         # Loop over classifiers
         for model in models:
@@ -195,20 +235,34 @@ def run():
             # Predict
             y_pred = clf.predict(val_data)
             # Metrics
-            metrics = Metrics(0, is_binary)
-            metrics.y_true = val_labels
-            metrics.y_pred = y_pred
-            metrics.phase = "validation"
+            val_metrics = Metrics(0, is_binary)
+            val_metrics.y_true = val_labels
+            val_metrics.y_pred = y_pred
+            val_metrics.phase = "validation"
             Logger.info(f"[{model}]. Results:")
             print(f"[{model}]. Results:")
-            metrics.calculate_metrics()
-            metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
+            val_metrics.calculate_metrics()
+            val_metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
             #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
             #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
-            table.append([model, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
-            metrices.append(metrics)
+            val_table.append([model, val_metrics.precision_score, val_metrics.recall_score,  val_metrics.specificity_score, val_metrics.f1_score, val_metrics.accuracy])
+            val_metrices.append(val_metrics)
             # Save model
             trained_models.append(clf)
+            
+            # Inference
+            infer_y_pred = clf.predict(X_p)
+            infer_metrics = Metrics(0, is_binary)
+            infer_metrics.y_true = y_p
+            infer_metrics.y_pred = infer_y_pred
+            infer_metrics.phase = "inference"
+            Logger.info(f"[{model}]. Inference  Results:")
+            print(f"[{model}]. Results:")
+            infer_metrics.calculate_metrics()
+            inference_metrices.append(infer_metrics)
+            inference_table.append([model, infer_metrics.precision_score, infer_metrics.recall_score,  infer_metrics.specificity_score, infer_metrics.f1_score, infer_metrics.accuracy])
+            
+            
        
         # End of k-fold
         Logger.info(f"-------------------")
@@ -217,10 +271,20 @@ def run():
         
         print(f"Results: k-Fold: {kfold}")
         Logger.info(f"Results: k-Fold: {kfold}")
-        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-        Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-        tables[kfold] = table
-        results[kfold] = metrices
+        print(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
+        print(tabulate(inference_table, headers="firstrow", tablefmt="fancy_grid"))
+        
+        Logger.info(f"Validataion Results: k-Fold: {kfold}")
+        Logger.info(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
+        Logger.info(f"Inference results: k-fold: {kfold}")
+        Logger.info(tabulate(inference_table, headers="firstrow", tablefmt="fancy_grid"))
+        tables[kfold] = {}
+        tables[kfold]["val"] = val_table
+        tables[kfold]["infer"] = inference_table
+        
+        results[kfold] = {}
+        results[kfold]["validation"] = val_metrices
+        results[kfold]["inference"] = inference_metrices
         all_trained_models[kfold] = trained_models
         
     Logger.info(f"*********"*20)
@@ -231,88 +295,17 @@ def run():
     Logger.info(msg)
     msg = om.save_object(tables, cl.config.folder, dm.FolderType.results, "tables.pkl" )
     Logger.info(msg)
-    Logger.info("******"*20)
-    Logger.info(f"Results:")
-    print(f"Results:")
-    for kfold, table in tables.items():
-        print(f"Results: k-Fold: {kfold+1}")
-        Logger.info(f"Results: k-Fold: {kfold+1}")
-        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-        Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-    
-    
-'''
-def run(personalized_subject = 3):
-
-    print("======"*20)
-    Logger.info("======"*20)
-    # start
-    start =  datetime.now()
-    Logger.info(f"Dummy Classifier Personalization on Subject: {personalized_subject} Start time: {start}")
-    print(f"Dummy Classifier Personalization on Subject: {personalized_subject} Start time: {start}")
-
-
-    is_binary = cl.config.dataset.num_classes < 3
-    shelf_name = cl.config.dataset.name
-    random_seed = cl.config.dataset.random_seed
-    shuffle = cl.config.dataset.shuffle
-    train_ratio = cl.config.dataset.train_ratio
-    n_jobs = -1
-
-    # Load python dataset
-    X_train, X_infer, y_train, y_infer, scaler = prepare_data(shelf_name, personalized_subject, train_ratio, random_seed, shuffle)
-
-    # Create dummy classifier
-    stratgeies = ['stratified', 'most_frequent', 'prior', 'uniform', 'constant (0)', 'constant (1)']
-
-    # Results
-    results = {}
-    table = []
-    table.append(["Strategy", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
-
-    # Different strategies
-    for strategy in stratgeies:
-        Logger.info(f"Dummy Classifier Personalization ===> Strategy: {strategy}")
-        metrics = classify(X_train, X_infer, y_train, y_infer, strategy, is_binary)
-        results[strategy] = metrics
-        table.append([strategy, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
-
-        # End
-    end = datetime.now()
-    Logger.info(f"Dummy Classifier Personalization on subject: {personalized_subject} ===> Duration: {end - start}")
-    print(f"Dummy Classifier Personalization on subject: {personalized_subject} ===> Duration: {end - start}")
-
-    msg = om.save_object(results, cl.config.folder, dm.FolderType.results, "results.pkl" )
+    msg = om.save_object(all_trained_models, cl.config.folder, dm.FolderType.results, "trained_models.pkl" )
     Logger.info(msg)
-    Logger.info("******"*20)
-    print("******"*20)
-    Logger.info(f"Dummy Classifier Personalization on subject [{personalized_subject}] ===> Results:")
-    print(f"Dummy Classifier Personalization on subject [{personalized_subject}] ===> Results:")
-    Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-    print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-
-
-
-# Function to run dummy classifier
-def classify(X_train, X_infer, y_train, y_infer, strategy, is_binary):
-    # Create dummy classifier
-    if strategy == 'constant (0)':
-        dummy_clf = DummyClassifier(strategy='constant', constant=0)
-    elif strategy == 'constant (1)':
-        dummy_clf = DummyClassifier(strategy='constant', constant=1)
-    else:
-        dummy_clf = DummyClassifier(strategy=strategy)
+    Logger.info("******\n"*5)
+    print("******\n"*5)
+    Logger.info(f"Final Results:")
+    print(f"Final Results:")
+    for kfold, tabs in tables.items():
+        for phase, tab in tabs.items():
+            print(f"Scores: k-Fold: {kfold+1} | Phase: {phase}")
+            Logger.info(f"Scores: k-Fold: {kfold+1} | Phase: {phase}")
+            print(tabulate(tab, headers="firstrow", tablefmt="fancy_grid"))
+            Logger.info(tabulate(tab, headers="firstrow", tablefmt="fancy_grid"))
     
-    dummy_clf.fit(X_train, y_train)
-    y_pred = dummy_clf.predict(X_infer)
-
-    metrics = Metrics(0, is_binary)
-    metrics.y_true = y_infer
-    metrics.y_pred = y_pred
-    metrics.phase = "inference"
-    Logger.info(f"[{strategy}]. Results:")
-    print(f"[{strategy}]. Results:")
-    metrics.calculate_metrics()
-    return metrics
-
-'''
+    # Save models

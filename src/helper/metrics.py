@@ -81,10 +81,10 @@ class Metrics:
                 self.f1_score = round(f1_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division),2)
 
                 # Recall
-                self.recall_score = round(recall_score(y_true, y_pred, labels=self.labels, zero_division=self.zero_division),2)
+                self.recall_score = round(recall_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
 
                 # Precision
-                self.precision_score = round(precision_score(y_true, y_pred, labels=self.labels, zero_division=self.zero_division),2)
+                self.precision_score = round(precision_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
                 
                 # Confusion Matrix
                 self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)

@@ -165,6 +165,8 @@ dataset:
   task_type: *task_type
   personalization: *personalization
   personalized_subject: 15
+  personalized_subjects: [3,15,18,30]
+
   random_seed: *random_seed
   shuffle: False
   batch_shuffle: False
