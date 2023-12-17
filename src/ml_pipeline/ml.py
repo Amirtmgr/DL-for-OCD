@@ -71,13 +71,7 @@ def select_features(df):
     return selected_df
 
 def run():
-    #Selectig 
-    ids = [5, 6, 21, 23, 26, 28]
-    lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
-    print("*********"*20)
-    Logger.info("*********"*20)
-    print(lazypredict.Supervised.CLASSIFIERS)
-    Logger.info(lazypredict.Supervised.CLASSIFIERS)
+    
 
     # Results
     results = {}
@@ -94,7 +88,7 @@ def run():
     
     #is_binary = cl.config.dataset.num_classes < 3
     is_binary = cl.config.train.task_type.value < 2
-
+    const = 1 if is_binary else 2
     
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
@@ -103,6 +97,16 @@ def run():
     
     stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
     print(stratified_kf.get_n_splits(X, y))
+    
+    #Selectig 
+    ids = [5, 10, 15, 21, 24, 25]
+    for i, x in enumerate(lazypredict.Supervised.CLASSIFIERS):
+        print(i, x)
+    lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
+    print("*********"*20)
+    Logger.info("*********"*20)
+    print(lazypredict.Supervised.CLASSIFIERS)
+    Logger.info(lazypredict.Supervised.CLASSIFIERS)
     
     for i, (train_index, val_index) in enumerate(stratified_kf.split(X, y)):
         print("*********"*20)
@@ -137,9 +141,11 @@ def run():
         
         # New table
         table = []
+        metrices = []
         cols = prediction.columns.to_list()
         table.append(["ML Algorithm", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
-        for col in cols:
+        
+        for idx, col in enumerate(cols):
             print(col)
             y_pred = prediction[col]
             #print(prediction[col])
@@ -155,17 +161,35 @@ def run():
             Logger.info(f"[{col}]. Results:")
             print(f"[{col}]. Results:")
             metrics.calculate_metrics()
-            metrics.save_cm(info=f" Classifier: {col} | k-Fold: {i+1}")
+            metrics.new_save_cm(f"Classifier: {col} | k-Fold: {i+1}")
+            #metrics.save_cm(info=f" Classifier: {col} | k-Fold: {i+1}")
+            #metrics.save_cm(info=f" Classifier: {col} | k-Fold: {i+1}")
             table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
-            results[i] = metrics
-            tables[i] = table
+            metrices.append(metrics)
+        
+        col = f"Chance [Constant : {const}]"
+        dummy_clf = DummyClassifier(strategy='constant', constant=const)
+        dummy_clf.fit(train_data, train_labels)
+        y_pred = dummy_clf.predict(val_data)
+        metrics = Metrics(0, is_binary)
+        metrics.y_true = val_labels
+        metrics.y_pred = y_pred
+        metrics.phase = "validation"
+        Logger.info(f"[{col}]. Results:")
+        print(f"[{col}]. Results:")
+        metrics.calculate_metrics()
+        metrics.new_save_cm(f"Classifier: Chance [Constant:{const}] | k-Fold: {i+1}")
+        table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy]) 
+        metrices.append(metrics)        
         print("*********"*20)
         print("*********"*20)
         print(f"Results: k-Fold: {i}")
         Logger.info(f"Results: k-Fold: {i}")
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
-
+        tables[i] = table
+        results[i] = metrices
+        
     Logger.info(f"*********"*20)
     Logger.info(f"End of Stratified_k-fold cross-validation")
     

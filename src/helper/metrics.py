@@ -10,6 +10,11 @@ from collections import Counter
 from tabulate import tabulate
 from src.helper import plotter as pl
 from src.utils.config_loader import config_loader as cl
+import matplotlib.pyplot as plt
+import seaborn as sns
+import datetime as dt
+import uuid
+import os
 
 from src.helper.cf_matrix import make_confusion_matrix
 from src.helper.logger import Logger
@@ -272,3 +277,23 @@ class Metrics:
         plt.xlabel('Predicted label' + stats_text)
         plt.title(title)
         pl.save_plot(plt, title)
+
+    def new_save_cm(self, info):
+        # Save the confusion matrix to an image file
+        plt.figure(figsize=(8, 6))
+        conf_matrix = self.confusion_matrix
+        sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="rocket_r")
+        plt.xlabel('Predicted labels')
+        plt.ylabel('True labels')
+        plt.title('Confusion Matrix: ' + info)
+        path = cl.config.charts_path
+        file_name = info.replace(" ", "-").lower() + "_" + dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + str(uuid.uuid4().hex) + ".png"
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        try:
+            plt.savefig(path + "/" + file_name)
+            plt.close()
+            Logger.info(f"Plot saved as {file_name} inside path {path}")
+        except Exception as e:
+            Logger.error(f"{e} while saving plot as {file_name}")
