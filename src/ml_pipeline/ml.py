@@ -26,9 +26,9 @@ from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSamp
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import resample
 from sklearn.dummy import DummyClassifier
+import lazypredict
 from lazypredict.Supervised import LazyClassifier
 from sklearn.metrics import classification_report
-
 
 def load_features():
     csv_files = dm.get_files_names()
@@ -71,6 +71,14 @@ def select_features(df):
     return selected_df
 
 def run():
+    #Selectig 
+    ids = [5, 6, 21, 23, 26, 28]
+    lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
+    print("*********"*20)
+    Logger.info("*********"*20)
+    print(lazypredict.Supervised.CLASSIFIERS)
+    Logger.info(lazypredict.Supervised.CLASSIFIERS)
+
     # Results
     results = {}
     tables = {}
@@ -115,6 +123,9 @@ def run():
         # Info
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Train data shape: {train_data.shape} | Train labels shape: {train_labels.shape}")
         Logger.info(f"Stratified_k-Fold:{i+1} ===> Val data shape: {val_data.shape} | Val labels shape: {val_labels.shape}") 
+        
+        #Selectig initial 10 classifiers
+
 
         clf = LazyClassifier(verbose=10, predictions=True, ignore_warnings=True, custom_metric=None)
         models, prediction = clf.fit(train_data, val_data, train_labels, val_labels)
@@ -131,7 +142,7 @@ def run():
         for col in cols:
             print(col)
             y_pred = prediction[col]
-            print(prediction[col])
+            #print(prediction[col])
             print("*********"*20)
             print("*********"*20)
             print(classification_report(val_labels, y_pred))
@@ -144,7 +155,7 @@ def run():
             Logger.info(f"[{col}]. Results:")
             print(f"[{col}]. Results:")
             metrics.calculate_metrics()
-            metrics.plot_cm()
+            metrics.save_cm(info=f" Classifier: {col} | k-Fold: {i+1}")
             table.append([col, metrics.precision_score, metrics.recall_score,  metrics.specificity_score, metrics.f1_score, metrics.accuracy])
             results[i] = metrics
             tables[i] = table
@@ -167,8 +178,8 @@ def run():
     Logger.info(f"Results:")
     print(f"Results:")
     for i, table in tables.items():
-        print(f"Results: k-Fold: {i}")
-        Logger.info(f"Results: k-Fold: {i}")
+        print(f"Results: k-Fold: {i+1}")
+        Logger.info(f"Results: k-Fold: {i+1}")
         print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
     
