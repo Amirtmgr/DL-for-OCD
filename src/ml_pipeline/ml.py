@@ -31,7 +31,7 @@ from lazypredict.Supervised import LazyClassifier
 from sklearn.metrics import classification_report
 
 def load_features():
-    csv_files = dm.get_files_names()
+    csv_files = dm.get_files_names()[:2]
     grouped_files = ds.group_by_subjects(csv_files)
     subjects = list(grouped_files.keys())
     
@@ -55,11 +55,13 @@ def load_features():
     elif cl.config.train.task_type.value == 0:
         print("*********"*20)
         print("Null vs cHW binary")
-        return df["relabeled"].replace(1, 0).reset_index(drop=True)
+        df['relabeled'].replace(1, 0, inplace=True)
+        return df
     elif cl.config.train.task_type.value == 1:
         print("*********"*20)
         print("Null vs HW binary")
-        return df["relabeled"].replace(2, 1).reset_index(drop=True)
+        df['relabeled'].replace(2, 1, inplace=True)
+        return df
     else:
         print("*********"*20)
         print("Null vs cHW vs HW")
