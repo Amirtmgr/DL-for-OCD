@@ -74,6 +74,12 @@ def load_features():
         print("Null vs HW binary")
         df['relabeled'].replace(2, 1, inplace=True)
         return df
+    elif cl.config.train.task_type.value == 2:
+        print("*********"*20)
+        print("NrHW vs cHW")
+        temp_df['relabeled'].replace(1, 0, inplace=True)
+        temp_df['relabeled'].replace(2, 1, inplace=True)
+        return df
     else:
         print("*********"*20)
         print("Null vs cHW vs HW")
@@ -84,7 +90,7 @@ def select_features(df):
     return selected_df
 
 
-def get_model(name, class_weight, const, verbose=0, **kwargs):
+def get_model(name, class_weight, const, verbose=1, **kwargs):
     if name == 'logistic_regression':
         model = LogisticRegression(class_weight=class_weight,max_iter=2000, verbose=verbose, n_jobs=-1, **kwargs)
     elif name == 'random_forest':
