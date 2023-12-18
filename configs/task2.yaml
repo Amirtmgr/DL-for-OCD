@@ -1,0 +1,193 @@
+# ------------------------------------------------------------------------
+# Description: Configuration file for the project
+# Author: Amir Thapa Magar
+# Email: amir.thapamagar(at)student.uni-siegen.de
+# ------------------------------------------------------------------------
+
+# Global variables
+
+# Debugging options
+debug: False
+
+# Machine
+machine: 'cluster' #'local' #'cluster'
+world_size: 1 #Number of GPUs
+
+# Global variables
+global:
+  - &window_size 380
+  - &num_epochs 101
+  - &num_classes 2
+  - &sensors 'both' #'acc' # 'gyro' # 'both'
+  - &device 'cuda'
+  - &num_workers 4
+  - &random_seed 831 #2531442
+  - &use_warn_metrics True
+  - &task_type -1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
+  - &binary_threshold 0.5
+  - &personalization True
+  - &ensemble False
+  - &trustworthy_only False 
+  - &trustworthy_subjects ['1' ,'3' ,'4' ,'18', '20', '30']
+  - &sampling False
+
+# For personalization
+checkpoint:
+  folder: '2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
+  filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
+  freeze_layers: True
+  trainable_layers: ['fc_layers']
+
+# Model architecture parameters
+architecture:
+  name: 'cnn_transformer' #'multi_cnn_transformer' #'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
+  sensors: *sensors
+  window_size: *window_size
+  device: *device
+  task_type: *task_type
+
+  # For CNN and Conv Layer of Transformer and TinyHAR
+  input_channels: 1
+  hidden_channels: [64, 64, 64, 64]
+  kernel_sizes: [1, 3, 3, 5] 
+  cnn_bias: False
+  cnn_batch_norm: True
+
+  # For LSTM
+  lstm_hidden_size: 128
+  lstm_num_layers: 2
+  lstm_bias: False
+  lstm_dropout: 0.0
+  lstm_bidirectional: True
+
+  # For Transformer
+  multi_attn_heads: 8
+  dim_feedforward: 128
+  transformer_dropout: 0.1
+  transformer_act_fn: 'gelu' #'gelu'
+  num_encoder_layers: 6
+  num_decoder_layers: 6
+  encode_position: True
+  
+  # For TinyHAR
+  #tinyhar_filter_num: 1 #same as last hidden layer of conv layer
+  #tinyhar_nb_conv_layers: 4 # same as number of hidden channels of conv layer
+  #tinyhar_filter_size: 1 # same as kernel size of conv layer
+  tinyhar_dropout: 0.5
+  tinyhar_activation: "gelu" #'gelu'
+  cross_channel_interaction_type: "attn"    # attn  transformer  identity
+  cross_channel_aggregation_type: "FC"  # filter  naive  FC
+  temporal_info_interaction_type: "lstm"     # gru  lstm  attn  transformer  identity
+  temporal_info_aggregation_type: "naive"      # naive  filter  FC 
+
+
+  # For Attend And Discriminate
+  atd_hidden_dim: 256
+  atd_conv_kernels: 64
+  atd_conv_kernel_size: 1
+  atd_enc_layers: 6
+  atd_enc_is_bidirectional: False
+  atd_dropout: 0.5
+  atd_dropout_rnn: 0.5
+  atd_dropout_cls: 0.5
+  atd_activation: 'ReLU'
+  atd_sa_div: 1
+
+
+  # For Dropout Layer
+  dropout: 0.5
+  
+  # For FC layer or Head of Transformer
+  fc_hidden_size: 256
+  num_classes: *num_classes
+  fc_batch_norm: False
+  activation:
+    name: 'gelu' #'leaky_relu' #'relu' #'tanh' #'sigmoid' #'elu'
+    negative_slope: 0.01 # For leaky_relu
+    alpha: 1.0 # For elu
+
+  # For weights initialization
+  scheme: 'xavier_uniform'
+
+# Optimizer Hyperparameters
+optim:
+  name: 'sgd' #'sgd'
+  learning_rate: 0.0003
+  weight_decay: 0.00005
+  momentum: 0.9
+  nesterov: True
+
+# Loss function parameters
+criterion:
+  name: 'bce' #'bce' #'cross_entropy'
+  weighted: True
+  reduction: 'mean'
+
+# LR Scheduler parameters
+lr_scheduler:
+  name: 'reduce_lr_on_plateau' #'step_lr' #'reduce_lr_on_plateau'
+  step_size: 5 # For step_lr
+  gamma: 0.5 # For step_lr
+  factor: 0.98 
+  patience: 7 # For reduce_lr_on_plateau
+  mode: 'min' # For reduce_lr_on_plateau
+  verbose: True 
+  threshold: 0.0001 # For reduce_lr_on_plateau
+
+# Training Hyperparameters
+train:
+  device: *device
+  num_epochs: *num_epochs
+  batch_size: 64
+  binary_threshold: *binary_threshold
+  task_type: *task_type
+  random_seed: *random_seed
+  cross_validation:
+    name: 'stratified' #'stratified' #'kfold' #'losocv'
+    k_folds: 4
+  ensemble: *ensemble
+  early_stopping:
+    patience: 15
+    min_delta: 0.0
+# Dataset parameters
+dataset:
+  name: 'processed' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  sensor: *sensors #'acc' # 'gyro' # 'both'
+  overlapping_ratio: 0.0
+  window_size: *window_size
+  num_classes: *num_classes
+  labels: ['NUll', 'rHW', 'cHW']
+  train_ratio: 0.85 #0.5  # Highest 0.9
+  
+  test_ratio: 0.1 # Set only on DL Personalization
+  inference_ratio: 0.15 # Set only on DL Personalization
+  split: 'subject_wise' # To:do future
+  task_type: *task_type
+  personalization: *personalization
+  personalized_subject: 15
+  personalized_subjects: [3,15,18,30]
+
+  random_seed: *random_seed
+  shuffle: False
+  batch_shuffle: False
+  num_workers: *num_workers
+  pin_memory: False
+  scaler_type: "MinMax" # "Standard" # "Robust"
+  sampling: *sampling
+  alpha: 0.15 # Sampling ratio
+  filter_subjects: ['5'] #['5', '18', '3','30', '15']
+  trustworthy_only: *trustworthy_only
+  trustworthy_subjects: *trustworthy_subjects
+  other_subjects: [5, 18, 3, 30, 15]
+  
+# Filter parameters
+filter:
+  fc_low: 0.3
+  fc_high: 18.0
+  order: 5
+  sampling_rate: 50.0 # Hz
+
+# Metrics parameters
+metrics:
+  zero_division: "warn"  #'nan' #'warn'#0 # 1
+  use_warn_metrics: *use_warn_metrics
