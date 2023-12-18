@@ -16,6 +16,8 @@ test.ipynb
 # Configs
 configs/*
 !configs/default.yaml
+!configs/task*.yaml
+
 
 # Cluster output
 cluster/*
