@@ -68,6 +68,7 @@ def load_features():
         print("*********"*20)
         print("Null vs cHW binary")
         df['relabeled'].replace(1, 0, inplace=True)
+        df['relabeled'].replace(2, 1, inplace=True)
         return df
     elif cl.config.train.task_type.value == 1:
         print("*********"*20)
@@ -128,8 +129,8 @@ def get_model(name, class_weight, const, verbose=1, **kwargs):
 def run():
     # List models
     all_models = ['logistic_regression', 'random_forest', 'gradient_boosting', 'svm', 'kmeans', 'neuralnetwork', 'SGDClassifier', 'PassiveAggressiveClassifier', 'Perceptron', 'Dummy']
-    indices = [0,1,3,5,6,8,9]
-    models = all_models #[all_models[i] for i in indices]
+    indices = [0,1,6,8,9]
+    models = [all_models[i] for i in indices]
     for i, model in enumerate(models):
         print(f"{i}.{model}")
         
