@@ -54,7 +54,7 @@ architecture:
   cnn_batch_norm: True
 
   # For LSTM
-  lstm_hidden_size: 128
+  lstm_hidden_size: 256
   lstm_num_layers: 2
   lstm_bias: False
   lstm_dropout: 0.0
@@ -62,7 +62,7 @@ architecture:
 
   # For Transformer
   multi_attn_heads: 8
-  dim_feedforward: 128
+  dim_feedforward: 256
   transformer_dropout: 0.1
   transformer_act_fn: 'gelu' #'gelu'
   num_encoder_layers: 6
