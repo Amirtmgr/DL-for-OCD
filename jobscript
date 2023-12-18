@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=CT_40         # name for your job
+#SBATCH --job-name=NT_40         # name for your job
 #SBATCH --partition=medium           # partition to run in
 #SBATCH --ntasks=1                  # total number of tasks across all nodes
 #SBATCH --ntasks-per-node=64        # total number of tasks across all nodes<
@@ -37,14 +37,14 @@ echo "Running python script `hostname`"
 #python main.py configs/config_01.yaml
 
 # Run task1
-python main.py configs/task1.yaml
+#python main.py configs/task1.yaml
 
 # # Run task2
-# python main.py configs/task2.yaml
+#python main.py configs/task2.yaml
 
 # # Run task3
-# python main.py configs/task3.yaml
+#python main.py configs/task3.yaml
 
 # # Run task4
-# python main.py configs/task4.yaml
+python main.py configs/task4.yaml
 
