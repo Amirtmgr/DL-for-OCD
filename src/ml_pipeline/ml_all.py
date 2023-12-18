@@ -157,8 +157,8 @@ def run():
     gc.collect()
      
     # Training data
-    X = trained_df.drop(columns=["sub_id", "relabeled"], axis=1).copy()
-    y = trained_df["relabeled"].copy()
+    X_all = trained_df.drop(columns=["sub_id", "relabeled"], axis=1).copy()
+    y_all = trained_df["relabeled"].copy()
     subs = trained_df["sub_id"].copy()
     
     # # Personalized data
@@ -177,19 +177,32 @@ def run():
     n_splits = cl.config.train.cross_validation.k_folds
     shuffle = cl.config.dataset.shuffle
     new_seed = random_seed if shuffle else None
-    
+    train_ratio = cl.config.dataset.train_ratio
+
+    # Split data
+    if shuffle:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio, stratify = y_all, shuffle=shuffle, random_state = new_seed)
+    else:
+        X_train, X_inference, y_train, y_inference = train_test_split(X_all, y_all, train_size = train_ratio)
+
+    X_inference = X_inference.reshape(-1, window_size, num_features)
+
+    Logger.info(f"Total Train size: {len(X_train)} | Counts: {Counter(y_train)}")
+    Logger.info(f"Inference size: {len(X_inference)} | Counts: {Counter(y_inference)}")
+
+
     # Cross validation
     cv_name = cl.config.train.cross_validation.name
     
     if cv_name== "losocv":
         cv = LeaveOneGroupOut()
-        folds = cv.split(X, y, subs)
+        folds = cv.split(X_all, y_all, subs)
     elif cv_name== "kfold":
         cv = KFold(n_splits=n_splits, shuffle=shuffle, random_state=new_seed if shuffle else None)
-        folds = cv.split(X, y)
+        folds = cv.split(X_all, y_all)
     elif cv_name== "stratified":
         cv = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=new_seed if shuffle else None)
-        folds = cv.split(X, y)
+        folds = cv.split(X_all, y_all)
     else:
         error = "Invalid cross validation choice.\
         Supported cross validations: losocv, kfold, stratified."
@@ -201,10 +214,10 @@ def run():
         Logger.info(f"-------------------")
         Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Start")
         # Split data
-        train_data = X.iloc[train_index]
-        train_labels = y.iloc[train_index]
-        val_data = X.iloc[val_index]
-        val_labels = y.iloc[val_index]
+        train_data = X_all.iloc[train_index]
+        train_labels = y_all.iloc[train_index]
+        val_data = X_all.iloc[val_index]
+        val_labels = y_all.iloc[val_index]
 
         # start of k-fold
         k_start = datetime.datetime.now()
@@ -227,9 +240,12 @@ def run():
         val_metrices = []
         inference_table = []
         inference_metrices = []
+        personalized_infer_table = []
+        personalized_infer_metrices = []
         trained_models = []
         
         val_table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
+        personalized_infer_table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
         inference_table.append(["Classifier", "Precision", "Sensitivity", "Specificity", "F1-Score", "Accuracy"])
         
         # Loop over classifiers
@@ -258,9 +274,10 @@ def run():
             trained_models.append(clf)
             
             # Inference
-            infer_y_pred = clf.predict(X_p)
+            Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Inference")
+            infer_y_pred = clf.predict(X_inference)
             infer_metrics = Metrics(0, is_binary)
-            infer_metrics.y_true = y_p
+            infer_metrics.y_true = y_inference
             infer_metrics.y_pred = infer_y_pred
             infer_metrics.phase = "inference"
             Logger.info(f"[{model}]. Inference  Results:")
@@ -268,6 +285,20 @@ def run():
             infer_metrics.calculate_metrics()
             inference_metrices.append(infer_metrics)
             inference_table.append([model, infer_metrics.precision_score, infer_metrics.recall_score,  infer_metrics.specificity_score, infer_metrics.f1_score, infer_metrics.accuracy])
+            
+            
+            # Peronslized Inference
+            Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Personalized Inference")
+            p_infer_y_pred = clf.predict(X_p)
+            p_infer_metrics = Metrics(0, is_binary)
+            p_infer_metrics.y_true = y_p
+            p_infer_metrics.y_pred = p_infer_y_pred
+            p_infer_metrics.phase = "inference"
+            Logger.info(f"[{model}]. Inference  Results:")
+            print(f"[{model}]. Results:")
+            p_infer_metrics.calculate_metrics()
+            personalized_infer_metrices.append(p_infer_metrics)
+            personalized_infer_table.append([model, p_infer_metrics.precision_score, p_infer_metrics.recall_score,  p_infer_metrics.specificity_score, p_infer_metrics.f1_score, p_infer_metrics.accuracy])
             
             
        
@@ -279,19 +310,21 @@ def run():
         print(f"Results: k-Fold: {kfold}")
         Logger.info(f"Results: k-Fold: {kfold}")
         print(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
-        print(tabulate(inference_table, headers="firstrow", tablefmt="fancy_grid"))
+        print(tabulate(personalized_infer_table, headers="firstrow", tablefmt="fancy_grid"))
         
         Logger.info(f"Validataion Results: k-Fold: {kfold}")
         Logger.info(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(f"Inference results: k-fold: {kfold}")
-        Logger.info(tabulate(inference_table, headers="firstrow", tablefmt="fancy_grid"))
+        Logger.info(tabulate(personalized_infer_table, headers="firstrow", tablefmt="fancy_grid"))
         tables[kfold] = {}
         tables[kfold]["val"] = val_table
-        tables[kfold]["infer"] = inference_table
-        
+        tables[kfold]["personalized_infer"] = personalized_infer_table
+        tables[kfold]["inference"] = inference_table
         results[kfold] = {}
         results[kfold]["validation"] = val_metrices
+        results[kfold]["personalized_inference"] = personalized_infer_metrices
         results[kfold]["inference"] = inference_metrices
+        
         all_trained_models[kfold] = trained_models
         
     Logger.info(f"*********"*20)
