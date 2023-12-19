@@ -194,10 +194,13 @@ def main():
     cl.print_config_dict()
 
     if args.method == 'dl':
+        cl.config.dataset.name = "OCDetect_sep_380"
         dl.train()
     elif args.method == 'ml':
+        cl.config.dataset.name = "processed"
         ml.run()
     elif args.method == 'lazy':
+        cl.config.dataset.name = "processed"
         lazy.run()
     else:
         raise ValueError("Method not found. Use \'dl\' or \'ml\'")
