@@ -87,45 +87,61 @@ def train():
         if cl.config.train.ensemble:
             p.ensemble(device, multi_gpu)
         else:
-            p.run(device, multi_gpu)
+            personalize_all(device, multi_gpu)
     else: 
         if cv == "loso"  or cv == "kfold":
             v.subwise_k_fold_cv(device, multi_gpu)
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
         elif cv == "personalized":
-            p.run(device, multi_gpu)
+            personalize_all()
         else:
-            # Load dataset
-            train_dataset, val_dataset = dp.get_datasets()
-
-            # Load dataloaders
-            train_loader = dp.load_dataloader(train_dataset)
-            val_loader = dp.load_dataloader(val_dataset)
-            
-            # Get class weights
-            class_weights = dp.compute_weights(train_dataset)
-
-            # Load Traning parameters
-            model = t.init_weights(t.load_network())
-            optimizer = t.load_optim(model)
-            criterion = t.load_criterion(class_weights)
-            lr_scheduler = t.load_lr_scheduler(optimizer)
-
-            # Train Model
-            state = t.train_model(model, criterion, 
-                                optimizer, lr_scheduler,
-                                train_loader, val_loader, device,
-                                threshold=cl.config.train.threshold)
-
-            state.info()
-
-            # Visuals
-            state.plot_losses()
-            state.plot_f1_scores()
+            Logger.error("Cross-validation method not supported.")
+            raise ValueError("Cross-validation method not supported.")
         
     # Clean up
     #t.ddp_destroy()
 
 
 
+def personalize_all(device, multi_gpu):
+    before_table = []
+    table_based_on_loss = []
+    table_based_on_f1 = []
+
+    header = ["Subject", "F1-Score", "Precision", "Recall", "Specificity", "Accuracy"]
+    before_table.append(header)
+    table_based_on_f1.append(header)
+    table_based_on_loss.append(header)
+
+    for i in cl.config.dataset.personalized_subjects:
+        cl.config.dataset.personalized_subject = i
+        Logger.info(f"****************************")
+        Logger.info(f"Personalizing for subject {i}")
+        infer_metrics_0, infer_metrics_1, infer_metrics_2 = p.run(device, multi_gpu)
+        before_table.append([i, f"{infer_metrics_0.f1_score:.2f}", f"{infer_metrics_0.precision_score:.2f}", f"{infer_metrics_0.recall_score:.2f}", f"{infer_metrics_0.specificity_score:.2f}", f"{infer_metrics_0.accuracy:.2f}"])
+        table_based_on_f1.append([i, f"{infer_metrics_1.f1_score:.2f}", f"{infer_metrics_1.precision_score:.2f}", f"{infer_metrics_1.recall_score:.2f}", f"{infer_metrics_1.specificity_score:.2f}", f"{infer_metrics_1.accuracy:.2f}"])
+        table_based_on_loss.append([i, f"{infer_metrics_2.f1_score:.2f}", f"{infer_metrics_2.precision_score:.2f}", f"{infer_metrics_2.recall_score:.2f}", f"{infer_metrics_2.specificity_score:.2f}", f"{infer_metrics_2.accuracy:.2f}"])
+        
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Before Personalization")
+    print("Results: Before Personalization")
+    print(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabluate(before_table, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Based on F1-Score")
+    print("Results: Based on F1-Score")
+    print(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabluate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Based on Loss")
+    print("Results: Based on Loss")
+    print(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabluate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info(f"Congratulations! You have completed the personalization process.")
+    print(f"Congratulations! You have completed the personalization process.")

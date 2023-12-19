@@ -36,6 +36,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier, PassiveAggressiveClassifier, Perceptron
 from sklearn.cluster import KMeans
 from sklearn.neural_network import MLPClassifier
+from src.helper.data_model import TaskType
 
 # Function to load data
 def load_features():
@@ -56,7 +57,7 @@ def load_features():
         df_list.append(temp_df)
     df = pd.concat(df_list, ignore_index=True)
     
-    if cl.config.train.task_type.value == -1:
+    if cl.config.train.task_type.value == TaskType.rHW_cHW_binary.value:
         print("*********"*20)
         print("rHW vs cHW binary")
         temp_df = df[df["relabeled"] != 0].copy().reset_index(drop=True)
@@ -64,22 +65,16 @@ def load_features():
         temp_df['relabeled'].replace(2, 1, inplace=True)
         return temp_df
        
-    elif cl.config.train.task_type.value == 0:
+    elif cl.config.train.task_type.value == TaskType.cHW_detection.value:
         print("*********"*20)
         print("Null vs cHW binary")
         df['relabeled'].replace(1, 0, inplace=True)
         df['relabeled'].replace(2, 1, inplace=True)
         return df
-    elif cl.config.train.task_type.value == 1:
+    elif cl.config.train.task_type.value == TaskType.HW_detection.value:
         print("*********"*20)
         print("Null vs HW binary")
         df['relabeled'].replace(2, 1, inplace=True)
-        return df
-    elif cl.config.train.task_type.value == 2:
-        print("*********"*20)
-        print("NrHW vs cHW")
-        temp_df['relabeled'].replace(1, 0, inplace=True)
-        temp_df['relabeled'].replace(2, 1, inplace=True)
         return df
     else:
         print("*********"*20)

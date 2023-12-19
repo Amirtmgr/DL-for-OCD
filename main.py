@@ -193,6 +193,7 @@ def main():
     print(msg)
     cl.print_config_dict()
 
+    # Datasets selection
     if args.method == 'dl':
         cl.config.dataset.name = "OCDetect_sep_380"
         dl.train()
