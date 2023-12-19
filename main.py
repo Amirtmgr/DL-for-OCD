@@ -163,7 +163,7 @@ def main():
     #dl.train()
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
-    num_classes = 2 if task_type.value < 2 else 3
+    num_classes = 2 if task_type.value !=TaskType.Multiclass_classification.value else 3 
     cl.config.dataset.num_classes = num_classes
     cl.config.architecture.num_classes = num_classes
 

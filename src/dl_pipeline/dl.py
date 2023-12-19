@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset, TensorDataset
+from tabulate import tabulate
 
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, jaccard_score
 from sklearn.model_selection import train_test_split
@@ -28,6 +29,7 @@ from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
 from src.dl_pipeline import validate as v
 from src.dl_pipeline import personalize as p
+
 
 # Function to setup random seed
 def setup_random_seed():
@@ -79,7 +81,7 @@ def train():
     cv = cl.config.train.cross_validation.name
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
-    num_classes = 2 if task_type.value < 2 else 3
+    num_classes = 2 if task_type.value !=TaskType.Multiclass_classification.value else 3
     cl.config.dataset.num_classes = num_classes
     cl.config.architecture.num_classes = num_classes
 
@@ -128,19 +130,19 @@ def personalize_all(device, multi_gpu):
     Logger.info("Results: Before Personalization")
     print("Results: Before Personalization")
     print(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
-    Logger.info(tabluate(before_table, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
     print(f"****************************")
     Logger.info("Results: Based on F1-Score")
     print("Results: Based on F1-Score")
     print(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
-    Logger.info(tabluate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
     print(f"****************************")
     Logger.info("Results: Based on Loss")
     print("Results: Based on Loss")
     print(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
-    Logger.info(tabluate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
     print(f"****************************")
     Logger.info(f"Congratulations! You have completed the personalization process.")

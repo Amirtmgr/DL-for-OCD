@@ -15,6 +15,7 @@ import seaborn as sns
 import datetime as dt
 import uuid
 import os
+from src.helper.data_model import TaskType
 
 from src.helper.cf_matrix import make_confusion_matrix
 from src.helper.logger import Logger
@@ -44,7 +45,7 @@ class Metrics:
         self.accuracy = 0.0
         self.y_true = None
         self.y_pred = None
-        self.labels = [0, 1] if cl.config.dataset.task_type < 3 else [0, 1, 2]
+        self.labels = [0, 1, 2] if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else [0, 1]
         self.zero_division_warn = False
         self.classification_report = None
         self.outputs = None

@@ -9,7 +9,7 @@ from src.helper.logger import Logger
 from src.utils.config_loader import config_loader as cl
 from src.helper import data_preprocessing as dp
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
+from src.helper.data_model import TaskType
 
 def show():
     shelf_name = cl.config.dataset.name
@@ -49,9 +49,9 @@ def show():
             majority = np.argmax(counts)
             
             if majority == 0:
-                label = "Null" if cl.config.dataset.task_type > 2 else "rHW"
+                label = "Null" if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else "rHW"
             elif majority == 1:
-                label = "rHW" if cl.config.dataset.task_type > 2 else "cHW"
+                label = "rHW" if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else "cHW"
             elif majority == 2:
                 label = "cHW"
 

@@ -95,7 +95,7 @@ def run():
     y.reset_index(drop=True, inplace=True)
     
     #is_binary = cl.config.dataset.num_classes < 3
-    is_binary = cl.config.train.task_type.value < 2
+    is_binary = cl.config.train.task_type.value != TaskType.Multiclass_classification.value
     const = 1 if is_binary else 2
     
     random_seed = cl.config.dataset.random_seed
@@ -106,7 +106,7 @@ def run():
     stratified_kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=new_seed if shuffle else None)
     print(stratified_kf.get_n_splits(X, y))
     
-    if cl.config.train.task_type.value == 3:
+    if cl.config.train.task_type.value == TaskType.Multiclass_classification.value:
         #Selectig 
         ids = [5, 10, 15, 21, 24]
         lazypredict.Supervised.CLASSIFIERS = [lazypredict.Supervised.CLASSIFIERS[i] for i in ids]
