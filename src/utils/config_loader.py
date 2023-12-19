@@ -47,6 +47,7 @@ class __ConfigLoader:
                 self.config_dict = yaml.safe_load(file)
                 temp = self._set_paths(self.config_dict)
                 temp['file_name'] = self.file_name
+                temp["best_model_folder"] = os.path.join(self.main_path,"saved","best_model", temp['dataset'][task_type])
                 self.config = easydict.EasyDict(temp)    
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file '{file_name}' not found.")
@@ -75,7 +76,7 @@ class __ConfigLoader:
         temp["logs_path"] = os.path.join(self.main_path,"saved", folder, "logs")
         temp["charts_path"] = os.path.join(self.main_path,"saved", folder, "charts")
         temp["data_path"] = os.path.join(self.main_path,"data")
-        temp["best_model_folder"] = os.path.join(self.main_path,"saved","best_model")
+        
         temp["best_val_loss"] = 0.0
         # temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
         # temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")

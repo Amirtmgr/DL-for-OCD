@@ -16,7 +16,7 @@ world_size: 1 #Number of GPUs
 # Global variables
 global:
   - &window_size 380
-  - &num_epochs 30
+  - &num_epochs 50
   - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
