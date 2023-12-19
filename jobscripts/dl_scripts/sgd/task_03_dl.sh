@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=DL_40         # name for your job
+#SBATCH --job-name=DL_S30         # name for your job
 #SBATCH --partition=gpu           # partition to run in
 #SBATCH --ntasks=1                  # total number of tasks across all nodes
 #SBATCH --ntasks-per-node=64        # total number of tasks across all nodes<
@@ -17,7 +17,7 @@
 
 # Python args
 method="dl" # ml, dl
-task="task4" # task1, task2, task3, task4, task5
+task="task3_sgd" # task1, task2, task3, task4, task5
 
 
 echo "Unloading modules `hostname`"
