@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=NT_40         # name for your job
+#SBATCH --job-name=$ML_10         # name for your job
 #SBATCH --partition=medium           # partition to run in
 #SBATCH --ntasks=1                  # total number of tasks across all nodes
 #SBATCH --ntasks-per-node=64        # total number of tasks across all nodes<
@@ -15,6 +15,9 @@
 ##SBATCH --mail-user=$EMAIL          # email address from environemnt variable $EMAIL
 
 
+# Python args
+method = "dl" # ml, dl
+task = "task1" # task1, task2, task3, task4, task5
 
 
 echo "Unloading modules `hostname`"
@@ -33,8 +36,13 @@ echo "JobID is $SLURM_JOBID"
 echo "Working directory is $SLURM_SUBMIT_DIR"
 echo "Running python script `hostname`"
 
+
 # Run a python script:
-#python main.py configs/config_01.yaml
+python main.py configs/$task.yaml $method
+
+# Run a python script:
+#python main.py configs/config_01.yaml "ml"
+#python main.py configs/config_01.yaml "ml"
 
 # Run task1
 #python main.py configs/task1.yaml
@@ -46,5 +54,4 @@ echo "Running python script `hostname`"
 #python main.py configs/task3.yaml
 
 # # Run task4
-python main.py configs/task4.yaml
-
+#python main.py configs/task4.yaml

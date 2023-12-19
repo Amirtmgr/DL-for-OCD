@@ -49,10 +49,13 @@ def save_state(state:State, optional_name:str = ""):
     filename = cl.config.architecture.name + optional_name + "_Epoch-" + str(state.best_epoch)
     
     model_path = cl.config.models_path + "/" + filename
-
+    best_model = cl.config.best_model_folder + "/" + "best_model.pth"
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
     
+    if not os.path.exists(cl.config.best_model_folder):
+        os.makedirs(cl.config.best_model_folder)
+        
     state.path = model_path
     state.file_name = filename
 
@@ -74,6 +77,10 @@ def save_state(state:State, optional_name:str = ""):
     #Save state object and dictionary    
     try:
         torch.save(state, model_path+".pth")
+        if not cl.config.dataset.personalization and cl.config.architecture.name == "cnn_transformer":
+            if cl.config.best_val_loss < state.best_val_metrics.loss:
+                cl.config.best_val_loss = state.best_val_metrics.loss
+                torch.save(state, best_model)
         #torch.save(state_dict, model_path+".pt")
 
     except Exception as e:  
@@ -95,9 +102,18 @@ def load_checkpoint():
     # state = result[best_fold-1]['f1']
     # best_epoch = state.best_epoch
 
+    # Load from best model
+    best_model = cl.config.best_model_folder + "/" + "best_model.pth" 
     folder = cl.config.checkpoint.folder
+    
+    if os.path.isfile(best_model) and folder == "best_model":
+        print("Loading checkpoint '{}'".format(best_model))
+        checkpoint = torch.load(best_model)
+        return checkpoint
+    
+    
+    # Load form sepecific saved models
     filename = cl.config.checkpoint.filename.split(".")[0]
-
     folder_path = os.path.join(cl.config.main_path, "saved", folder, "models")
     full_path = os.path.join(folder_path, filename+".pth")
     

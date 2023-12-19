@@ -70,13 +70,13 @@ class __ConfigLoader:
         temp["results_folder"] = os.path.join(self.main_path,"saved", folder, "results")
         temp["logs_folder"] = os.path.join(self.main_path,"saved", folder, "logs")
         temp["charts_folder"] = os.path.join(self.main_path,"saved", folder, "charts")
-
         temp["models_path"] = os.path.join(self.main_path,"saved", folder, "models")
         temp["results_path"] = os.path.join(self.main_path,"saved", folder, "results")
         temp["logs_path"] = os.path.join(self.main_path,"saved", folder, "logs")
         temp["charts_path"] = os.path.join(self.main_path,"saved", folder, "charts")
         temp["data_path"] = os.path.join(self.main_path,"data")
-
+        temp["best_model_folder"] = os.path.join(self.main_path,"saved","best_model")
+        temp["best_val_loss"] = 0.0
         # temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
         # temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")
         # temp["charts_folder"] = os.path.join(self.main_path,"saved", "charts")

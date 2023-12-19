@@ -16,7 +16,7 @@ world_size: 1 #Number of GPUs
 # Global variables
 global:
   - &window_size 380
-  - &num_epochs 101
+  - &num_epochs 3
   - &num_classes 1
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
@@ -33,7 +33,7 @@ global:
 
 # For personalization
 checkpoint:
-  folder: '2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
+  folder: 'best_model' #'2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
   filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
   freeze_layers: True
   trainable_layers: ['fc_layers']
@@ -151,16 +151,16 @@ train:
     min_delta: 0.0
 # Dataset parameters
 dataset:
-  name: 'processed' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'OCDetect_sep_380' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size
   num_classes: *num_classes
   labels: ['NUll', 'rHW', 'cHW']
-  train_ratio: 0.85 #0.5  # Highest 0.9
+  train_ratio: 0.30 #0.5  # Highest 0.9
   
   test_ratio: 0.1 # Set only on DL Personalization
-  inference_ratio: 0.15 # Set only on DL Personalization
+  inference_ratio: 0.50 # Set only on DL Personalization
   split: 'subject_wise' # To:do future
   task_type: *task_type
   personalization: *personalization

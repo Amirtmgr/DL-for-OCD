@@ -83,69 +83,16 @@ def train():
     cl.config.dataset.num_classes = num_classes
     cl.config.architecture.num_classes = num_classes
 
-    if task_type == TaskType.rHW_cHW_binary:
-        msg = "==============Binary classification============="
-        msg += "\n=============== rHW vs cHW =============="
-        cl.config.dataset.labels = ["rHW", "cHW"]
-    elif task_type == TaskType.cHW_detection:
-        msg = "==============Binary classification============="
-        msg += "\n=============== Null vs cHW =============="
-        cl.config.dataset.labels = ["Null", "cHW"]
-    elif task_type == TaskType.HW_detection:
-        msg = "==============Binary classification============="
-        msg += "\n=============== Null vs HW =============="
-        cl.config.dataset.labels = ["Null", "HW"]
-    elif task_type == TaskType.HW_classification:
-        msg = "==============Multi-class classification============="
-        msg += "\n=============== rHW vs cHW =============="
-        cl.config.dataset.labels = ["rHW", "cHW"]
-    elif task_type == TaskType.Multiclass_classification:
-        msg = "==============Multi-class classification========="
-        cl.config.dataset.labels = ["Null", "rHW", "cHW"]
-    else: 
-        raise ValueError("Task type not found in config file.")
-    
-    Logger.info(msg)
-    print(msg)
-    cl.print_config_dict()
-
     if cl.config.dataset.personalization:
         if cl.config.train.ensemble:
             p.ensemble(device, multi_gpu)
         else:
-            # TODO: Remove this
-            idx = 1
-            for state in [46666223, 2531442, 831]:
-                cl.config.train.random_seed = state
-                for wt in [0.00115, 0.0012, 0.0013, 0.0001, 0.0002, 0.0003, 0.00005, 0.00025]:
-                    cl.config.optim.weight_decay = wt
-                    for lr in [0.00065, 0.000635, 0.00064, 0.000645, 0.0002, 0.00025, 0.0003, 0.0006, 0.0001]:
-                        Logger.info("***"*20)
-                        Logger.info("***** DL Personalization *****")
-                        Logger.info("***"*20)
-                        cl.config.optim.learning_rate = lr
-                        setup_random_seed()
-                        p.run(device, multi_gpu)
-                        Logger.info(f"{idx}. Weight decay: {wt} | Learning rate: {lr} | Ramdom seed: {state} | Train Ratio: {cl.config.dataset.train_ratio}")
-                        idx += 1
-                        Logger.info("End of DL Personalization")
-                        Logger.info("***"*20)
+            p.run(device, multi_gpu)
     else: 
         if cv == "loso"  or cv == "kfold":
             v.subwise_k_fold_cv(device, multi_gpu)
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
-            # TODO: Remove this
-            for optim in ['adam', 'sgd']:
-                cl.config.optim.name = optim
-                for wt in [0.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.0003]:
-                    cl.config.optim.weight_decay = wt
-                    ratios = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-                    for lr in [0.01, 0.001, 0.0001, 0.00005, 0.00001]:
-                        cl.config.optim.learning_rate = lr
-                        for r in ratios:
-                            cl.config.dataset.train_ratio = r
-                            p.run(device, multi_gpu)
         elif cv == "personalized":
             p.run(device, multi_gpu)
         else:

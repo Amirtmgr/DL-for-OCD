@@ -277,7 +277,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
     num_windows = input_data.shape[0]
     window_size = input_data.shape[1]
     num_channels = input_data.shape[2]
-    dtick = num_windows / sampling_rate
+    dtick = num_windows #/ sampling_rate
 
     # if batch_idx:
     #     batch_size = cl.config.train.batch_size
