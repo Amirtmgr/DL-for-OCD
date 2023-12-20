@@ -19,7 +19,7 @@ from src.helper import directory_manager as dm
 from src.helper.state import State
 from src.helper import data_structures as ds
 from src.helper import plotter as pl
-
+from src.helper.data_model import TaskType
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
@@ -77,8 +77,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     best_fold = None
     best_fold_l = None
     #is_binary = cl.config.dataset.num_classes < 3
-    is_binary = cl.config.train.task_type.value < 2
-
+    is_binary = cl.config.train.task_type.value != TaskType.Multiclass_classification.value
+    
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
     n_splits = cl.config.train.cross_validation.k_folds
@@ -447,7 +447,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     best_val_loss = np.inf
     best_f1_score = 0.0
     best_fold = None
-    is_binary = cl.config.train.task_type.value < 2
+    is_binary = cl.config.train.task_type.value != TaskType.Multiclass_classification.value
     shelf_name = cl.config.dataset.name
     random_seed = cl.config.dataset.random_seed
     shuffle = cl.config.dataset.shuffle

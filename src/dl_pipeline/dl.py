@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset, TensorDataset
+from tabulate import tabulate
 
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, jaccard_score
 from sklearn.model_selection import train_test_split
@@ -28,6 +29,7 @@ from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
 from src.dl_pipeline import validate as v
 from src.dl_pipeline import personalize as p
+
 
 # Function to setup random seed
 def setup_random_seed():
@@ -79,7 +81,7 @@ def train():
     cv = cl.config.train.cross_validation.name
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
-    num_classes = 2 if task_type.value < 2 else 3
+    num_classes = 2 if task_type.value !=TaskType.Multiclass_classification.value else 3
     cl.config.dataset.num_classes = num_classes
     cl.config.architecture.num_classes = num_classes
 
@@ -87,45 +89,61 @@ def train():
         if cl.config.train.ensemble:
             p.ensemble(device, multi_gpu)
         else:
-            p.run(device, multi_gpu)
+            personalize_all(device, multi_gpu)
     else: 
         if cv == "loso"  or cv == "kfold":
             v.subwise_k_fold_cv(device, multi_gpu)
         elif cv == "stratified":
             v.stratified_k_fold_cv(device, multi_gpu)
         elif cv == "personalized":
-            p.run(device, multi_gpu)
+            personalize_all()
         else:
-            # Load dataset
-            train_dataset, val_dataset = dp.get_datasets()
-
-            # Load dataloaders
-            train_loader = dp.load_dataloader(train_dataset)
-            val_loader = dp.load_dataloader(val_dataset)
-            
-            # Get class weights
-            class_weights = dp.compute_weights(train_dataset)
-
-            # Load Traning parameters
-            model = t.init_weights(t.load_network())
-            optimizer = t.load_optim(model)
-            criterion = t.load_criterion(class_weights)
-            lr_scheduler = t.load_lr_scheduler(optimizer)
-
-            # Train Model
-            state = t.train_model(model, criterion, 
-                                optimizer, lr_scheduler,
-                                train_loader, val_loader, device,
-                                threshold=cl.config.train.threshold)
-
-            state.info()
-
-            # Visuals
-            state.plot_losses()
-            state.plot_f1_scores()
+            Logger.error("Cross-validation method not supported.")
+            raise ValueError("Cross-validation method not supported.")
         
     # Clean up
     #t.ddp_destroy()
 
 
 
+def personalize_all(device, multi_gpu):
+    before_table = []
+    table_based_on_loss = []
+    table_based_on_f1 = []
+
+    header = ["Subject", "F1-Score", "Precision", "Recall", "Specificity", "Accuracy"]
+    before_table.append(header)
+    table_based_on_f1.append(header)
+    table_based_on_loss.append(header)
+
+    for i in cl.config.dataset.personalized_subjects:
+        cl.config.dataset.personalized_subject = i
+        Logger.info(f"****************************")
+        Logger.info(f"Personalizing for subject {i}")
+        infer_metrics_0, infer_metrics_1, infer_metrics_2 = p.run(device, multi_gpu)
+        before_table.append([i, f"{infer_metrics_0.f1_score:.2f}", f"{infer_metrics_0.precision_score:.2f}", f"{infer_metrics_0.recall_score:.2f}", f"{infer_metrics_0.specificity_score:.2f}", f"{infer_metrics_0.accuracy:.2f}"])
+        table_based_on_f1.append([i, f"{infer_metrics_1.f1_score:.2f}", f"{infer_metrics_1.precision_score:.2f}", f"{infer_metrics_1.recall_score:.2f}", f"{infer_metrics_1.specificity_score:.2f}", f"{infer_metrics_1.accuracy:.2f}"])
+        table_based_on_loss.append([i, f"{infer_metrics_2.f1_score:.2f}", f"{infer_metrics_2.precision_score:.2f}", f"{infer_metrics_2.recall_score:.2f}", f"{infer_metrics_2.specificity_score:.2f}", f"{infer_metrics_2.accuracy:.2f}"])
+        
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Before Personalization")
+    print("Results: Before Personalization")
+    print(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Based on F1-Score")
+    print("Results: Based on F1-Score")
+    print(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info("Results: Based on Loss")
+    print("Results: Based on Loss")
+    print(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info(f"****************************")
+    print(f"****************************")
+    Logger.info(f"Congratulations! You have completed the personalization process.")
+    print(f"Congratulations! You have completed the personalization process.")

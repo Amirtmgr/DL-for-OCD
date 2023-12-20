@@ -49,7 +49,7 @@ def save_state(state:State, optional_name:str = ""):
     filename = cl.config.architecture.name + optional_name + "_Epoch-" + str(state.best_epoch)
     
     model_path = cl.config.models_path + "/" + filename
-    best_model = cl.config.best_model_folder + "/" + "best_model.pth"
+    best_model = cl.config.best_model_path
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
     
@@ -103,7 +103,7 @@ def load_checkpoint():
     # best_epoch = state.best_epoch
 
     # Load from best model
-    best_model = cl.config.best_model_folder + "/" + "best_model.pth" 
+    best_model = cl.config.best_model_path
     folder = cl.config.checkpoint.folder
     
     if os.path.isfile(best_model) and folder == "best_model":
@@ -111,6 +111,8 @@ def load_checkpoint():
         checkpoint = torch.load(best_model)
         return checkpoint
     
+    print("Loading checkpoint from given folder:")
+    Logger.warning(f"Loading checkpoint from given folder: {folder}")
     
     # Load form sepecific saved models
     filename = cl.config.checkpoint.filename.split(".")[0]
@@ -437,7 +439,7 @@ def load_network(multi_gpu=False):
         model = TinyHAR_modified(cl.config_dict['architecture'])
     elif network == "attend_discriminate":
         sensors = 6 if cl.config.architecture.sensors == "both" else 3
-        num_classes = cl.config.dataset.num_classes if task_type > 1 else 1
+        num_classes = cl.config.dataset.num_classes if task_type == 4 else 1
         conv_kernels = cl.config.architecture.atd_conv_kernels
         conv_kernel_size = cl.config.architecture.atd_conv_kernel_size
         enc_layers = cl.config.architecture.atd_enc_layers

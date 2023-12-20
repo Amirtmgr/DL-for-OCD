@@ -4,6 +4,7 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import numpy as np
 from src.helper.logger import Logger
 from src.dl_pipeline.architectures.activation import get_act_fn
+from src.helper.data_model import TaskType
 
 class CNNTransformer(nn.Module):
 
@@ -88,7 +89,7 @@ class CNNTransformer(nn.Module):
 
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
-        self.output_neurons = self.num_classes if self.task_type >= 2 else 1
+        self.output_neurons = self.num_classes if self.task_type == TaskType.Multiclass_classification.value else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
         self.fc_bias = config.get('fc_bias', False)
 
@@ -267,7 +268,7 @@ class MultiCNNTransformer(nn.Module):
         
         # Fully connected layers
         self.fc_hidden_size = config.get('fc_hidden_size', 128)
-        self.output_neurons = self.num_classes if self.task_type >= 2 else 1
+        self.output_neurons = self.num_classes if self.task_type == TaskType.Multiclass_classification.value else 1
         self.fc_batch_norm = config.get('fc_batch_norm', True)
         self.fc_bias = config.get('fc_bias', False)
 

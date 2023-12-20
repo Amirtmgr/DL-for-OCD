@@ -14,6 +14,7 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import numpy as np
 from src.dl_pipeline.architectures.activation import get_act_fn
+from src.helper.data_model import TaskType
 
 
 class SelfAttention_interaction(nn.Module):
@@ -510,12 +511,12 @@ class TinyHAR(nn.Module):
         self.dropout_p = config.get("tinyhar_dropout", 0.1)
         self.activation = config.get("tinyhar_activation", "relu")
 
-        self.task_type = config.get('task_type', -1)
+        self.task_type = config.get('task_type', 2)
         self.window_size = config.get('window_size', 150)
         self.sensors = config.get('sensors', 'both')
         self.input_features = 6 if self.sensors == 'both' else 3
         self.num_classes = config.get('num_classes', 3)
-        self.output_neurons = self.num_classes if self.task_type >= 2 else 1
+        self.output_neurons = self.num_classes if self.task_type == TaskType.Multiclass_classification.value else 1
 
         self.input_shape = [1, self.filter_num, self.window_size, self.input_features]
 

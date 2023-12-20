@@ -335,7 +335,7 @@ def run(device, multi_gpu=False):
     Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_2.f1_score:.2f}\n
     Train Loss: {state_l.best_train_metrics.loss:.2f} | Val Loss: {state_l.best_val_metrics.loss:.2f}''')
     
-    
+    return infer_metrics_0, infer_metrics_1, infer_metrics_2
 
 # Function to load data
 def load_data():
