@@ -165,7 +165,8 @@ def run():
     gc.collect()
     
     #is_binary = cl.config.dataset.num_classes < 3
-    is_binary = cl.config.train.task_type.value < 2
+    is_binary = cl.config.train.task_type.value != TaskType.Multiclass_classification.value
+    
     const = 1 if is_binary else 2
     
     random_seed = cl.config.dataset.random_seed
