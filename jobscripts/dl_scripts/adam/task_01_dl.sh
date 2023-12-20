@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=DL_1A0         # name for your job
+#SBATCH --job-name=DL_A10         # name for your job
 #SBATCH --partition=gpu           # partition to run in
 #SBATCH --ntasks=1                  # total number of tasks across all nodes
 #SBATCH --ntasks-per-node=64        # total number of tasks across all nodes<
