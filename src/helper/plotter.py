@@ -428,7 +428,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         if os.path.exists(cl.config.charts_path) == False:
             os.makedirs(cl.config.charts_path)
         save_path = cl.config.charts_path + "/" + sensor+ "_" + title.split()[0] + "_" + str(uuid.uuid4().hex) + ".png"  
-        pio.write_image(fig, save_path, format='png', width=1200, height=900)
+        pio.write_image(fig, save_path, format='png', width=1200, height=600)
         print(f"Figure saved as {save_path}")
     else:
         fig.show()

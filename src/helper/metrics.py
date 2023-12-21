@@ -35,7 +35,6 @@ class Metrics:
         self.epoch = epoch
         self.is_binary = is_binary
         self.loss = None
-        self.averaging = averaging
         self.f1_score = 0.0
         self.recall_score = 0.0
         self.precision_score = 0.0
@@ -46,6 +45,7 @@ class Metrics:
         self.y_true = None
         self.y_pred = None
         self.labels = [0, 1, 2] if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else [0, 1]
+        self.averaging = "macro" if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else None
         self.zero_division_warn = False
         self.classification_report = None
         self.outputs = None
@@ -155,6 +155,7 @@ class Metrics:
         else:
             msg = f"[Zero_Division Warning] Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
         Logger.info(msg)
+        print(msg)
     
     # To do:
     def ravel_confusion_matrix(self):

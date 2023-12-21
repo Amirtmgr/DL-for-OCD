@@ -413,6 +413,11 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(f"Folder: {cl.config.folder}")
     cl.config.checkpoint.folder = cl.config.folder
     cl.config.checkpoint.name = best_state.file_name
+    
+    Logger.info("======"*10)
+    pint("======"*10)
+    
+    
     Logger.info(f"Architecture: {best_state.best_model.__class__.__name__}")
     print(f"Architecture: {best_state.best_model.__class__.__name__}")
     Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
@@ -430,7 +435,22 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     
     print("++++++++"*10)
     print(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
-
+    print("==================="*10)
+    print("==================="*10)
+    print(f"FINAL RESULTS: Task-{cl.config.train.task_type.value}")
+    print("Based on Val Loss:")
+    Logger.info("==================="*10)
+    Logger.info("==================="*10)
+    Logger.info(f"FINAL RESULTS: Task-{cl.config.train.task_type.value}")
+    Logger.info("Based on Val Loss:")
+    
+    inference_metrics_l.info()
+    print("==================="*10)
+    print(f"You have completed the Task-{cl.config.train.task_type.value}")
+    Logger.info("==================="*10)
+    Logger.info(f"You have completed the Task-{cl.config.train.task_type.value}")
+    
+    
     
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
