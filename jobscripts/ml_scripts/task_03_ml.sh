@@ -37,5 +37,5 @@ echo "Running python script `hostname`"
 
 
 # Run a python script:
-python main.py configs/$task.yaml $method
+python main.py configs/$task.yaml --m $method
 
