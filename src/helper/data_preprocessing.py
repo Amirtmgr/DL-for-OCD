@@ -317,7 +317,7 @@ def load_shelves(filename, subjects=None):
         subjects = [str(subjects)]
     
     for subject in subjects:
-        if subject != personalized_subject and subject in remove_subjects:
+        if subject != personalized_subject and subject in remove_subjects and cl.config.train.task_type != TaskType.rHW_cHW_binary:
             print(f"Removing subject: {subject}")
             continue
         X[subject] = X_db[subject][:1000] if cl.config.debug else X_db[subject]
