@@ -47,6 +47,8 @@ def create_folder(name, folder_type:FolderType ):
     """
     if folder_type.value == FolderType.data.value:
         full_path = os.path.join(cl.config.main_path, folder_type.value, name)  
+    elif folder_type.value == FolderType.logs.value:
+        full_path =  os.path.join(cl.config.saved_folder, folder_type.value, name)
     else:
         full_path = os.path.join(cl.config.saved_folder, folder_type.value, name)
     # Create path if doesn't exists

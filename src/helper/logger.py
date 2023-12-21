@@ -49,86 +49,32 @@ class Logger:
 
     @classmethod
     def debug(cls, message):
+        print(f"Debug: message")
         cls.logger.debug(message)
     
     @classmethod
     def info(cls, message):
         if cls.logger is None:
             cls.initialize_logger()
+        print(message)
         cls.logger.info(message)
     
     @classmethod
     def warning(cls, message):
+        print(f"Warning: {message}")
         cls.logger.warning(message)
 
     @classmethod
     def error(cls, message):
+        print(f"Error: {message}")
         cls.logger.error(message)
 
     @classmethod
     def critical(cls, message):
+        print(f"Critical Error: {message}")
         cls.logger.critical(message)
 
     @classmethod
-    def log(cls, message):        
+    def log(cls, message):
+        print(message)      
         cls.logger.info(message)
-
-    
-"""        
-# Todo: Review Class
-class Logger(metaclass=ABCMeta):
-    def __init__(self):
-      
-        
-        # Create a logger and set the logging level
-        self.logger = logging.getLogger("ocd_ml_logger")
-        self.logger.setLevel(logging.DEBUG)
-
-        # Get log file name
-        filename = cl.config.folder + ".txt"
-        print("Log file: ", filename)
-        # Create folder
-        path = dm.create_folder(cl.config.folder, dm.FolderType.logs)
-        
-        full_path = os.path.join(path, filename)  
-
-        # Create a file handler to write logs to the specified file
-        file_handler = logging.FileHandler(full_path)
-        file_handler.setLevel(logging.DEBUG)
-
-        # Create a console handler to print logs to the console
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-
-        # Create a formatter to format log messages
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-
-        # Set the formatter for the handlers
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-
-        # Add the handlers to the logger
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-
-    def debug(self, message):
-        self.logger.debug(message)
-
-    def info(self, message):
-        self.logger.info(message)
-
-    def warning(self, message):
-        self.logger.warning(message)
-
-    def error(self, message):
-        self.logger.error(message)
-
-    def critical(self, message):
-        self.logger.critical(message)
-
-    def __generate_log_file_name(self):
-        current_datetime = datetime.datetime.now()
-        formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-        log_file_name = f"log_{formatted_datetime}.txt"
-        return log_file_name
-"""

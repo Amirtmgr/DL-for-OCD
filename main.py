@@ -33,134 +33,97 @@ def main():
     arg_parser.add_argument(
         'config',
         default='None',
-        help='The Configuration file in yaml file format.')
+        help='The Configuration file in yaml file format must be provided. Select file from the `config` folder.')
     
-    arg_parser.add_argument(
-        'method',
+    arg_parser.add_argument('--t',
+        dest= 'task_type',
+        type=int,
+        choices=[1,2,3,4,5],
+        metavar='task_type',
+        default=None,
+        help='Optional. To override `task_type` in config file provide Task type to perform. Task-1: Null vs HW, Task-2:rHW vs cHW, Task-3:Null vs cHW, Task-4: Null vs rHW vs cHW, Task-5: DL personalization')
+    
+    arg_parser.add_argument('--m',
+        dest= 'method',
+        type=str,
+        choices=['ml', 'dl'],
+        metavar='method',
         default='None',
         help='Method to apply \'ml\' for Machine Learning or \'dl\' for DeepLearning.')
 
+    arg_parser.add_argument('--a',
+        dest= 'architecture',
+        type=str,
+        choices=['cnn_transformer', 'deepconvlstm', 'tinyhar'],
+        metavar='architecture',
+        default=None,
+        help='Architecture to use for DeepLearning. Make sure to include pre-processed data inside the `data` folder or use `--d` to perform data preprocessing only.')    
+    
+    arg_parser.add_argument('--d',
+        dest= 'data_preprocessing',
+        action='store_true',
+        help='This does Data Preprocessing. The original dataset `OCDetect_Export` must be present in the data folder.\nDo not use if the data is already preprocessed.\n Read the README.md file for more information.') 
+    
+
     args = arg_parser.parse_args()
+
 
     # Set current working directory
     cl.set_main_path(os.getcwd())
+    
+    # Check if config file is provided
+    if args.config == 'None':
+        print("Please provide the config file path --config <path>")
+        raise ValueError("Config file not provided.")
+    
+    # Check if method is provided
+    if args.method == 'None':
+        print("Please provide the method to use --m <method>. Use \'ml\' or \'dl\'")
+        raise ValueError("Method not provided.")
+    
+  
+        
     # Load the config file
-    cl.load_config(args.config)
-
+    cl.load_config(args.config, task_type=args.task_type, architecture=args.architecture)
+    
     if cl.config:
         print('Config file loaded successfully.')
     else:
         print('Config file is empty.')
-    
-    print("Device:", cl.config.train.device)
-    print("Models path:", cl.config.models_path)
-    #cl.export_to_environment(["main_path"])
-    #print(os.environ['main_path'])
+        raise ValueError("Config file is empty. Provide a valid config file. Example: config/default.yaml")
 
+        
     # Create Logger
     Logger.info("Logger created.")
 
-    # Log config
-    log_config(cl.config_dict)
+    
     # Task Type
     task_type = TaskType(cl.config.dataset.task_type)
-    cl.config.train.task_type = task_type
     Logger.info(f"Task type: {task_type}")
     
+    
     # Perform data cleaning and preprocessing
-    #cln.clean_all()
-
-    # Prepare datset
-    # prc.prepare_datasets("OCDetect_raw_1950")
-    # X, y  = prc.load_dataset(15, "OCDetect_raw_1950")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
+    if args.data_preprocessing:
+        # Perform data cleaning and preprocessing
+        Logger.info("For ML, Performing data cleaning and preprocessing...")
+        cln.clean_all()
+        Logger.info("Data cleaning and preprocessing completed for ML.")
+        
+        Logger.info("For DL, Performing data cleaning and preprocessing...")
+        # Prepare dataset
+        prc.make_datasets("OCDetect_sep_380")
+        Logger.info("Data cleaning and preprocessing completed for DL.")
     
-    # cl.config.dataset.name = "OCDetect_Export"
-    # cl.config.dataset.window_size = 380
+
     
-    # # Prepare dataset
-    # prc.make_datasets("OCDetect_sep_380")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_380")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # print("--------------------------------------------------")
-
-    # cl.config.dataset.window_size = 285
-    # prc.make_datasets("OCDetect_sep_285")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_285")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # print("--------------------------------------------------")
-
-    # cl.config.dataset.window_size = 190
-    # prc.make_datasets("OCDetect_sep_190")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_190")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-    
-    # print("--------------------------------------------------")
-
-    # cl.config.dataset.window_size = 95
-    # prc.make_datasets("OCDetect_sep_95")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_95")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # print("--------------------------------------------------")
-    # cl.config.dataset.window_size = 475
-    # prc.make_datasets("OCDetect_sep_475")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_475")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # cl.config.dataset.window_size = 950
-    # prc.make_datasets("OCDetect_sep_950")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_950")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # cl.config.dataset.window_size = 1425
-    # prc.make_datasets("OCDetect_sep_1425")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_1425")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # cl.config.dataset.window_size = 1140
-    # prc.make_datasets("OCDetect_sep_1140")
-    # X, y  = prc.load_dataset(30, "OCDetect_sep_1140")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # cl.config.dataset.window_size = 1900
-    # prc.prepare_datasets("OCDetect_raw_380")
-    # X, y  = prc.load_dataset(30, "OCDetect_raw_380")
-    # print(X.shape)
-    # print(y.shape)
-    # print(Counter(y))
-
-    # Prepare sub-datasets
-    #prc.prepare_subset()
-    
-    
-    # Perform DL pipeline
+    # Set GPUs
     if cl.config.world_size == 2:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
     elif cl.config.world_size == 4:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
         
-    #dl.train()
+
+    # Task Type Information
     task_type = TaskType(cl.config.dataset.task_type)
     cl.config.train.task_type = task_type
     num_classes = 2 if task_type.value !=TaskType.Multiclass_classification.value else 3 
@@ -190,8 +153,7 @@ def main():
         raise ValueError("Task type not found in config file.")
     
     Logger.info(msg)
-    print(msg)
-    cl.print_config_dict()
+    log_config(cl.config_dict)
 
     # Datasets selection
     if args.method == 'dl':

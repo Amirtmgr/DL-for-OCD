@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import random
 import pandas as pd
 import torch
@@ -50,7 +51,6 @@ def setup_cuda():
         Logger.info("Using CUDA device.")
         num_gpus = torch.cuda.device_count()
         Logger.info(f"Number of GPUs: {num_gpus}")
-        print("GPUs Count:", num_gpus)
         
         # Set device
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -64,16 +64,14 @@ def setup_cuda():
 def train():
     # Setup CUDA
     device = setup_cuda()
-    print("Device:", device)
+    Logger.info(f"Device: {device}")
 
     # Setup random seed
     setup_random_seed()
 
     # Check if Multi-GPUs
     #multi_gpu = t.ddp_setup()
-    
-    print("Using", torch.cuda.device_count(), "GPUs!")
-    
+        
     multi_gpu = cl.config.world_size > 1
 
     Logger.info(f"Using {torch.cuda.device_count()} GPUs!")
@@ -126,24 +124,20 @@ def personalize_all(device, multi_gpu):
         table_based_on_loss.append([i, f"{infer_metrics_2.f1_score:.2f}", f"{infer_metrics_2.precision_score:.2f}", f"{infer_metrics_2.recall_score:.2f}", f"{infer_metrics_2.specificity_score:.2f}", f"{infer_metrics_2.accuracy:.2f}"])
         
     Logger.info(f"****************************")
-    print(f"****************************")
     Logger.info("Results: Before Personalization")
-    print("Results: Before Personalization")
-    print(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(tabulate(before_table, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
-    print(f"****************************")
     Logger.info("Results: Based on F1-Score")
-    print("Results: Based on F1-Score")
-    print(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(tabulate(table_based_on_f1, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
-    print(f"****************************")
-    Logger.info("Results: Based on Loss")
-    print("Results: Based on Loss")
-    print(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
+    Logger.info("Results: Based on Val Loss")
     Logger.info(tabulate(table_based_on_loss, headers="firstrow", tablefmt="fancy_grid"))
     Logger.info(f"****************************")
-    print(f"****************************")
     Logger.info(f"Congratulations! You have completed the personalization process.")
-    print(f"Congratulations! You have completed the personalization process.")
+
+    results = before_table + table_based_on_f1 + table_based_on_loss
+    df = pd.DataFrame(results[1:], columns=results[0])
+    result_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
+    df.to_csv(result_path, index=False)
+    Logger.info(f"Results saved at{result_path}")
+    

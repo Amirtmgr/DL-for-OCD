@@ -219,6 +219,8 @@ def extract_samples(df, step_size=1900):
 
 
 def make_datasets(filename):
+    print("Making datasets...")
+    Logger.info(f"Making datasets with filename: {filename}")
     # Get all files
     csv_files = dm.get_files_names()
     grouped_files = ds.group_by_subjects(csv_files)
@@ -236,7 +238,7 @@ def make_datasets(filename):
     # Loop through each subjects:
     for sub_id in subjects:
         print(f"Processing subject: {sub_id}")
-
+        Logger.info(f"Processing subject: {sub_id}")
         files = grouped_files[sub_id]
         temp_df = dfm.load_all_files(files).drop(['sub_id'], axis=1, errors='ignore')
         # get datasets
@@ -267,7 +269,7 @@ def make_datasets(filename):
         gc.collect()
 
         print("Windowing data...")
-        
+        Logger.info("Windowing data...")
         windows_rHW, labels_rHW, datetimes_rHW = sw.get_windows(df_rHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
         windows_cHW, labels_cHW, datetimes_cHW = sw.get_windows(df_cHW, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
 
@@ -277,10 +279,12 @@ def make_datasets(filename):
 
         print("rHW labels: \n", {len(windows_rHW)})
         print("cHW labels: \n", {len(windows_cHW)})
-
+        Logger.info("rHW labels: \n", {len(windows_rHW)})
+        Logger.info("cHW labels: \n", {len(windows_cHW)})
         windows_null, labels_null, datetimes_null = sw.get_windows(df_null, cl.config.dataset.window_size, overlapping_ratio=cl.config.dataset.overlapping_ratio, check_time=True, keep_date=True)
         print("Null labels: \n", {len(windows_null)})
-
+        Logger.info("Null labels: \n", {len(windows_null)})
+        
 
         del df_null, df_rHW, df_cHW
         gc.collect()
@@ -321,13 +325,16 @@ def make_datasets(filename):
         print(f"{sub_id}: {len(sorted_windows)}")
         print(f"Label distribution: {Counter(sorted_labels)}")
         print(f"Saved {sub_id}")
+        Logger.info(f"{sub_id}: {len(sorted_windows)}")
+        Logger.info(f"Label distribution: {Counter(sorted_labels)}")
 
     # Close the db
     x_shelf.close()
     y_shelf.close()
     z_shelf.close()
-
-
+    print("Done")
+    Logger.info("Done")
+    
 # Window events with event length of 1901
 def window_events(df, event_length=1901):
 

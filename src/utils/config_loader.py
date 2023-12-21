@@ -10,7 +10,6 @@ import easydict
 import datetime as dt
 import uuid
 
-# TODO(atm):Review Class
 
 class __ConfigLoader:
     """ConfigLoader class to load config variables.
@@ -32,7 +31,7 @@ class __ConfigLoader:
         self.config = {}
         self.main_path = None
     
-    def load_config(self, file_name):
+    def load_config(self, file_name, task_type=None, architecture=None):
         """Method to load config file
         Args:
             file_name (str): Config file
@@ -47,7 +46,19 @@ class __ConfigLoader:
                 self.config_dict = yaml.safe_load(file)
                 temp = self._set_paths(self.config_dict)
                 temp['file_name'] = self.file_name
-                temp["best_model_folder"] = os.path.join(self.main_path,"saved","best_model", str(temp['train']['task_type']), temp['optim']['name'])
+                if task_type:
+                    temp['train']['task_type'] = task_type
+                
+                # Maintain personalization bool with given task type
+                temp['dataset']['personalization'] = temp['train']['task_type'] == 5
+                
+                if architecture:
+                    temp['architecture']['name'] = architecture
+                
+                temp = self._set_paths(self.config_dict)
+                
+                ftm = 2 if temp['train']['task_type'] == 5 else temp['train']['task_type']
+                temp["best_model_folder"] = os.path.join(self.main_path,"saved","best_model", str(ftm),temp['architecture']['name'], temp['optim']['name'])
                 temp["best_model_path"] = os.path.join(temp['best_model_folder'], "best_model.pt")
                 self.config = easydict.EasyDict(temp)    
         except FileNotFoundError:
@@ -64,31 +75,19 @@ class __ConfigLoader:
         """Method to set other paths
         """
         temp["main_path"] = self.main_path
-        folder = dt.datetime.now().strftime("%Y_%m_%d-%H_%M_%S") + "_" + str(uuid.uuid4().hex)
+        folder = dt.datetime.now().strftime("%Y_%m_%d-%H_%M_%S") + f"-tasktype_{temp['train']['task_type']}-{temp['architecture']['name']}-" +  str(uuid.uuid4().hex)
         print("Folder: ", folder)
         temp["folder"] = folder
         temp["saved_folder"] = os.path.join(self.main_path,"saved", folder)
         temp["models_folder"] = os.path.join(self.main_path,"saved", folder, "models")
-        temp["results_folder"] = os.path.join(self.main_path,"saved", folder, "results")
-        temp["logs_folder"] = os.path.join(self.main_path,"saved", folder, "logs")
+        temp["results_folder"] = os.path.join(self.main_path, "results") # To save csv files
         temp["charts_folder"] = os.path.join(self.main_path,"saved", folder, "charts")
         temp["models_path"] = os.path.join(self.main_path,"saved", folder, "models")
         temp["results_path"] = os.path.join(self.main_path,"saved", folder, "results")
-        temp["logs_path"] = os.path.join(self.main_path,"saved", folder, "logs")
+        temp["logs_path"] = os.path.join(self.main_path,"saved", folder, "logs") 
         temp["charts_path"] = os.path.join(self.main_path,"saved", folder, "charts")
         temp["data_path"] = os.path.join(self.main_path,"data")
-        
         temp["best_val_loss"] = 0.0
-        # temp["results_folder"] = os.path.join(self.main_path,"saved", "results")
-        # temp["logs_folder"] = os.path.join(self.main_path,"saved", "logs")
-        # temp["charts_folder"] = os.path.join(self.main_path,"saved", "charts")
-        
-        # temp["models_path"] = os.path.join(self.main_path,"saved", "models",folder)
-        # temp["results_path"] = os.path.join(self.main_path,"saved", "results", folder)
-        # temp["logs_path"] = os.path.join(self.main_path,"saved", "logs", folder)
-        # temp["charts_path"] = os.path.join(self.main_path,"saved", "charts", folder)
-        # temp["data_path"] = os.path.join(self.main_path,"data")
-        # #TODO: Add other paths like dataset paths,etc.
         return temp
 
     def get_variable(self, variable_name):

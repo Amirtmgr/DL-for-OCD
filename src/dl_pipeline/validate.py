@@ -4,9 +4,12 @@ import numpy as np
 import random
 from collections import Counter
 import copy
-
+import csv
 import torch
 from torch.utils.data import ConcatDataset, TensorDataset
+from tabulate import tabulate
+import pandas as pd
+import os
 
 from src.dl_pipeline import train as t
 from src.helper import data_preprocessing as dp
@@ -51,24 +54,41 @@ def get_mean_scores(states:[State], phase:str):
         specificity_scores.append(metric.specificity_score)
         jaccard_scores.append(metric.jaccard_score)
         accuracy_scores.append(metric.accuracy)
-    
-    mean_scores = { "f1_score": np.mean(f1_scores),
-                    "recall_score": np.mean(recall_scores), 
-                    "precision_score": np.mean(precision_scores),
-                    "specificity_score": np.mean(specificity_scores),
-                    "jaccard_score": np.mean(jaccard_scores),
-                    "accuracy": np.mean(accuracy_scores)
-                    }
 
-    return mean_scores
+        folds = [f"{i}-fold" for i in range(len(f1_scores))].append("Mean")
+        
+        table = {"Fold": folds,
+                 "F1 Score": f1_scores.append(np.mean(f1_scores)),
+                "Recall Score": np.mean(recall_scores), 
+                "Precision Score": np.mean(precision_scores),
+                "Specificity Score": np.mean(specificity_scores),
+                "Jaccard Score": np.mean(jaccard_scores),
+                "Accuracy": np.mean(accuracy_scores)
+                }
+        
+        mean_scores = { "F1 Score": np.mean(f1_scores),
+                    "Recall Score": np.mean(recall_scores),
+                    "Precision Score": np.mean(precision_scores),
+                    "Specificity Score": np.mean(specificity_scores),
+                    "Jaccard Score": np.mean(jaccard_scores),
+                    "Accuracy": np.mean(accuracy_scores)
+                       }
+    
+    # mean_scores = { "f1_score": np.mean(f1_scores),
+    #                 "recall_score": np.mean(recall_scores), 
+    #                 "precision_score": np.mean(precision_scores),
+    #                 "specificity_score": np.mean(specificity_scores),
+    #                 "jaccard_score": np.mean(jaccard_scores),
+    #                 "accuracy": np.mean(accuracy_scores)
+    #                 }
+
+    return mean_scores, table
 
 
 def stratified_k_fold_cv(device, multi_gpu=False):
-    print("======"*5)
     # start
     start = datetime.datetime.now()
     Logger.info(f"Stratified Cross-Validation Start time: {start}")
-    print(f"Stratified Cross-Validation Start time: {start}")
 
     # Empty dict to store results
     results = {}
@@ -98,9 +118,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     
     if personalized_subject in subjects:
         Logger.info(f"Removing personalized subject from dataset...:{personalized_subject}")
-        print(f"Removing personalized subject:{personalized_subject}")
         subjects.remove(personalized_subject)
-    print("Subjects applied:", subjects)
 
     X_all =  np.concatenate([X_dict[subject] for subject in subjects], axis=0)
     y_all =  np.concatenate([y_dict[subject] for subject in subjects], axis=0)
@@ -163,11 +181,11 @@ def stratified_k_fold_cv(device, multi_gpu=False):
             #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
             counts = Counter(train_labels.astype(int))
             max_count = max(counts.values())
-            print(f"Before sampling: {Counter(train_labels.astype(int))}")
+            Logger.info(f"Before sampling: {Counter(train_labels.astype(int))}")
             under_sampling_strategy = {
                 0: int(max_count*cl.config.dataset.alpha)
             }
-            print("Sampling strategy:", under_sampling_strategy)
+            Logger.info("Sampling strategy:", under_sampling_strategy)
 
             undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, train_labels)
@@ -225,8 +243,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         # Load Traning parameters
         model = t.load_network(multi_gpu)
         model = model.to(device)
-        print("Model loadded on device: ", device)
-        print("Multiple GPUs: ", multi_gpu)
+        Logger.info(f"Model loadded on device: {device}")
+        Logger.info(f"Multiple GPUs: {multi_gpu}")
 
         optimizer = t.load_optim(model, multi_gpu)
         criterion = t.load_criterion(class_weights)
@@ -274,7 +292,6 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         # End of k-fold
         k_end = datetime.datetime.now()
         Logger.info(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
-        print(f"Stratified_k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     #Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
     Logger.info(f"Best Stratified_k-Fold: {best_fold+1} with Val F1-score: {best_f1_score}")
@@ -288,15 +305,9 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(msg)
 
     # Info
-    Logger.info("Average Scores:")
-    
-    # TO DO: Add option to use warn metrics
-    #use_warn_score = cl.config.metrics.use_warn_metrics
+    Logger.info("Average Scores:")    
 
     states = [v['f1'] for k, v in results.items() if not isinstance(v, int)]
-
-    Logger.info(f"Training Average-Scores: {get_mean_scores(states, 'train' )}")
-    Logger.info(f"Validation Average-Scores: {get_mean_scores(states, 'val')}")
 
     # End LOSOCV
     end_train = datetime.datetime.now()
@@ -307,8 +318,6 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     ################ Inference ####################
     ###############################################
     Logger.info("Inference started...")
-    print("======"*10)
-    print("Inference started...")
 
     best_state = results[best_fold]['f1']
     best_state_l = results[best_fold_l]['loss']
@@ -347,8 +356,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     msg = om.save_object(inference_metrics, cl.config.folder, dm.FolderType.results, "inference_metrics.pkl" )
     Logger.info(msg)
     
-    Logger.info("Inference on Personalized Subject : {personalized_subject}")
-    print("Inference on Personalized Subject : {personalized_subject}")
+    Logger.info(f"Inference on Personalized Subject : {personalized_subject}")
     
     inference_metrics_personalize = t.run_epoch(0,"inference", personalize_loader, best_state.best_model,loss_fn,
                                     best_state.best_optimizer, best_state.best_lr_scheduler,    
@@ -365,12 +373,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     # Concatenate the NumPy arrays to get the final NumPy array with the same batch size
     infer_array = np.concatenate(infer_data, axis=0)
 
-    # Check the shape of the resulting NumPy array
-    print("Shape of Infer array:", infer_array.shape)
-
     # Visuals
-    #pl.plot_sensor_data(infer_array, inferece_metrics.y_true, inferece_metrics.y_pred, save=True, title=f"Inference Result")
-
     lower = 20
     upper = 30
     #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
@@ -381,8 +384,6 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     end_inference = datetime.datetime.now()
     Logger.info(f"Inference End time: {end_inference}")
     Logger.info(f"Inference Duration: {end_inference - end_train}")
-    print(f"Inference End time: {end_inference}")
-    print(f"Inference Duration: {end_inference - end_train}")
 
      ###############################################
     # Comparing best fold with best val loss
@@ -406,7 +407,6 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     del X_in, X_inference, y_inference, inference_dataset, inference_loader, loss_fn
     gc.collect()
     Logger.info("======"*10)
-    print(f"Stratified CV Results [Subject: {cl.config.dataset.personalized_subject}]:")
     Logger.info(f"Stratified CV Results [Subject: {cl.config.dataset.personalized_subject}]:")
     # Results
     Logger.info("Results:")
@@ -415,52 +415,57 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     cl.config.checkpoint.name = best_state.file_name
     
     Logger.info("======"*10)
-    pint("======"*10)
     
     
     Logger.info(f"Architecture: {best_state.best_model.__class__.__name__}")
-    print(f"Architecture: {best_state.best_model.__class__.__name__}")
     Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\nTrain F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\nTrain Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}")
     Logger.info("++++++++"*10)
     Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
 
-    print("======"*10)
-    print("Results:")
-    print(f"Folder: {cl.config.folder}")
-    print(f'''[Based on F1-Score] Best k-Fold: {best_fold+1} | Best Epoch: {best_state.best_epoch}\n
-    Train F1-Score: {best_state.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics.f1_score:.2f}\n
-    Train Loss: {best_state.best_train_metrics.loss:.2f} | Val Loss: {best_state.best_val_metrics.loss:.2f}\n
-    Inference on Personalized Subject F1-Score: {inference_metrics_personalize.f1_score:.2f}
-    ''')
-    
-    print("++++++++"*10)
-    print(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
-    print("==================="*10)
-    print("==================="*10)
-    print(f"FINAL RESULTS: Task-{cl.config.train.task_type.value}")
-    print("Based on Val Loss:")
+  
     Logger.info("==================="*10)
     Logger.info("==================="*10)
     Logger.info(f"FINAL RESULTS: Task-{cl.config.train.task_type.value}")
     Logger.info("Based on Val Loss:")
     
     inference_metrics_l.info()
-    print("==================="*10)
-    print(f"You have completed the Task-{cl.config.train.task_type.value}")
     Logger.info("==================="*10)
     Logger.info(f"You have completed the Task-{cl.config.train.task_type.value}")
     
+     # Info
+    Logger.info("Average Scores:")    
+
+    states = [v['f1'] for k, v in results.items() if not isinstance(v, int)]
+    
+    # Save to csv
+    Logger.info("Saving results to csv...")
+    
+    train_results = get_mean_scores(states, 'train')[1]
+    train_results_df = pd.DataFrame(train_results, index=train_results.keys())
+    train_results_df["Phase"] = ["Train"]*len(train_results_df)
+    
+    val_results = get_mean_scores(states, 'val')[1]
+    val_results_df = pd.DataFrame(val_results, index=val_results.keys())
+    val_results_df["Phase"] = ["Val"]*len(val_results_df)
+    
+    results_df = pd.concat([train_results_df, val_results_df], axis=0)
+    csv_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
+    
+    results_df.to_csv(csv_path, index=False)
+
+    Logger.info(f"Results saved to: {csv_path}")
+    Logger.info(f"Final Results:")
+    Logger.info(f"Training Average Scores:")
+    Logger.info(tabulate(train_results_df, headers='keys', tablefmt='fancy_grid'))
+    Logger.info(f"Validation Average Scores:")
+    Logger.info(tabulate(val_results_df, headers='keys', tablefmt='fancy_grid'))
     
     
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
-    print("Device:", device)
-
-    print("======"*5)
     # start
     start = datetime.datetime.now()
     Logger.info(f"Cross-Validation Start time: {start}")
-    print(f"Cross-Validation Start time: {start}")
 
     # Empty dict to store results
     results = {}
@@ -490,9 +495,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     else:
         k_folds = ds.divide_into_groups(train_subjects, cl.config.train.cross_validation.k_folds)
 
-    print(f"Train subjects: {train_subjects}")
-    print(f"Inference subjects: {inference_subjects}")
-
     # Loop through folds
     for i, fold_val_subjects in enumerate(k_folds):
         # start of k-fold
@@ -505,9 +507,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         
         Logger.info(f"k-Fold:{i+1} ===> Validation subjects: {fold_val_subjects} | List size: {len(fold_val_subjects)}")
         Logger.info(f"k-Fold:{i+1} ===> Training subjects: {fold_train_subjects} | List size: {len(fold_train_subjects)}")
-        
-        print(f"\nk-Fold:{i+1} ===> Validation subjects: {fold_val_subjects} | List size: {len(fold_val_subjects)}")
-        print(f"k-Fold:{i+1} ===> Training subjects: {fold_train_subjects} | List size: {len(fold_train_subjects)}")
+
 
         # Load numpy datasets
         X_train = np.concatenate([X_dict[subject] for subject in fold_train_subjects], axis=0)
@@ -540,11 +540,11 @@ def subwise_k_fold_cv(device, multi_gpu=False):
             #undersample = OneSidedSelection(n_neighbors=k, sampling_strategy='majority', n_jobs=-1, random_state=new_seed)
             counts = Counter(y_train.astype(int))
             max_count = max(counts.values())
-            print(f"Before sampling: {Counter(y_train.astype(int))}")
+            Logger.info(f"Before sampling: {Counter(y_train.astype(int))}")
             under_sampling_strategy = {
                 0: int(max_count*cl.config.dataset.alpha)
             }
-            print("Sampling strategy:", under_sampling_strategy)
+            Logger.info("Sampling strategy:", under_sampling_strategy)
 
             undersample = RandomUnderSampler(sampling_strategy=under_sampling_strategy, random_state=new_seed)
             X_sample, y_sample = undersample.fit_resample(X_reshape, y_train)
@@ -602,8 +602,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         # Load Traning parameters
         model = t.load_network(multi_gpu)
         model = model.to(device)
-        print("Model loaded on device: ", device)
-        print("Multiple GPUs: ", multi_gpu) 
+
         optimizer = t.load_optim(model)
         criterion = t.load_criterion(class_weights)
         lr_scheduler = t.load_lr_scheduler(optimizer)
@@ -649,7 +648,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         # End of k-fold
         k_end = datetime.datetime.now()
         Logger.info(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
-        print(f"k-Fold:{i+1} ===> End of k-fold cross-validation on fold no. {i+1} end time: {k_end} | Duration: {k_end - k_start}")
 
     #Logger.info(f"Best k-Fold: {best_fold+1} with validation Loss: {best_val_loss}")
     Logger.info(f"Best k-Fold: {best_fold+1} | F1-score: {best_f1_score} | Validation Loss: {best_val_loss} | Best Epoch: {results[best_fold-1]['f1'].best_epoch}")
@@ -677,8 +675,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     ################ Inference ####################
     ###############################################
     Logger.info("Inference started...")
-    print("======"*10)
-    print("Inference started...")
 
     best_state = results[best_fold]['f1']
     best_state_l = results[best_fold]['loss']
@@ -732,8 +728,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     end_inference = datetime.datetime.now()
     Logger.info(f"Inference End time: {end_inference}")
     Logger.info(f"Inference Duration: {end_inference - end_train}")
-    print(f"Inference End time: {end_inference}")
-    print(f"Inference Duration: {end_inference - end_train}")
+
 
     ###############################################
     # Comparing best fold with best val loss
@@ -760,12 +755,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     Logger.info("Folder: {cl.config.folder}")
     Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1}\nTrain F1-Score: {best_state.val_metrics.f1_score} | Val F1-Score: {best_state.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics.f1_score}\nTrain Loss: {best_state.train_metrics.loss} | Val Loss: {best_state.val_metrics.loss} | Best Epoch: {best_state.best_epoch}")
     Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1}\nTrain F1-Score: {best_state_l.val_metrics.f1_score} | Val F1-Score: {best_state_l.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics_l.f1_score}\nTrain Loss: {best_state_l.train_metrics.loss} | Val Loss: {best_state_l.val_metrics.loss} | Best Epoch: {best_state_l.best_epoch}")
-
-    print("======"*10)
-    print("Results:")
-    print("Folder: {cl.config.folder}")
-    print(f"[Based on F1-Score] Best k-Fold: {best_fold+1}\nTrain F1-Score: {best_state.val_metrics.f1_score} | Val F1-Score: {best_state.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics.f1_score}\nTrain Loss: {best_state.train_metrics.loss} | Val Loss: {best_state.val_metrics.loss} | Best Epoch: {best_state.best_epoch}")
-    print(f"[Based on Loss] Best k-Fold: {best_fold_l+1}\nTrain F1-Score: {best_state_l.val_metrics.f1_score} | Val F1-Score: {best_state_l.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics_l.f1_score}\nTrain Loss: {best_state_l.train_metrics.loss} | Val Loss: {best_state_l.val_metrics.loss} | Best Epoch: {best_state_l.best_epoch}")
 
 '''
 def loso_cv(device):

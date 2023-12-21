@@ -16,6 +16,8 @@ import datetime as dt
 import uuid
 import os
 from src.helper.data_model import TaskType
+from imblearn.metrics import specificity_score
+
 
 from src.helper.cf_matrix import make_confusion_matrix
 from src.helper.logger import Logger
@@ -43,14 +45,18 @@ class Metrics:
         self.jaccard_score = 0.0
         self.accuracy = 0.0
         self.y_true = None
-        self.y_pred = None
+        self.y_pred = None        
         self.labels = [0, 1, 2] if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else [0, 1]
-        self.averaging = "macro" if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else None
+        
+        if cl.config.dataset.task_type == TaskType.Multiclass_classification.value:
+            self.averaging = 'binary'
+        else:
+            self.averaging = 'macro'
+        
         self.zero_division_warn = False
         self.classification_report = None
         self.outputs = None
         self.best_threshold = 0.5
-        #self.s1_score = 0.0
 
         try:
             
@@ -68,8 +74,8 @@ class Metrics:
         y_pred = self.y_pred
         Logger.info(f"Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
         Logger.info(f"Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
-        print(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
-        print(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
+        Logger.info(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true: {np.unique(y_true)} | y_pred: {np.unique(y_pred)}")
+        Logger.info(f"Epoch {self.epoch + 1} Phase {self.phase} | y_true counts: {Counter(y_true)} | y_pred shape: {Counter(y_pred)}")
 
         # Catch ZeroDivision UserWarning
         with warnings.catch_warnings(record=True) as warn_list:
@@ -87,6 +93,9 @@ class Metrics:
                 # Precision
                 self.precision_score = round(precision_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
                 
+                # Specificity
+                self.specificity_score = round(specificity_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
+                
                 # Confusion Matrix
                 self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
@@ -96,25 +105,16 @@ class Metrics:
                 # Classification Report
                 self.classification_report = classification_report(y_true, y_pred, labels=self.labels, zero_division=self.zero_division)
                 #Logger.info(self.classification_report)
-                print(f"Accuracy: {self.accuracy:.2f}")
-                print(f"F1 Score: {self.f1_score:.2f}")
-                print(f"Recall: {self.recall_score:.2f}")
-                print(f"Precision: {self.precision_score:.2f}")
-                print(f"Jaccard Score: {self.jaccard_score:.2f}")
                 
+                Logger.info(f"Accuracy: {self.accuracy:.2f}")
+                Logger.info(f"F1 Score: {self.f1_score:.2f}")
+                Logger.info(f"Recall: {self.recall_score:.2f}")
+                Logger.info(f"Precision: {self.precision_score:.2f}")
+                Logger.info(f"Jaccard Score: {self.jaccard_score:.2f}")
+                Logger.info(f"Specificity: {self.specificity_score:.2f}")
                 self.print_cm()
-                print(f"Report:\n {self.classification_report}")
                 Logger.info(f"Report:\n {self.classification_report}")
                 
-                # Specificity
-                if len(self.labels) == 2:
-                    tn, fp, fn, tp = self.confusion_matrix.ravel()
-                    self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
-                    print(f"Specificity: {self.specificity_score:.2f}")
-
-                    #self.s1_score = round(2 * ((self.specificity_score * self.recall_score) / (self.specificity_score + self.recall_score)), 2)
-                    #print(f"S1 Score: {self.s1_score:.2f}")
-
             except Warning as w:
                 self.zero_division_warn = True
                 Logger.warning(f"Phase: {self.phase} | An warning occurred: {str(w)}")
@@ -155,7 +155,7 @@ class Metrics:
         else:
             msg = f"[Zero_Division Warning] Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy}"
         Logger.info(msg)
-        print(msg)
+        Logger.info(msg)
     
     # To do:
     def ravel_confusion_matrix(self):
@@ -186,11 +186,21 @@ class Metrics:
         table.insert(0, headers)
 
         # Print the confusion matrix as a table
-        print(tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
         Logger.info(f"Epoch: {self.epoch+1} Confusion Matrix:")
         Logger.info("\n"+tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
 
 
+    def calc_specifcity(self):
+        # Specificity
+        if len(self.labels) == 2:
+            tn, fp, fn, tp = self.confusion_matrix.ravel()
+            self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
+            Logger.info(f"Specificity: {self.specificity_score:.2f}")
+        else:   
+            tp, fp, fn, tn = self.confusion_matrix.ravel()
+            self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
+            
+    
     def save_cm(self, info=""):
         # cf = self.confusion_matrix
         # categories = cl.config.dataset.labels

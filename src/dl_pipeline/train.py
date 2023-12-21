@@ -18,6 +18,7 @@ from torch.nn.utils import clip_grad_norm_
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader
+from tabulate import tabulate
 
 # Multi-GPUs
 import torch.multiprocessing as mp
@@ -52,7 +53,7 @@ def save_state(state:State, optional_name:str = ""):
     best_model = cl.config.best_model_path
     if not os.path.exists(cl.config.models_path):
         os.makedirs(cl.config.models_path)
-    
+
     if not os.path.exists(cl.config.best_model_folder):
         os.makedirs(cl.config.best_model_folder)
         
@@ -77,10 +78,11 @@ def save_state(state:State, optional_name:str = ""):
     #Save state object and dictionary    
     try:
         torch.save(state, model_path+".pth")
-        if not cl.config.dataset.personalization and cl.config.architecture.name == "cnn_transformer":
+        if not cl.config.dataset.personalization and cl.config.train.task_type != 5:
             if cl.config.best_val_loss < state.best_val_metrics.loss:
                 cl.config.best_val_loss = state.best_val_metrics.loss
                 torch.save(state, best_model)
+                
         #torch.save(state_dict, model_path+".pt")
 
     except Exception as e:  

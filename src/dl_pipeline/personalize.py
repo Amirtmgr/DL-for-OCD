@@ -4,6 +4,7 @@ import gc
 import numpy as np
 import random
 from collections import Counter
+from tabulate import tabulate
 
 import torch
 from torch.utils.data import ConcatDataset, TensorDataset
@@ -24,6 +25,8 @@ from src.helper.metrics import Metrics
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import OneSidedSelection, NearMiss, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from imblearn.metrics import specificity_score
+
 from imblearn.pipeline import Pipeline
 from sklearn.utils import resample
 
@@ -303,21 +306,11 @@ def run(device, multi_gpu=False):
     
     # Trainable parameters
     trainable_params = sum(p.numel() for p in state.best_model.parameters() if p.requires_grad)
-    print("Trainable parameters:", trainable_params)
     # Total parameters
     total_params = sum(p.numel() for p in state.best_model.parameters())
-    print("Total parameters:", total_params)
 
-    Logger.info(f"Trainable parameters: {trainable_params}")
-    Logger.info(f"Total parameters: {total_params}")
+   
 
-
-    print("======"*10)
-    print(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}] [Train Ratio: {cl.config.dataset.train_ratio} | Inference Ratio: {cl.config.dataset.inference_ratio}]:")
-    print(f"Folder: {cl.config.folder}")
-    print(f'''[Based on F1-Score] | Best Epoch: {state.best_epoch}\nTrain F1-Score: {state.best_train_metrics.f1_score:.2f} | Val F1-Score: {state.best_val_metrics.f1_score:.2f}\n
-    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_1.f1_score:.2f}\n
-    Train Loss: {state.best_train_metrics.loss:.2f} | Val Loss: {state.best_val_metrics.loss:.2f}''')
     Logger.info("======"*10)
     Logger.info(f"DL Personalization Results [Subject: {cl.config.dataset.personalized_subject}]:")
     Logger.info(f"Folder: {cl.config.folder}")
@@ -325,16 +318,15 @@ def run(device, multi_gpu=False):
     Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_1.f1_score:.2f}\n
     Train Loss: {state.best_train_metrics.loss:.2f} | Val Loss: {state.best_val_metrics.loss:.2f}''')
     
-    print("++++++++"*10)
-    print(f'''[Based on Val Loss] | Best Epoch: {state_l.best_epoch}\nTrain F1-Score: {state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {state_l.best_val_metrics.f1_score:.2f}\n
-    Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_2.f1_score:.2f}\n
-    Train Loss: {state_l.best_train_metrics.loss:.2f} | Val Loss: {state_l.best_val_metrics.loss:.2f}''')
-    
+  
     Logger.info("++++++++"*10)
     Logger.info(f'''[Based on Val Loss] | Best Epoch: {state_l.best_epoch}\nTrain F1-Score: {state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {state_l.best_val_metrics.f1_score:.2f}\n
     Before Inference F1-Score: {infer_metrics_0.f1_score:.2f} | After Inference F1-Score: {infer_metrics_2.f1_score:.2f}\n
     Train Loss: {state_l.best_train_metrics.loss:.2f} | Val Loss: {state_l.best_val_metrics.loss:.2f}''')
     
+    Logger.info(f"Trainable parameters: {trainable_params}")
+    Logger.info(f"Total parameters: {total_params}")
+
     return infer_metrics_0, infer_metrics_1, infer_metrics_2
 
 # Function to load data
