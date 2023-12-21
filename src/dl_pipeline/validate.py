@@ -330,8 +330,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info("Creating Inference Dataloader...")
     
     # Inference dataloader
-    inference_loader = dp.load_dataloader(inference_dataset)
-    personalize_loader = dp.load_dataloader(personalize_dataset)
+    inference_loader = dp.load_dataloader(inference_dataset, shuffle=False)
+    personalize_loader = dp.load_dataloader(personalize_dataset, shuffle=False)
 
     # Load best criterion
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
@@ -385,7 +385,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
         X_in = best_state_l.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
     
     inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_inference).float())
-    inference_loader =  dp.load_dataloader(inference_dataset)
+    inference_loader =  dp.load_dataloader(inference_dataset, shuffle=False)
     loss_fn = t.load_criterion(best_state_l.best_criterion_weight)
     inference_metrics_l = t.run_epoch(0,"inference [Loss]", inference_loader,
                                     best_state_l.best_model,loss_fn,   
@@ -701,7 +701,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     
    
     # Inference dataloader
-    inference_loader = dp.load_dataloader(inference_dataset)
+    inference_loader = dp.load_dataloader(inference_dataset,shuffle=False)
 
     # Load best criterion
     loss_fn = t.load_criterion(best_state.best_criterion_weight)
@@ -731,7 +731,7 @@ def subwise_k_fold_cv(device, multi_gpu=False):
         X_in = best_state_l.scaler.transform(X_inference.reshape(-1, num_features)).reshape(-1, window_size, num_features)
     
     inference_dataset = TensorDataset(torch.from_numpy(X_in).float(), torch.from_numpy(y_in).float())
-    inference_loader =  dp.load_dataloader(inference_dataset)
+    inference_loader =  dp.load_dataloader(inference_dataset, shuffle=False)
     loss_fn = t.load_criterion(best_state_l.best_criterion_weight)
     inferece_metrics_l = t.run_epoch(0,"inference [Loss]", inference_loader,
                                     best_state_l.best_model,loss_fn,   
