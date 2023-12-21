@@ -150,7 +150,7 @@ def run():
     else:
         Logger.info("*********"*20)
         Logger.info(f"Selecting subjects: {cl.config.dataset.personalized_subject}")
-        peronslized_df = selected_df[selected_df['sub_id'] == cl.config.dataset.personalized_subject].reset_index(drop=True)
+        personalized_df = selected_df[selected_df['sub_id'] == cl.config.dataset.personalized_subject].reset_index(drop=True)
     # Train data
     trained_df = selected_df[~selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
 
