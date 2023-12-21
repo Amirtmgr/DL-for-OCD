@@ -155,18 +155,12 @@ class Metrics:
         self.loss = loss
 
     def info(self):
-        Logger.info("\n"*3)
-        Logger.info("======"*20)
-        Logger.info("======"*20)
         Logger.info(f"Phase {self.phase} | Loss: {self.loss:.2f} | Metrics: Averaging: {self.averaging}")
         if not self.zero_division_warn:
             msg = f"Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy} | Best Epoch: {self.epoch+1}"
         else:
             msg = f"[Zero_Division Warning] Phase {self.phase} : Metrics: F1_Score: {self.f1_score} | Recall: {self.recall_score} | Precision: {self.precision_score} | Specificity: {self.specificity_score} | Jaccard: {self.jaccard_score} | Accuracy: {self.accuracy} | Best Epoch: {self.epoch+1}"
         Logger.info(msg)
-        Logger.info("======"*20)
-        Logger.info("======"*20)
-        Logger.info("\n"*1)
         
     # To do:
     def ravel_confusion_matrix(self):

@@ -141,10 +141,16 @@ def run():
     selected_df["relabeled"] = df["relabeled"]
     selected_df["sub_id"] = df["sub_id"]
     
-    # Personalized data
+    # Personalized data #Jut for personalized 
     personalized_subs = cl.config.dataset.personalized_subjects
-    personalized_df = selected_df[selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
-
+    if cl.config.train.task_type.value == TaskType.rHW_cHW_binary.value:
+        Logger.info("*********"*20)
+        Logger.info(f"Removing subjects: {personalized_subs}")
+        personalized_df = selected_df[selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
+    else:
+        Logger.info("*********"*20)
+        Logger.info(f"Selecting subjects: {cl.config.dataset.personalized_subject}")
+        peronslized_df = selected_df[selected_df['sub_id'] == cl.config.dataset.personalized_subject].reset_index(drop=True)
     # Train data
     trained_df = selected_df[~selected_df['sub_id'].isin(personalized_subs)].reset_index(drop=True)
 
@@ -260,8 +266,8 @@ def run():
             Logger.info(f"[{model}]. Results:")
             Logger.info(f"[{model}]. Results:")
             val_metrics.calculate_metrics()
-            val_metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
-            #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
+            #val_metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
+            val_metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
             #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
             val_table.append([model, val_metrics.precision_score, val_metrics.recall_score,  val_metrics.specificity_score, val_metrics.f1_score, val_metrics.accuracy])
             val_metrices.append(val_metrics)
@@ -278,6 +284,7 @@ def run():
             Logger.info(f"[{model}]. Inference  Results:")
             Logger.info(f"[{model}]. Results:")
             infer_metrics.calculate_metrics()
+            infer_metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
             inference_metrices.append(infer_metrics)
             inference_table.append([model, infer_metrics.precision_score, infer_metrics.recall_score,  infer_metrics.specificity_score, infer_metrics.f1_score, infer_metrics.accuracy])
             

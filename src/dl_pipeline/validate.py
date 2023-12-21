@@ -394,6 +394,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
 
     Logger.info("Based on Val Loss:")
     inference_metrics_l.info()
+    inference_metrics_l.save_cm("Inference Plot [Based on Loss]")
     # Save inference metrics
     msg = om.save_object(inference_metrics_l, cl.config.folder, dm.FolderType.results, "inference_metrics_loss.pkl" )
     Logger.info(msg)
@@ -416,14 +417,7 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1} | Best Epoch: {best_state_l.best_epoch}\nTrain F1-Score: {best_state_l.best_train_metrics.f1_score:.2f} | Val F1-Score: {best_state_l.best_val_metrics.f1_score:.2f} | Inference F1-Score: {inference_metrics_l.f1_score:.2f}\nTrain Loss: {best_state_l.best_train_metrics.loss:.2f} | Val Loss: {best_state_l.best_val_metrics.loss:.2f}")
 
   
-    Logger.info("==================="*10)
-    Logger.info("==================="*10)
-    Logger.info(f"FINAL RESULTS: Task-{cl.config.train.task_type.value}")
-    Logger.info("Based on Val Loss:")
     
-    inference_metrics_l.info()
-    Logger.info("==================="*10)
-    Logger.info(f"You have completed the Task-{cl.config.train.task_type.value}")
     
      # Info
 
@@ -449,14 +443,18 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     results_df.to_csv(csv_path, index=False)
 
     Logger.info(f"Results saved to: {csv_path}")
-    Logger.info(f"Final Results:")
-    Logger.info(f"Training Scores:")
+    Logger.info("==================="*5)
+    Logger.info(f"\nFINAL RESULTS: Task-{cl.config.train.task_type.value}")
+    Logger.info(f"\nInference Result based on Val Loss Dataset ratio:[{cl.config.dataset.inference_ratio}]")
+    inference_metrics_l.info()
+    Logger.info(f"\nTraining Scores:")
     Logger.info(tabulate(train_results_df, headers='keys', tablefmt='fancy_grid'))
     Logger.info(f"Validation Scores:")
     Logger.info(tabulate(val_results_df, headers='keys', tablefmt='fancy_grid'))
-    Logger.info
+    Logger.info("==================="*5)
     Logger.info(cl.config.file_name)
-    
+    Logger.info(f"You have completed the Task-{cl.config.train.task_type.value}")
+
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
     # start
