@@ -33,7 +33,7 @@ global:
 
 # For personalization
 checkpoint:
-  folder: '2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
+  folder: 'best_model'
   filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
   freeze_layers: True
   trainable_layers: ['fc_layers']
