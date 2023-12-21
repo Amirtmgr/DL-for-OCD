@@ -165,6 +165,7 @@ def main():
         dl.train()
     elif args.method == 'ml':
         cl.config.dataset.name = "processed"
+        cl.config.checkpoint.folder = "ML"
         #cl.config.train.cross_validation.name = "losocv"
         ml.run()
     elif args.method == 'lazy':
