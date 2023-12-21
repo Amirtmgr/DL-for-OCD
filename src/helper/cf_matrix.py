@@ -18,7 +18,7 @@ def make_confusion_matrix(cf,
                           xyticks=True,
                           xyplotlabels=True,
                           sum_stats=True,
-                          figsize=None,
+                          figsize=(8,7),
                           cmap='Blues',
                           title=None,
                           save = False):
@@ -59,7 +59,7 @@ def make_confusion_matrix(cf,
 
     # CODE TO GENERATE TEXT INSIDE EACH SQUARE
     blanks = ['' for i in range(cf.size)]
-
+    sns.set(font_scale = 1.5)
     if group_names and len(group_names)==cf.size:
         group_labels = ["{}\n".format(value) for value in group_names]
     else:
@@ -112,9 +112,9 @@ def make_confusion_matrix(cf,
 
     # MAKE THE HEATMAP VISUALIZATION
     plt.figure(figsize=figsize)
-    sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories)
+    sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories,annot_kws={'size': 14})
     
-    font_dict = {'weight':'normal','size':18}
+    font_dict = {'weight':'normal','size':16}
 
     if xyplotlabels:
         plt.ylabel('True label')
