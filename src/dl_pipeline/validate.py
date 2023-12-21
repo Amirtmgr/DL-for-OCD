@@ -434,10 +434,10 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info("Saving results to csv...")
     
     train_results = get_mean_scores(states, 'train')[1]
-    train_results_df = pd.DataFrame(train_results, index=train_results.keys())
+    train_results_df = pd.DataFrame(train_results[1:], index=train_results[0])
     
     val_results = get_mean_scores(states, 'val')[1]
-    val_results_df = pd.DataFrame(val_results, index=val_results.keys())
+    val_results_df = pd.DataFrame(val_results[1:], index=val_results[0])
     
     results_df = pd.concat([train_results_df, val_results_df], axis=0)
     csv_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
