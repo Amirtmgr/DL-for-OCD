@@ -10,7 +10,7 @@ class TaskType(Enum):
     Multiclass_classification = 4 # Null vs rHW vs cHW # Multiclass
     DL_Personalization = 5 
     HW_classification = 6 # rHW vs cHW # Multiclass
-
+    
 # HandWashing Type
 class HandWashingType(IntEnum):
     NoHandWash = 0

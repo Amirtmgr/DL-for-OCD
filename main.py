@@ -104,6 +104,7 @@ def main():
     
     # Perform data cleaning and preprocessing
     if args.data_preprocessing:
+        Logger.info("Entered to perform data cleaning and preprocessing...")
         # Perform data cleaning and preprocessing
         Logger.info("For ML, Performing data cleaning and preprocessing...")
         cln.clean_all()
@@ -149,6 +150,9 @@ def main():
     elif task_type == TaskType.Multiclass_classification:
         msg = "==============Multi-class classification========="
         cl.config.dataset.labels = ["Null", "rHW", "cHW"]
+    elif task_type == TaskType.DL_Personalization:
+        msg = "==============DL Personalization========="
+        cl.config.dataset.labels = ["rHW", "cHW"]
     else: 
         raise ValueError("Task type not found in config file.")
     
