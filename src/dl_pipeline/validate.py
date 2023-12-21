@@ -61,7 +61,7 @@ def get_mean_scores(states:[State], phase:str):
         table.append(temp)
         
 
-    mean = [phase, "Mean", np.mean(f1_scores), np.mean(recall_scores), np.mean(precision_scores), np.mean(specificity_scores), np.mean(jaccard_scores), np.mean(accuracy_scores)]
+    mean = [phase, "Mean", np.mean(f1_scores), np.mean(recall_scores), np.mean(precision_scores), np.mean(specificity_scores),  np.mean(accuracy_scores), np.mean(jaccard_scores)]
     table.append(mean)
     
     mean_scores = { "F1 Score": np.mean(f1_scores),
@@ -434,10 +434,13 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info("Saving results to csv...")
     
     train_results = get_mean_scores(states, 'train')[1]
-    train_results_df = pd.DataFrame(train_results[1:], index=train_results[0])
+    Logger.info(tabulate(train_results, headers="firstrow", tablefmt="fancy_grid"))
     
     val_results = get_mean_scores(states, 'val')[1]
-    val_results_df = pd.DataFrame(val_results[1:], index=val_results[0])
+    Logger.info(tabulate(val_results, headers="firstrow", tablefmt="fancy_grid"))
+
+    train_results_df = pd.DataFrame(train_results[1:], columns=train_results[0])
+    val_results_df = pd.DataFrame(val_results[1:], columns=val_results[0])
     
     results_df = pd.concat([train_results_df, val_results_df], axis=0)
     csv_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
