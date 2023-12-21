@@ -115,7 +115,7 @@ class State:
         title = "Train vs Validation Losses" + title
         x_label = "Epochs"
         y_label = "Losses"
-        legend_labels = ["Train Losses", "Validation Losses"]
+        legend_labels = ["Train", "Val"]
         train_losses = self.get_list_of(item='loss', phase='train')
         val_losses = self.get_list_of(item='loss', phase='val')
         data_lists = [train_losses, val_losses]
@@ -126,7 +126,7 @@ class State:
         title = "Train vs Validation F1 Scores"+ title
         x_label = "Epochs"
         y_label = "F1 Scores"
-        legend_labels = ["Train F1 Scores", "Validation F1 Scores"]
+        legend_labels = ["Train", "Val"]
         train_f1_scores = self.get_list_of(item='f1_score', phase='train')
         val_f1_scores = self.get_list_of(item='f1_score', phase='val')
         data_lists = [train_f1_scores, val_f1_scores]

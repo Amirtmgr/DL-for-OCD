@@ -428,7 +428,7 @@ def plot_sensor_data(input_data, ground_truth, predictions, sampling_rate=50, sa
         if os.path.exists(cl.config.charts_path) == False:
             os.makedirs(cl.config.charts_path)
         save_path = cl.config.charts_path + "/" + sensor+ "_" + title.split()[0] + "_" + str(uuid.uuid4().hex) + ".png"  
-        pio.write_image(fig, save_path, format='png', width=1200, height=600)
+        pio.write_image(fig, save_path, format='png', width=1200, height=500)
         print(f"Figure saved as {save_path}")
     else:
         fig.show()
@@ -442,7 +442,7 @@ def plotly_scatter(data_lists, title="", x_label="", y_label="", legend_labels=N
     
      # Update layout and axis labels
     fig.update_layout(title=title,
-        font=dict(family='Arial, sans-serif', size=18)
+        font=dict(family='Arial, sans-serif', size=24)
         )
     # Y-axis line color)
 
@@ -462,12 +462,15 @@ def plotly_scatter(data_lists, title="", x_label="", y_label="", legend_labels=N
                 gridwidth=1,  # Width of major grid lines
                 gridcolor='white',  # Color of major grid lines
                 dtick=5,  # Spacing of grid lines based on x-axis values
+                font=dict(family='Arial, sans-serif', size=16, color='black')
+                
             ),
             yaxis=dict(
                 showgrid=True,  # Show the y-axis grid lines
                 gridwidth=1,  # Width of major grid lines
                 gridcolor='white',  # Color of major grid lines
                 dtick=dtick,  # Spacing of grid lines based on y-axis values
+                font=dict(family='Arial, sans-serif', size=16, color='black')
             )
         )
 

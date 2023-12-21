@@ -367,8 +367,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     infer_array = np.concatenate(infer_data, axis=0)
 
     # Visuals
-    lower = 20
-    upper = 30
+    lower = 15
+    upper = 35
     #pl.plot_sensor_data(infer_array[lower:upper], inferece_metrics.y_true[lower:upper], inferece_metrics.y_pred[lower:upper], save=True, title=f"Inference Result")
     pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="acc")
     pl.plot_sensor_data(infer_array[lower:upper], inference_metrics.y_true[lower:upper], inference_metrics.y_pred[lower:upper], save=True, title=f"Inference Results", sensor="gyro")
@@ -426,7 +426,6 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info(f"You have completed the Task-{cl.config.train.task_type.value}")
     
      # Info
-    Logger.info("Average Scores:")    
 
     states = [v['f1'] for k, v in results.items() if not isinstance(v, int)]
     
@@ -434,10 +433,8 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     Logger.info("Saving results to csv...")
     
     train_results = get_mean_scores(states, 'train')[1]
-    Logger.info(tabulate(train_results, headers="firstrow", tablefmt="fancy_grid"))
     
     val_results = get_mean_scores(states, 'val')[1]
-    Logger.info(tabulate(val_results, headers="firstrow", tablefmt="fancy_grid"))
 
     train_results_df = pd.DataFrame(train_results[1:], columns=train_results[0])
     val_results_df = pd.DataFrame(val_results[1:], columns=val_results[0])
@@ -445,15 +442,20 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     results_df = pd.concat([train_results_df, val_results_df], axis=0)
     csv_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
     
+    infer_tab = ["Inference", inference_metrics_l.epoch+1, inference_metrics_l.f1_score, inference_metrics_l.recall_score, inference_metrics_l.precision_score, inference_metrics_l.specificity_score, inference_metrics_l.accuracy, inference_metrics_l.jaccard_score] 
+    
+    results_df.loc[len(results_df)] = infer_tab
+    
     results_df.to_csv(csv_path, index=False)
 
     Logger.info(f"Results saved to: {csv_path}")
     Logger.info(f"Final Results:")
-    Logger.info(f"Training Average Scores:")
+    Logger.info(f"Training Scores:")
     Logger.info(tabulate(train_results_df, headers='keys', tablefmt='fancy_grid'))
-    Logger.info(f"Validation Average Scores:")
+    Logger.info(f"Validation Scores:")
     Logger.info(tabulate(val_results_df, headers='keys', tablefmt='fancy_grid'))
-    
+    Logger.info
+    Logger.info(cl.config.file_name)
     
 # Function to run subjectwise k-fold cross-validation
 def subwise_k_fold_cv(device, multi_gpu=False):
@@ -747,7 +749,6 @@ def subwise_k_fold_cv(device, multi_gpu=False):
     # Results
     Logger.info("Results:")
     Logger.info("Folder: {cl.config.folder}")
-    Logger.info(f"[Based on F1-Score] Best k-Fold: {best_fold+1}\nTrain F1-Score: {best_state.val_metrics.f1_score} | Val F1-Score: {best_state.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics.f1_score}\nTrain Loss: {best_state.train_metrics.loss} | Val Loss: {best_state.val_metrics.loss} | Best Epoch: {best_state.best_epoch}")
     Logger.info(f"[Based on Loss] Best k-Fold: {best_fold_l+1}\nTrain F1-Score: {best_state_l.val_metrics.f1_score} | Val F1-Score: {best_state_l.val_metrics.f1_score} | Inference F1-Score: {inferece_metrics_l.f1_score}\nTrain Loss: {best_state_l.train_metrics.loss} | Val Loss: {best_state_l.val_metrics.loss} | Best Epoch: {best_state_l.best_epoch}")
 
 '''

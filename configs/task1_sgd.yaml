@@ -23,7 +23,7 @@ global:
   - &num_workers 4
   - &random_seed 831 #2531442
   - &use_warn_metrics True
-  - &task_type 1 # -1 : rHW vs cHW #Binary | 0 : Null vs cHW | 1 : Null vs HW | 2 : rHW vs cHW | 3 : Null vs rHW vs cHW
+  - &task_type 1 # 1 : Null vs HW | 2 : rHW vs cHW #Binary | 3 : Null vs cHW | 4 : Null vs rHW vs cHW | 5: DL Personalization | 6: rHW vs cHW with Cross entropy loss
   - &binary_threshold 0.5
   - &personalization False
   - &ensemble False
@@ -33,8 +33,8 @@ global:
 
 # For personalization
 checkpoint:
-  folder: '2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
-  filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
+  folder: 'best_model'
+  filename: ''
   freeze_layers: True
   trainable_layers: ['fc_layers']
 
@@ -175,7 +175,7 @@ dataset:
   scaler_type: "MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.15 # Sampling ratio
-  filter_subjects: ['5'] #['5', '18', '3','30', '15']
+  filter_subjects: ['5', '18', '3','30', '15']
   trustworthy_only: *trustworthy_only
   trustworthy_subjects: *trustworthy_subjects
   other_subjects: [5, 18, 3, 30, 15]

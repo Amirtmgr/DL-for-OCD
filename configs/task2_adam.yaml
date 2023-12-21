@@ -175,7 +175,7 @@ dataset:
   scaler_type: "MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.15 # Sampling ratio
-  filter_subjects: ['5'] #['5', '18', '3','30', '15']
+  filter_subjects: ['5', '18', '3','30', '15']
   trustworthy_only: *trustworthy_only
   trustworthy_subjects: *trustworthy_subjects
   other_subjects: [5, 18, 3, 30, 15]

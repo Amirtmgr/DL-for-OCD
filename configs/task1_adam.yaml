@@ -33,8 +33,8 @@ global:
 
 # For personalization
 checkpoint:
-  folder: '2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
-  filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
+  folder: 'best_model'
+  filename: ''
   freeze_layers: True
   trainable_layers: ['fc_layers']
 
@@ -175,7 +175,7 @@ dataset:
   scaler_type: "MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.15 # Sampling ratio
-  filter_subjects: ['5'] #['5', '18', '3','30', '15']
+  filter_subjects: ['5', '18', '3','30', '15']
   trustworthy_only: *trustworthy_only
   trustworthy_subjects: *trustworthy_subjects
   other_subjects: [5, 18, 3, 30, 15]

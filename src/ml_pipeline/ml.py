@@ -58,27 +58,27 @@ def load_features():
     df = pd.concat(df_list, ignore_index=True)
     
     if cl.config.train.task_type.value == TaskType.rHW_cHW_binary.value:
-        print("*********"*20)
-        print("rHW vs cHW binary")
+        Logger.info("*********"*20)
+        Logger.info("rHW vs cHW binary")
         temp_df = df[df["relabeled"] != 0].copy().reset_index(drop=True)
         temp_df['relabeled'].replace(1, 0, inplace=True)
         temp_df['relabeled'].replace(2, 1, inplace=True)
         return temp_df
        
     elif cl.config.train.task_type.value == TaskType.cHW_detection.value:
-        print("*********"*20)
-        print("Null vs cHW binary")
+        Logger.info("*********"*20)
+        Logger.info("Null vs cHW binary")
         df['relabeled'].replace(1, 0, inplace=True)
         df['relabeled'].replace(2, 1, inplace=True)
         return df
     elif cl.config.train.task_type.value == TaskType.HW_detection.value:
-        print("*********"*20)
-        print("Null vs HW binary")
+        Logger.info("*********"*20)
+        Logger.info("Null vs HW binary")
         df['relabeled'].replace(2, 1, inplace=True)
         return df
     else:
-        print("*********"*20)
-        print("Null vs cHW vs HW")
+        Logger.info("*********"*20)
+        Logger.info("Null vs cHW vs HW")
         return df
 
 def select_features(df):
@@ -127,7 +127,7 @@ def run():
     indices = [0,1,6,8,9]
     models = [all_models[i] for i in indices]
     for i, model in enumerate(models):
-        print(f"{i}.{model}")
+        Logger.info(f"{i}.{model}")
         
     # Results
     results = {}
@@ -227,7 +227,7 @@ def run():
 
         class_weights = compute_class_weight('balanced', classes=np.unique(train_labels), y=train_labels)
         class_weight_dict = {num: weight for num, weight in enumerate(class_weights)}
-        print(f"Class weights: {class_weight_dict}")
+        Logger.info(f"Class weights: {class_weight_dict}")
         Logger.info(f"Class weights: {class_weight_dict}")
         
         # New table
@@ -258,7 +258,7 @@ def run():
             val_metrics.y_pred = y_pred
             val_metrics.phase = "validation"
             Logger.info(f"[{model}]. Results:")
-            print(f"[{model}]. Results:")
+            Logger.info(f"[{model}]. Results:")
             val_metrics.calculate_metrics()
             val_metrics.new_save_cm(f"Classifier: {model} | k-Fold: {kfold+1}")
             #metrics.save_cm(info=f" Classifier: {model} | k-Fold: {i+1}")
@@ -276,7 +276,7 @@ def run():
             infer_metrics.y_pred = infer_y_pred
             infer_metrics.phase = "inference"
             Logger.info(f"[{model}]. Inference  Results:")
-            print(f"[{model}]. Results:")
+            Logger.info(f"[{model}]. Results:")
             infer_metrics.calculate_metrics()
             inference_metrices.append(infer_metrics)
             inference_table.append([model, infer_metrics.precision_score, infer_metrics.recall_score,  infer_metrics.specificity_score, infer_metrics.f1_score, infer_metrics.accuracy])
@@ -290,7 +290,6 @@ def run():
             p_infer_metrics.y_pred = p_infer_y_pred
             p_infer_metrics.phase = "inference"
             Logger.info(f"[{model}]. Inference  Results:")
-            print(f"[{model}]. Results:")
             p_infer_metrics.calculate_metrics()
             personalized_infer_metrices.append(p_infer_metrics)
             personalized_infer_table.append([model, p_infer_metrics.precision_score, p_infer_metrics.recall_score,  p_infer_metrics.specificity_score, p_infer_metrics.f1_score, p_infer_metrics.accuracy])
@@ -302,10 +301,7 @@ def run():
         Logger.info(f"Stratified_k-Fold:{kfold+1} ===> Duration: {datetime.datetime.now() - k_start}")
         Logger.info(f"-------------------")
         
-        print(f"Results: k-Fold: {kfold}")
         Logger.info(f"Results: k-Fold: {kfold}")
-        print(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
-        print(tabulate(personalized_infer_table, headers="firstrow", tablefmt="fancy_grid"))
         
         Logger.info(f"Validataion Results: k-Fold: {kfold}")
         Logger.info(tabulate(val_table, headers="firstrow", tablefmt="fancy_grid"))
@@ -333,14 +329,10 @@ def run():
     msg = om.save_object(all_trained_models, cl.config.folder, dm.FolderType.results, "trained_models.pkl" )
     Logger.info(msg)
     Logger.info("******\n"*5)
-    print("******\n"*5)
     Logger.info(f"Final Results:")
-    print(f"Final Results:")
     for kfold, tabs in tables.items():
         for phase, tab in tabs.items():
-            print(f"Scores: k-Fold: {kfold+1} | Phase: {phase}")
             Logger.info(f"Scores: k-Fold: {kfold+1} | Phase: {phase}")
-            print(tabulate(tab, headers="firstrow", tablefmt="fancy_grid"))
             Logger.info(tabulate(tab, headers="firstrow", tablefmt="fancy_grid"))
-    
+            pd.DataFrame(tab[1:], columns=tab[0]).to_csv(f"{cl.config.results_path}/kfold_{kfold+1}_{phase}.csv")
     # Save models

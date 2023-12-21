@@ -398,7 +398,7 @@ def train_model(network, criterion, optimizer, lr_scheduler, train_loader, val_l
             
             # Save state
             save_state(state_l, optional_name + "_with_loss")
-            # val_metrics.save_cm(info=f" {optional_name} | Epoch: {epoch+1}")
+            val_metrics.save_cm(info=f" {optional_name} | Epoch: {epoch+1}")
 
             # Early stopping
             if early_stopper:

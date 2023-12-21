@@ -114,7 +114,7 @@ def make_confusion_matrix(cf,
     plt.figure(figsize=figsize)
     sns.heatmap(cf,annot=box_labels,fmt="",cmap=cmap,cbar=cbar,xticklabels=categories,yticklabels=categories)
     
-    font_dict = {'weight':'normal','size':12}
+    font_dict = {'weight':'normal','size':18}
 
     if xyplotlabels:
         plt.ylabel('True label')
