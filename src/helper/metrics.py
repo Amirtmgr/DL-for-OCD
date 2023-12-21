@@ -17,8 +17,6 @@ import uuid
 import os
 from src.helper.data_model import TaskType
 from imblearn.metrics import specificity_score
-
-
 from src.helper.cf_matrix import make_confusion_matrix
 from src.helper.logger import Logger
 from sklearn.metrics import (
@@ -48,7 +46,7 @@ class Metrics:
         self.y_pred = None        
         self.labels = [0, 1, 2] if cl.config.dataset.task_type == TaskType.Multiclass_classification.value else [0, 1]
         
-        if cl.config.dataset.task_type == TaskType.Multiclass_classification.value:
+        if cl.config.dataset.task_type != TaskType.Multiclass_classification.value:
             self.averaging = 'binary'
         else:
             self.averaging = 'macro'
@@ -93,9 +91,6 @@ class Metrics:
                 # Precision
                 self.precision_score = round(precision_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
                 
-                # Specificity
-                self.specificity_score = round(specificity_score(y_true, y_pred, labels=self.labels,average=self.averaging, zero_division=self.zero_division),2)
-                
                 # Confusion Matrix
                 self.confusion_matrix = confusion_matrix(y_true, y_pred, labels=self.labels)
 
@@ -111,6 +106,16 @@ class Metrics:
                 Logger.info(f"Recall: {self.recall_score:.2f}")
                 Logger.info(f"Precision: {self.precision_score:.2f}")
                 Logger.info(f"Jaccard Score: {self.jaccard_score:.2f}")
+                
+                
+                
+                # Specificity
+                if len(self.labels) == 2:
+                    tn, fp, fn, tp = self.confusion_matrix.ravel()
+                    self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
+                else:
+                    self.specificity_score = specificity_score(y_true, y_pred, labels=self.labels, average=self.averaging, zero_division=self.zero_division)
+                
                 Logger.info(f"Specificity: {self.specificity_score:.2f}")
                 self.print_cm()
                 Logger.info(f"Report:\n {self.classification_report}")
@@ -190,17 +195,6 @@ class Metrics:
         Logger.info("\n"+tabulate(table, headers="firstrow", tablefmt="fancy_grid"))
 
 
-    def calc_specifcity(self):
-        # Specificity
-        if len(self.labels) == 2:
-            tn, fp, fn, tp = self.confusion_matrix.ravel()
-            self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
-            Logger.info(f"Specificity: {self.specificity_score:.2f}")
-        else:   
-            tp, fp, fn, tn = self.confusion_matrix.ravel()
-            self.specificity_score = round(tn / (tn + fp), 2) if (tn + fp) != 0 else 0.0
-            
-    
     def save_cm(self, info=""):
         # cf = self.confusion_matrix
         # categories = cl.config.dataset.labels

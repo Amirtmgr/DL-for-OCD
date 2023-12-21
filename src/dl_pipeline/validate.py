@@ -41,9 +41,11 @@ def get_mean_scores(states:[State], phase:str):
     specificity_scores = []
     jaccard_scores = []
     accuracy_scores = []
+    folds = []
 
-
-    for state in states:
+    table = [["Phase","Fold","F1 Score", "Recall Score", "Precision Score", "Specificity Score","Accuracy","Jaccard Score"]]
+             
+    for i, state in enumerate(states):
         if isinstance(state, int):
             continue
         metric = state.best_train_metrics if phase == "train" else state.best_val_metrics
@@ -54,33 +56,24 @@ def get_mean_scores(states:[State], phase:str):
         specificity_scores.append(metric.specificity_score)
         jaccard_scores.append(metric.jaccard_score)
         accuracy_scores.append(metric.accuracy)
+        temp = [phase , i+1, metric.f1_score, metric.recall_score, metric.precision_score, metric.specificity_score, metric.accuracy, metric.jaccard_score]
 
-        folds = [f"{i}-fold" for i in range(len(f1_scores))].append("Mean")
+        table.append(temp)
         
-        table = {"Fold": folds,
-                 "F1 Score": f1_scores.append(np.mean(f1_scores)),
-                "Recall Score": np.mean(recall_scores), 
+
+    mean = [phase, "Mean", np.mean(f1_scores), np.mean(recall_scores), np.mean(precision_scores), np.mean(specificity_scores), np.mean(jaccard_scores), np.mean(accuracy_scores)]
+    table.append(mean)
+    
+    mean_scores = { "F1 Score": np.mean(f1_scores),
+                "Recall Score": np.mean(recall_scores),
                 "Precision Score": np.mean(precision_scores),
                 "Specificity Score": np.mean(specificity_scores),
                 "Jaccard Score": np.mean(jaccard_scores),
                 "Accuracy": np.mean(accuracy_scores)
-                }
-        
-        mean_scores = { "F1 Score": np.mean(f1_scores),
-                    "Recall Score": np.mean(recall_scores),
-                    "Precision Score": np.mean(precision_scores),
-                    "Specificity Score": np.mean(specificity_scores),
-                    "Jaccard Score": np.mean(jaccard_scores),
-                    "Accuracy": np.mean(accuracy_scores)
-                       }
+                    }
     
-    # mean_scores = { "f1_score": np.mean(f1_scores),
-    #                 "recall_score": np.mean(recall_scores), 
-    #                 "precision_score": np.mean(precision_scores),
-    #                 "specificity_score": np.mean(specificity_scores),
-    #                 "jaccard_score": np.mean(jaccard_scores),
-    #                 "accuracy": np.mean(accuracy_scores)
-    #                 }
+    
+
 
     return mean_scores, table
 
@@ -442,11 +435,9 @@ def stratified_k_fold_cv(device, multi_gpu=False):
     
     train_results = get_mean_scores(states, 'train')[1]
     train_results_df = pd.DataFrame(train_results, index=train_results.keys())
-    train_results_df["Phase"] = ["Train"]*len(train_results_df)
     
     val_results = get_mean_scores(states, 'val')[1]
     val_results_df = pd.DataFrame(val_results, index=val_results.keys())
-    val_results_df["Phase"] = ["Val"]*len(val_results_df)
     
     results_df = pd.concat([train_results_df, val_results_df], axis=0)
     csv_path = os.path.join(cl.config.results_path, f"{cl.config.folder}_tasktype_{cl.config.train.task_type}.csv")
