@@ -35,7 +35,7 @@ global:
 checkpoint:
   folder: 'best_model' #'2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
   filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
-  freeze_layers: True
+  freeze_layers: False
   trainable_layers: ['fc_layers']
 
 # Model architecture parameters
@@ -169,7 +169,7 @@ dataset:
 
   random_seed: *random_seed
   shuffle: False
-  batch_shuffle: False
+  batch_shuffle: True
   num_workers: *num_workers
   pin_memory: False
   scaler_type: "MinMax" # "Standard" # "Robust"
