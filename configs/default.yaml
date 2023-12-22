@@ -16,14 +16,14 @@ world_size: 1 #Number of GPUs
 # Global variables
 global:
   - &window_size 380
-  - &num_epochs 2
-  - &num_classes 1
+  - &num_epochs 10
+  - &num_classes 2
   - &sensors 'both' #'acc' # 'gyro' # 'both'
   - &device 'cuda'
   - &num_workers 4
   - &random_seed 831 #2531442
   - &use_warn_metrics True
-  - &task_type 2 # 1 : Null vs HW | 2 : rHW vs cHW #Binary | 3 : Null vs cHW | 4 : Null vs rHW vs cHW | 5: DL Personalization | 6: rHW vs cHW with Cross entropy loss
+  - &task_type 1 # 1 : Null vs HW | 2 : rHW vs cHW #Binary | 3 : Null vs cHW | 4 : Null vs rHW vs cHW | 5: DL Personalization | 6: rHW vs cHW with Cross entropy loss
   - &binary_threshold 0.5
   - &personalization False
   - &ensemble False
@@ -33,14 +33,14 @@ global:
 
 # For personalization
 checkpoint:
-  folder: 'best_model' #'2023_11_11-13_34_34_ef0649faa64a40ddbf8f4c581c3375ff'
-  filename: 'cnn_transformer_cv-4_stratified_fold_with_loss_Epoch-18.pth' #'cnn_transformer_cv-4_stratified_fold_Epoch-21'
+  folder: 'best_model'
+  filename: ''
   freeze_layers: True
   trainable_layers: ['fc_layers']
 
 # Model architecture parameters
 architecture:
-  name: 'cnn_transformer' #'cnn_transformer' #'multi_cnn_transformer' #'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
+  name: 'cnn_transformer' #'multi_cnn_transformer' #'cnn_transformer' #'tinyhar' #'deepconvlstm' #'cnn_transformer' #'cnn' #'attend_descriminate'
   sensors: *sensors
   window_size: *window_size
   device: *device
@@ -54,7 +54,7 @@ architecture:
   cnn_batch_norm: True
 
   # For LSTM
-  lstm_hidden_size: 128
+  lstm_hidden_size: 256
   lstm_num_layers: 2
   lstm_bias: False
   lstm_dropout: 0.0
@@ -62,7 +62,7 @@ architecture:
 
   # For Transformer
   multi_attn_heads: 8
-  dim_feedforward: 128
+  dim_feedforward: 256
   transformer_dropout: 0.1
   transformer_act_fn: 'gelu' #'gelu'
   num_encoder_layers: 6
@@ -111,7 +111,7 @@ architecture:
 
 # Optimizer Hyperparameters
 optim:
-  name: 'sgd' #'sgd'
+  name: 'adam' #'sgd'
   learning_rate: 0.0003
   weight_decay: 0.00005
   momentum: 0.9
@@ -144,23 +144,23 @@ train:
   random_seed: *random_seed
   cross_validation:
     name: 'stratified' #'stratified' #'kfold' #'losocv'
-    k_folds: 2
+    k_folds: 4
   ensemble: *ensemble
   early_stopping:
     patience: 15
     min_delta: 0.0
 # Dataset parameters
 dataset:
-  name: 'OCDetect_sep_380' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
+  name: 'processed' #OCDetect_sep_380' #'OCDetect_raw_250' #'test_' #'datasets' #'OCDetect_Export' #'test' #'features' #"processed"
   sensor: *sensors #'acc' # 'gyro' # 'both'
   overlapping_ratio: 0.0
   window_size: *window_size
   num_classes: *num_classes
   labels: ['NUll', 'rHW', 'cHW']
-  train_ratio: 0.30 #0.5  # Highest 0.9
+  train_ratio: 0.70 #0.5  # Highest 0.9
   
   test_ratio: 0.1 # Set only on DL Personalization
-  inference_ratio: 0.50 # Set only on DL Personalization
+  inference_ratio: 0.30 # Set only on DL Personalization
   split: 'subject_wise' # To:do future
   task_type: *task_type
   personalization: *personalization
@@ -175,7 +175,7 @@ dataset:
   scaler_type: "MinMax" # "Standard" # "Robust"
   sampling: *sampling
   alpha: 0.15 # Sampling ratio
-  filter_subjects: ['5'] #['5', '18', '3','30', '15']
+  filter_subjects: ['5', '18', '3','30', '15']
   trustworthy_only: *trustworthy_only
   trustworthy_subjects: *trustworthy_subjects
   other_subjects: [5, 18, 3, 30, 15]

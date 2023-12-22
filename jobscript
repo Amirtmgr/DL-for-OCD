@@ -38,20 +38,4 @@ echo "Running python script `hostname`"
 
 
 # Run a python script:
-python main.py configs/$task.yaml $method
-
-# Run a python script:
-#python main.py configs/config_01.yaml "ml"
-#python main.py configs/config_01.yaml "ml"
-
-# Run task1
-#python main.py configs/task1.yaml
-
-# # Run task2
-#python main.py configs/task2.yaml
-
-# # Run task3
-#python main.py configs/task3.yaml
-
-# # Run task4
-#python main.py configs/task4.yaml
+python main.py configs/$task.yaml --m $method
