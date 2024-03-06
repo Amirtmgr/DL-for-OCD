@@ -4,7 +4,7 @@
 This repository contains the code and resources for the Master Thesis titled, "Deep Learning-Based Detection of Obsessive-Compulsive Hand Washing". The project aims to develop an automated system using deep learning methods to detect instances of enacted obsessive-compulsive hand washing behavior.
 
 ## The Methodology of this paper is as follows:
-<img src="notebooks/IMU-Transformer.png" width="900">
+<img src="notebooks/IMU-Transformer_updated.png" width="900">
 
 ## Tasks Types:
 - Task 1: Null vs. HW (HandWashing)
