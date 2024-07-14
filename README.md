@@ -141,5 +141,5 @@ $ bash run_personalized.sh
 
 
 ## Contact
-For questions and comments please contact [Amir Thapa Magar](amir.thapamagar@student.uni-siegen.de) via mail
+For questions and comments please contact [Amir Thapa Magar](amir.thapamagar01@gmail.com) via mail
 
